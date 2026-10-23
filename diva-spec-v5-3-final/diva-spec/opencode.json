@@ -1,0 +1,98 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "model": "opencode-go/deepseek-v4.1-flash",
+  "small_model": "opencode-go/qwen3.8-flash",
+  "agent": {
+    "plan": {
+      "model": "opencode-go/glm-5.2"
+    },
+    "build": {
+      "model": "opencode-go/deepseek-v4.1-flash"
+    },
+    "plan-hard": {
+      "description": "Hardest architecture and debugging questions only. Small monthly quota on Go: use rarely.",
+      "mode": "subagent",
+      "model": "opencode-go/glm-5.3"
+    },
+    "build-hard": {
+      "description": "Tricky implementation the main build agent could not solve. Small monthly quota: use rarely.",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-pro"
+    },
+    "frontend": {
+      "description": "Routine React screens (Ops, Control Room, Mini App) with Arabic RTL and English. Never touches payment, deposit or authentication code.",
+      "mode": "subagent",
+      "model": "opencode-go/kimi-k2.7-code"
+    },
+    "frontend-hard": {
+      "description": "Hard UI sessions only (complex layouts, POS screen). Very small quota: use rarely.",
+      "mode": "subagent",
+      "model": "opencode-go/kimi-k3"
+    },
+    "tests": {
+      "description": "Writes tests from the spec and acceptance criteria. Must be a different model than the one that wrote the code.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus"
+    },
+    "bulk": {
+      "description": "Boilerplate, repetitive edits, CI fixes and log triage.",
+      "mode": "subagent",
+      "model": "opencode-go/mimo-v2.6-flash"
+    },
+    "docs": {
+      "description": "Drafts documentation, SOPs and commit messages with a free model. Never give it secrets, credentials or real customer data.",
+      "mode": "subagent",
+      "model": "opencode-go/minimax-m3.1-flash-free"
+    },
+    "arabic": {
+      "description": "Drafts Arabic UI strings and Arabic SOPs. A native Egyptian speaker must review every string.",
+      "mode": "subagent",
+      "model": "opencode-go/qwen3.7-plus"
+    },
+    "ui-check": {
+      "description": "Looks at screenshots (including Arabic right-to-left) and reports layout problems. Read-only.",
+      "mode": "subagent",
+      "model": "opencode-go/minimax-m3",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "review-by-glm": {
+      "description": "Read-only reviewer for code written by DeepSeek or Kimi. The author never reviews its own code.",
+      "mode": "subagent",
+      "model": "opencode-go/glm-5.2",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "review-by-deepseek": {
+      "description": "Read-only reviewer for code written by GLM. The author never reviews its own code.",
+      "mode": "subagent",
+      "model": "opencode-go/deepseek-v4-pro",
+      "permission": {
+        "edit": "deny"
+      }
+    }
+  },
+  "permission": {
+    "edit": "allow",
+    "webfetch": "allow",
+    "bash": {
+      "*": "allow",
+      "git push --force*": "deny",
+      "git push -f*": "deny",
+      "git push origin main*": "deny",
+      "git push origin master*": "deny",
+      "gh pr merge*": "deny",
+      "gh pr merge --auto*": "allow",
+      "rm -rf /*": "deny",
+      "rm -rf ~*": "deny",
+      "sudo rm*": "deny",
+      "mkfs*": "deny",
+      "dd if=*": "deny"
+    }
+  }
+}

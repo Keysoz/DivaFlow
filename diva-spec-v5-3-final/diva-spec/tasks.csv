@@ -1,0 +1,157 @@
+﻿id,phase,title,depends_on,acceptance,source,priority
+P0-01,P0,"Rotate every exposed credential (Telegram bot token, Meta tokens, URL-shortener token, webhook verify token); move to secret stores",none,Old credentials revoked; secret scan clean; nothing in workflow JSON,09-build-plan,
+P0-02,P0,"Disable or authenticate the legacy ""Nanobot"" webhooks",none,Unauthenticated calls return 401 or endpoints are gone,09-build-plan,
+P0-03,P0,"POS Next fit test (2–3 days): install BrainWise `pos_next` (not the exvas ""POSNext"") on staging with a copy of production data; run POS-CHECK in `07`; answer every ""verify"" and ""unknown"" cell in `14` including Arabic completeness, RTL, Arabic keyboard layout and Arabic receipt printing (ERPNext 16 compatibility, full-shift offline test, reserved-stock behavior, hook points for `diva_guard`, receipt printing and QZ Tray, Arabic RTL, `qty*barcode` multiplier, UOM Dozen and Nos handling, returns, customer card, uninstall rehearsal)",P0-04,"Scored written result and a go or no-go DEC; if no-go, build a POS mode in Diva Ops",09-build-plan,
+P0-04a,P0,Install a disposable dev ERPNext 16 with `scripts/start-dev-erpnext.sh` (frappe_docker `pwd.yml`; pin the image tag to version 16 if it is not already) and record the versions,P0-10,ERPNext answers on port 8080; versions recorded in `docs/appendix-erpnext-verification.md`,09-build-plan,
+P0-04,P0,"Verify ERPNext on staging: version, installed apps, stock reservation behavior, Item Barcode with UOM, Dozen whole-number UOM, Payment Terms, credit limit, the REST endpoints the adapter needs",P0-04a,Findings file in `docs/appendix-erpnext-verification.md`,09-build-plan,
+P0-05,P0,"Measure infrastructure: store VM capacity, internet uptime and latency to the chosen cloud region, WireGuard feasibility, UPS",none,Numbers recorded; cloud provider chosen,09-build-plan,
+P0-06,P0,"Hardware inventory and test: scanner, thermal receipt printer, label printer; browser print and QZ Tray with Arabic text",none,Models recorded; Arabic receipt and label print correctly,09-build-plan,
+P0-07,P0,"WhatsApp: identify current API provider, approved templates, number status; Chatwoot compatibility check; Meta business verification status; Instagram and Facebook Page connection status",none,Report with migration plan for later phase C,09-build-plan,
+P0-08,P0,"Accountant check: VAT, e-invoicing obligations, payment-mode account mapping",none,"Written answer; OPEN-08, OPEN-10 closed or scheduled",09-build-plan,
+P0-09,P0,"Datasets: item master export, 100 anonymized chats, 50 voice notes; ERPNext backup and restore test",none,Datasets stored privately; restore proven on a separate VM,09-build-plan,
+P0-10,P0,"Monorepo, CI, Docker Compose (cloud and store), secret scanning, `make` commands",none,`make setup test lint` pass in CI,09-build-plan,
+P0-12,P0,"Only if the legacy site still exists: verify legacy-app findings on a staging copy (`13`); otherwise skip, because the legacy app is retired anyway: payment recording in Diva Sale invoices, held drafts, bank-type Payment Entry references, API duplicates",none,Results recorded in `13`; severity confirmed,09-build-plan,
+P0-11,P0,Start the TikTok developer app and audit application; check Meta app permissions for Facebook and Instagram publishing,none,Applications submitted; status tracked,09-build-plan,
+E-00a,E,"Install ERPNext 16 on the store VM (production) with the frappe_docker production setup; HTTPS on the LAN; daily backups with an off-site copy; restore test; load items and customers by import, no demo data",P0-04,ERPNext 16 runs on the store VM; restore test passed,09-build-plan,
+E-00,E,Legacy `diva_store` retirement plan and salvage (`13`),P0-12,"Written plan, salvage list, rollback path agreed",09-build-plan,
+E-01,E,Baseline snapshot of site config; installed-apps inventory; field register from the live site,P0-04,"`erp-field-register.csv` complete, every row classified, no invented fieldnames",09-build-plan,
+E-02,E,Hide unneeded modules and workspaces per role,E-01,Employee accounts cannot see hidden modules; no broken menus; tests pass,09-build-plan,
+E-03,E,`infra/erpnext-config/apply.py`: idempotent configuration script with diff report,E-01,Re-running changes nothing; runs on staging first; reapplied after a simulated upgrade,09-build-plan,
+E-04,E,"Units, items, groups, codes, valuation, negative stock off, cosmetics batch and expiry, simplified Item form","E-03, OPEN-13","RULE-UOM tests pass: dozen purchase and sale, piece return",09-build-plan,
+E-05,E,"Price lists per dozen, tiers, price-edit permissions",E-04,Price fetch correct per customer; employee cannot edit price lists,09-build-plan,
+E-06,E,"Barcodes: load dozen and piece barcodes, uniqueness, supplier EAN as extra",E-04,Duplicate barcode rejected; dozen scan adds 1 dozen,09-build-plan,
+E-07,E,"Warehouses (Main Inventory, Shop, Gallery, Returns and Defects, In Transit); opening stock count and import; FIFO audit on staging (RULE-COST)",E-04,Stock reconciliation matches the physical count,09-build-plan,
+E-08,E,"Purchasing: suppliers, Purchase Invoice with Update Stock (DEC-31), supplier payments, payables",E-04,Purchase test passes with one stock movement per delivery,09-build-plan,
+E-08b,E,"China import flow: Purchase Order, partial Purchase Receipts, Landed Cost Voucher, foreign currency, advances, bank-only rule; Quick local purchase details (discrepancies, extra charges, payment at purchase)",E-08,"TEST-79 passes: 10 dozen paid 40% then 60% shows correct stock, value, supplier balance and payment history",09-build-plan,
+E-09,E,"Sales, customers, payment modes (six) and account mapping, receivables","E-04, OPEN-10","Sales, full payment, outstanding invoice and receivable report agree",09-build-plan,
+E-10,E,Expenses and cash tracking; daily cash closing checklist,E-09,Cash report reconciles with ledger,09-build-plan,
+E-11,E,"Taxes: confirm none (no VAT, no e-invoice); hide tax fields",E-01,Invoices show no tax lines,09-build-plan,
+E-12,E,"`local-api` skeleton, `erpnext-adapter` with contract tests, `rules-engine` counter rules (MOQ in dozens, discount limits, override audit)",E-04,Contract tests pass nightly on staging; rules coverage 100% on branches,09-build-plan,
+E-13,E,"Ops slice 1: Items and barcodes (port the EAN-13 generator), Labels (dozen and piece), Receive (Purchase Invoice), Transfer, Count, Collect","E-06, E-12",TEST list for Ops passes; label scans back correctly,09-build-plan,
+E-14,E,"POSNext adoption: install and configure (POS Profile, shifts, offline, QZ Tray receipts, Arabic), payment modes, cashier roles","E-12, P0-03","POS-CHECK items 1, 3, 6–11, 13–15 pass",09-build-plan,
+E-14a,E,"`diva_guard`: server hooks for MOQ in dozens, discount limits by role with manager PIN, price integrity against the price list, no credit or partial payment at the counter, reserved-stock check; `Diva Product Rule` doctype; imports `rules-engine`","E-12, E-14",TEST-02 to TEST-06 and TEST-44 to TEST-48 pass; the browser cannot bypass any rule,09-build-plan,
+E-14b,E,"POS Next patch set. Required: scan info card (name, code, price per dozen, stock), the owner's key map, MOQ message, PIN dialog, dozen display, Arabic labels, invoice-sharing buttons (Print, Download PDF, Open in WhatsApp). If missing: `qty*barcode` multiplier, undo last scan, low-stock tint. Rebased on upstream",E-14a,TEST-55 to TEST-57 pass; patches in git with tests; upgrade rehearsal on staging passes,09-build-plan,
+E-14c,E,Cosmetics batch and expiry at the counter (FEFO),E-14,TEST-10 passes,09-build-plan,
+E-14d,E,"Pilot, cutover and legacy retirement (`13` section 4)","E-14b, E-00",Legacy app uninstalled after backup; one week without a blocking issue,09-build-plan,
+E-15,E,"Standard reports with saved filters; invoice A4, 80 mm receipt, payment receipt, statements",E-09,Reports agree with ledger; Arabic prints correctly,09-build-plan,
+E-16,E,Roles and users: one ERPNext user per staff member; permission matrix; tests with employee accounts,E-02,Matrix tests pass,09-build-plan,
+E-18,E,"Invoice sharing, level 1 (free): Ops Invoices screen and POS Next buttons: Print, Download PDF, Open in WhatsApp (`wa.me` link with the normalized number and a ready Arabic or English message) for Sales Invoices, Purchase Invoices, payment receipts and statements; receipts and invoices also carry a ""Message us"" QR and link (`22`, ENH-C-09)","E-15, E-13",TEST-92 passes,09-build-plan,
+E-17,E,"Backups, restore test, downtime runbook, Arabic SOPs, staff training; retire daily Desk clutter","E-14d, E-15, E-16",Staff complete the full workflow from SOPs; restore test passed,09-build-plan,
+PUB-01,PUB,"Cloud foundation: `cloud-api`, Postgres, auth with MFA, audit log, object storage, observability, deploy to a small VPS first (2 vCPU, 4 GB; resize when chat and AI start), media and backups on Cloudflare R2 or Backblaze B2, self-hosted Uptime Kuma and GlitchTip",E exit,Health and alerts working; MFA enforced for owner,09-build-plan,
+PUB-02,PUB,"WireGuard Link, gateway endpoints for health and catalog changes, catalog sync to the cloud cache","PUB-01, E-12",Item change appears in the cloud cache within 60 seconds; zero drift on reconcile,09-build-plan,
+PUB-03,PUB,Telegram admin bot skeleton with roles; owner alerts,PUB-01,Role checks enforced; alert delivered,09-build-plan,
+PUB-04,PUB,"Control Room shell: login, roles, content queue, system health",PUB-01,Pages load from the cloud API,09-build-plan,
+PUB-05,PUB,"Publish gate: product needs barcode, price, MOQ, pack size, images, stock fields",PUB-02,Missing-field product cannot be approved,09-build-plan,
+PUB-06,PUB,"AI caption and image enhancement with preview (Approve, Regenerate, Edit); real photo stays the base",PUB-04,Nothing publishes without approval; prompts and source photo stored,09-build-plan,
+PUB-07,PUB,"Facebook Page publishing, pinned Graph API version, retries, post IDs","PUB-06, P0-11",Post appears; failure retries then alerts,09-build-plan,
+PUB-08,PUB,Instagram publishing,PUB-06,Same as PUB-07,09-build-plan,
+PUB-09,PUB,Telegram channel publishing,PUB-06,Same,09-build-plan,
+PUB-10,PUB,"WhatsApp both ways: (a) broadcast templates to opted-in contacts with consent records, segments, cost preview, optional budget cap (off by default, DEC-33), rate limits; (b) ready-to-post pack for Channel or Status","PUB-06, P0-07",Template approved by Meta; no send without consent; optional budget cap works when enabled; pack delivered to staff,09-build-plan,
+PUB-11,PUB,TikTok: upload or draft mode now; direct posting after audit,"PUB-06, P0-11",Draft appears; direct post only after audit approval,09-build-plan,
+PUB-12,PUB,Publishing report and public-price check,PUB-07,No public post contains a wholesale price; failure list visible,09-build-plan,
+PUB-13,PUB,"Invoice sharing, level 2 (one click): Send via WhatsApp by the cheapest valid path (free reply inside an open 24-hour window, else approved utility template with document header, else the manual link), local outbox, idempotency, delivery status (`22`)","PUB-02, E-18, P0-07","TEST-93 to TEST-96 pass; 1,000 sends cost about $3.60",09-build-plan,
+PUB-14,PUB,"One-click broadcast page: audience, cost preview, confirmation, free channels first, consent and STOP handling (`22`)","PUB-10, PUB-13",TEST-97 to TEST-100 pass,09-build-plan,
+O-01,O,"`rules-engine` chat rules: 3,000 EGP minimum, basket-gap suggestions, shipping step, availability",E-12,TEST rules cases pass,09-build-plan,
+O-02,O,Cart and draft API; staff order entry (SKU or barcode) in Control Room and Telegram `/neworder`,O-01,Staff enter a chat order with live rule errors,09-build-plan,
+O-03,O,"Order, payment and shipment state machines with transition guard and audit",O-01,Matrix tests in `05` pass,09-build-plan,
+O-04,O,Gateway order create-or-get; reserve only after the required payment is verified; release; deposit-deadline expiry job,"O-03, PUB-02",Duplicate create returns the same order; timeout then retry yields one Sales Order; expiry releases stock,09-build-plan,
+O-05,O,Shipping quote step (staff sets fee),O-03,AI path cannot quote shipping,09-build-plan,
+O-06,O,"Payment proofs, append-only ledger, human verification, draft Payment Entry as customer advance, Payments to post, deposit calculation (30% for new resellers)",O-03,No automated path verifies payment; repeat verification creates one ledger entry,09-build-plan,
+O-07,O,"Notifications: outbox, templates, 24-hour window, dead-letter queue",O-03,Dead letters visible; retries with backoff,09-build-plan,
+O-08,O,Settings with versions and effective dates; replicate to local,PUB-04,Order keeps its `rule_set_version`,09-build-plan,
+O-09,O,Link-down circuit breaker and customer notice,PUB-02,New orders blocked within about 45 s; notice sent; resumes after 3 successes,09-build-plan,
+O-10,O,"Ready-for-dispatch step: Delivery Note then Sales Invoice, allocate deposit advance, reconcile balance","O-04, O-06","Invoice equals goods plus shipping; advance allocated; remaining balance correct (TEST-85, TEST-86)",09-build-plan,
+B-01,B,"client and staging environment, manual courier support (courier, tracking number, fee, status, outcome; preferred courier on the reseller profile)",,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-02,B,"address normalizer to city, zone, district IDs with confirmation",,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-03,B,shipment creation with preconditions and scan-to-pack warning,,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-04,B,"webhook receiver (verify, deduplicate, map states, notify)",,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-05,B,returns and exchanges,,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-06,B,COD remittance reconciliation,,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+B-07,B,manager reports (counter and chat),,duplicate webhooks send one notification; no shipment without resolved address IDs and met payment preconditions.,09-build-plan,
+C-01,C,"deploy Chatwoot; connect WhatsApp (migrate from the current provider with no message loss), Instagram, Facebook",,See the phase gate in 09-build-plan,09-build-plan,
+C-02,C,durable inbound events and dedup,,See the phase gate in 09-build-plan,09-build-plan,
+C-03,C,ownership and takeover rules with version check,,See the phase gate in 09-build-plan,09-build-plan,
+C-04,C,template management,,See the phase gate in 09-build-plan,09-build-plan,
+C-05,C,inbox context panel in Control Room,,See the phase gate in 09-build-plan,09-build-plan,
+A-01,A,orchestrator and tools,,See the phase gate in 09-build-plan,09-build-plan,
+A-02,A,guardrails,,See the phase gate in 09-build-plan,09-build-plan,
+A-03,A,evaluation set and replay,,See the phase gate in 09-build-plan,09-build-plan,
+A-04,A,shadow mode,,See the phase gate in 09-build-plan,09-build-plan,
+A-05,A,staff-assisted drafts,,See the phase gate in 09-build-plan,09-build-plan,
+A-06,A,limited auto-replies for low-risk intents,,See the phase gate in 09-build-plan,09-build-plan,
+A-07,A,"media (voice, images, proofs) per `08`",,See the phase gate in 09-build-plan,09-build-plan,
+A-08,A,RAG with anonymized chats,,See the phase gate in 09-build-plan,09-build-plan,
+A-09,A,expansion and kill switches,,See the phase gate in 09-build-plan,09-build-plan,
+A-10,A,"router for routine intents (price, stock, order status, opening hours) answered by fixed logic and templates before any model is called",,See the phase gate in 09-build-plan,09-build-plan,
+A-11,A,"small-model-first with escalation to a bigger model for hard cases, plus prompt caching",,See the phase gate in 09-build-plan,09-build-plan,
+M-01,M,`initData` verification,,See the phase gate in 09-build-plan,09-build-plan,
+M-02,M,catalog and search,,See the phase gate in 09-build-plan,09-build-plan,
+M-03,M,MOQ-aware cart with minimum progress,,See the phase gate in 09-build-plan,09-build-plan,
+M-04,M,"checkout, tracking, reorder",,See the phase gate in 09-build-plan,09-build-plan,
+ENH-R-01,P0,"Agent onboarding package: everything the owner provides (staging ERPNext copy, VM access, repository, secrets manager, Meta, WhatsApp, Bosta, TikTok and Telegram accounts, hardware, item master export)",,The agent cannot start without access and sample data,16-enhancement-backlog,P0
+ENH-R-02,All gates,Owner acceptance scripts: plain-language Arabic test script and sign-off checklist for every phase gate,,"You are not reading code, so acceptance must be demonstrable",16-enhancement-backlog,P0
+ENH-R-03,P0,"Pull-request and review checklist: test evidence, staging demo, security checklist, who reviews",,Keeps agent output safe and reviewable,16-enhancement-backlog,P0
+ENH-R-04,P0,"Task template, definition of ready, and decision records (ADR) for the agent",,"Less guessing, fewer rework loops",16-enhancement-backlog,P1
+ENH-R-05,E,"Go-live cutover plan: freeze window, parallel-run days, rollback, communication to staff",,Counter must never stop selling,16-enhancement-backlog,P0
+ENH-R-06,E,"Staff offboarding and PIN rotation procedure (disable ERPNext user, revoke tokens and PINs)",,Prevents access by former staff,16-enhancement-backlog,P0
+ENH-R-07,E,"Change-management plan: champion cashier, practice mode, quick-reference card",,Staff adoption decides success,16-enhancement-backlog,P1
+ENH-A-01,E,"Opening balances and cutover: stock, customer receivables, supplier payables, cash, bank and wallet balances",,Accounting is wrong from day one without them,16-enhancement-backlog,P0
+ENH-A-02,E,"Simple chart of accounts for a trading shop, including owner drawings, expense categories and wallet accounts",,Clean books and reports,16-enhancement-backlog,P0
+ENH-A-03,E,Expired and damaged stock write-off flow with accounts,,Needed for cosmetics,16-enhancement-backlog,P0
+ENH-A-04,E,"Monthly accountant pack export: profit and loss, balance sheet, general ledger, receivable and payable aging, stock valuation",,Saves hours every month,16-enhancement-backlog,P1
+ENH-A-05,E,"Daily bank and wallet reconciliation checklist (Vodafone Cash, InstaPay, bank)",,Catches missing payments,16-enhancement-backlog,P1
+ENH-A-06,E,Price rounding policy at invoice (for example nearest 1 or 5 EGP),,Avoids odd totals and change problems,16-enhancement-backlog,P1
+ENH-A-07,E,Petty cash in and out at the till,,Cash reconciles at shift close,16-enhancement-backlog,P1
+ENH-A-10,E,"Bulk price update with preview, effective date, audit, and cost-plus markup helper per category",,Safe repricing,16-enhancement-backlog,P1
+ENH-C-01,E,Offline-sync monitoring for POS Next: alert if unsynced invoices exceed N hours,,Prevents silent data gaps,16-enhancement-backlog,P0
+ENH-C-02,E,"Manager PIN security: hashed, lockout after failures, never logged, audited",,Protects discounts and overrides,16-enhancement-backlog,P0
+ENH-C-03,E,Cash drawer opening through the receipt printer; hardware test,,Faster cash handling,16-enhancement-backlog,P1
+ENH-C-04,E,"Receipt branding: logo, return policy, opening hours, phone number",,"Professional receipts, fewer disputes",16-enhancement-backlog,P1
+ENH-C-06,O,Pickup orders: chat order paid and collected at the store with a pickup code,,Common for Cairo resellers,16-enhancement-backlog,P1
+ENH-I-01,E,Cycle-count schedule with variance approval and shrinkage report,,Accurate stock,16-enhancement-backlog,P1
+ENH-I-02,PUB,Reorder levels and low-stock alerts to Telegram,,Avoids stockouts,16-enhancement-backlog,P1
+ENH-I-04,PUB,"Photo-to-item intake in Telegram: staff sends photo and name, a draft item with EAN-13 is created and a label queued",,"Fast catalog growth, feeds publishing",16-enhancement-backlog,P1
+ENH-I-05,E,Near-expiry alerts and markdown suggestions,,Reduces cosmetics waste,16-enhancement-backlog,P1
+ENH-I-07,E,"Product data quality dashboard (missing barcode, price, image, pack size)",,Publish gate and POS need clean data,16-enhancement-backlog,P0
+ENH-M-01,PUB,Brand voice and Arabic caption style guide used as AI context,,Consistent captions,16-enhancement-backlog,P0
+ENH-M-02,PUB,AI-content labeling and cosmetics-claims policy checklist,,Platform and legal safety,16-enhancement-backlog,P0
+ENH-M-03,PUB,WhatsApp opt-out handling (STOP) and consent audit,,Required for marketing messages,16-enhancement-backlog,P0
+ENH-M-04,PUB,"TikTok media pipeline: photo posts first, then video conversion to 9:16 with captions",,TikTok needs media the plan did not specify,16-enhancement-backlog,P0
+ENH-M-05,PUB,Content calendar and scheduled posting,,Consistent presence,16-enhancement-backlog,P1
+ENH-M-06,PUB,Click-to-chat links with campaign codes and post-to-order attribution,,Shows which posts sell,16-enhancement-backlog,P1
+ENH-M-07,PUB,"Image standards, platform sizes, logo watermark",,Brand and anti-copy,16-enhancement-backlog,P1
+ENH-M-08,O,"Price list and catalog PDF or image export per tier, auto-refreshed, sent by chat",,Resellers ask for it constantly,16-enhancement-backlog,P1
+ENH-H-01,C,"Unknown-contact flow: new reseller screening, spam blocking, rate limits",,Protects the inbox and the AI,16-enhancement-backlog,P0
+ENH-H-02,A,AI conversation review queue with ratings feeding the evaluation set,,Quality improves over time,16-enhancement-backlog,P0
+ENH-H-03,A,AI-written handoff summary for staff,,Faster takeovers,16-enhancement-backlog,P1
+ENH-H-04,C,Unanswered-message alerts and after-hours behavior with next-morning follow-up,,No lost leads,16-enhancement-backlog,P1
+ENH-H-05,C,"Canned replies and tags in Chatwoot (complaints, disputes, returns)",,"Faster, consistent staff replies",16-enhancement-backlog,P1
+ENH-H-08,A,Per-conversation AI cost cap and model fallback,,Cost control,16-enhancement-backlog,P1
+ENH-H-10,A,Order status self-service in chat (balance for credit customers later),,Fewer staff questions,16-enhancement-backlog,P1
+ENH-S-01,P0,"Dependency and vulnerability scanning in CI (pip-audit, npm audit, secret scanning)",,Basic supply-chain safety,16-enhancement-backlog,P0
+ENH-S-02,P0,Secrets manager and rotation schedule,,Stops repeat of the exposed-credentials problem,16-enhancement-backlog,P0
+ENH-S-03,E,Disaster-recovery targets (data-loss and downtime limits) and restore drills,,Defines what safe means,16-enhancement-backlog,P0
+ENH-S-04,PUB,"Uptime and synthetic checks for counter, webhooks and publishing",,You hear about failures first,16-enhancement-backlog,P0
+ENH-S-05,PUB,"Edge protection (Cloudflare or similar): rate limits, WAF, TLS",,Public endpoints are attacked,16-enhancement-backlog,P1
+ENH-S-06,O,Pre-launch security review checklist for the cloud node,,Catches mistakes before customers do,16-enhancement-backlog,P1
+ENH-S-08,PUB,"Audit log retention, export and tamper evidence",,Trust and forensics,16-enhancement-backlog,P1
+ENH-S-09,E,Accessibility and right-to-left QA checklist for all front ends,,Quality for Arabic users,16-enhancement-backlog,P1
+ENH-L-01,PUB,"Reseller terms in Arabic: minimums, deposit, returns, shipping, cosmetics policy",,Prevents disputes,16-enhancement-backlog,P0
+ENH-L-02,PUB,"Privacy notice and consent wording for chat, Mini App and marketing",,Compliance,16-enhancement-backlog,P0
+ENH-L-03,PUB,Cosmetics advertising and product claims review by a professional,,Regulatory risk,16-enhancement-backlog,P1
+ENH-K-01,PUB,"KPI definitions and owner dashboard: sales, margin, stock value, receivables, conversion, response time, AI deflection, publishing results",,One agreed set of numbers,16-enhancement-backlog,P1
+ENH-K-02,PUB,Weekly owner summary in Telegram,,"Low effort, high value",16-enhancement-backlog,P1
+ENH-S-10,PUB,Self-hosted Uptime Kuma and GlitchTip for monitoring,,Replaces paid monitoring,16-enhancement-backlog,P1
+ENH-S-11,PUB,Media and backups on Cloudflare R2 or Backblaze B2 with restic and a tested restore,,Cheap off-site storage,16-enhancement-backlog,P1
+ENH-C-09,E,"""Message us"" QR and click-to-chat link on receipts, invoices and the shop sign",,Customers message first: free window and free phone verification,16-enhancement-backlog,P1
+I18N-01,P0,"Glossary draft, font choice, Arabic printer test sheet",,Glossary reviewed; printers tested (`P0-06`),19-localization,
+I18N-02,E,"ERPNext Arabic baseline: enable for staff, find untranslated strings, Translation records via config script",,Staff roles see RTL Arabic on every kept screen,19-localization,
+I18N-03,E,"Arabic print formats (invoice A4, receipt, statements, payment receipt)",,Print correctly on real printers,19-localization,
+I18N-04,E,Arabic receipt and label rendering decision and implementation (native or raster),,"`TEST-68`, `TEST-77` pass",19-localization,
+I18N-05,E,POS Next Arabic and RTL fixes; shortcuts by physical key code; Arabic scan info card,,"`TEST-67`, `TEST-71` pass",19-localization,
+I18N-06,"E, PUB","Shared i18n package for Ops, Control Room, Mini App; locale CI check",,"`TEST-73`, `TEST-74` pass",19-localization,
+I18N-07,E,"Search normalization service (Arabic variants, digits) in `local-api` and cloud",,"`TEST-69`, `TEST-70` pass",19-localization,
+I18N-08,E,Bilingual product info in `Diva Product Rule`,,Arabic name primary; English fields editable in Ops,19-localization,
+I18N-09,PUB,Bilingual publishing captions and WhatsApp template languages,,`TEST-75` passes,19-localization,
+I18N-10,A,"Customer language detection, Franco-Arabic, number words, reply language",,`TEST-76` passes,19-localization,
+I18N-11,E,Arabic SOPs and acceptance scripts with Arabic-UI screenshots,,Staff complete SOPs in Arabic,19-localization,

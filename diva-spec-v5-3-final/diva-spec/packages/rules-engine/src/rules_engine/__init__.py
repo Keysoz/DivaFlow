@@ -3,6 +3,7 @@
 from rules_engine.units import (
     PCS_PER_DOZEN,
     UomError,
+    dozen_has_whole_pieces,
     dozen_to_pieces,
     is_whole_dozen,
     pieces_to_dozen,
@@ -11,6 +12,7 @@ from rules_engine.units import (
 __all__ = [
     "PCS_PER_DOZEN",
     "UomError",
+    "dozen_has_whole_pieces",
     "dozen_to_pieces",
     "is_whole_dozen",
     "pieces_to_dozen",

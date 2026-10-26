@@ -1,6 +1,9 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
+# gitleaks v8.30.1, digest pinned (verified 2026-10-26).
+GITLEAKS_IMAGE := zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+
 .PHONY: help setup test lint e2e contract dev-cloud dev-store secret-scan
 
 help:
@@ -31,4 +34,4 @@ dev-store:
 	docker compose -f infra/compose/store.yml up --build
 
 secret-scan:
-	docker run --rm -v "$(CURDIR):/repo" zricethezav/gitleaks:latest detect --source=/repo --no-git --verbose --no-banner
+	docker run --rm -v "$$(git rev-parse --show-toplevel):/repo" $(GITLEAKS_IMAGE) detect --source=/repo --no-git --verbose --redact --no-banner

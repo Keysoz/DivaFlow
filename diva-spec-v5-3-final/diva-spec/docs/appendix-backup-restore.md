@@ -8,14 +8,14 @@ Environment: site `frontend` on erpnext 16.52.1 / frappe 16.53.0 with pos_next 1
 
 1. **Backup** the site with files:
    `bench --site frontend backup --with-files`
-   Produced (in `sites/frontend/private/backups/`): database `1.2 MB`, public files `10 KiB`, private files `10 KiB`, plus the site-config backup.
+   Produced the timestamped set `20261027_042229-frontend-{database.sql.gz,files.tar,private-files.tar,site_config_backup.json}` in `sites/frontend/private/backups/`: database `1.2 MB`, public files `10 KiB`, private files `10 KiB`, plus the site-config backup.
 2. **Create an empty target site:**
    `bench new-site restore-test --db-root-username root --db-root-password "$DB_ROOT_PASSWORD" --admin-password "$ADMIN_PASSWORD"`
 3. **Restore** into it:
    `bench --site restore-test --force restore <db.sql.gz> --db-root-username root --db-root-password "$DB_ROOT_PASSWORD" --with-public-files <files.tar> --with-private-files <private.tar>`
    *Gotcha:* without the `--db-root-*-password` flags, `restore` prompts and, in a non-interactive shell, ends without restoring. Always pass them explicitly (from the environment; never from the repository).
 4. **Verify:** the app list and the row counts matched the source exactly (table below).
-5. **Clean up:** `bench drop-site restore-test --db-root-username root --db-root-password "$DB_ROOT_PASSWORD" --no-backup --force` (site archived, removed from `sites`).
+5. **Clean up:** `bench drop-site restore-test --db-root-username root --db-root-password "$DB_ROOT_PASSWORD" --no-backup --force` (site archived, removed from `sites`). The archive stays under `sites/../archived/sites/` and keeps the site's `site_config.json`; delete it manually if a full cleanup is required.
 
 ## 2. Verification result
 
@@ -32,11 +32,13 @@ Environment: site `frontend` on erpnext 16.52.1 / frappe 16.53.0 with pos_next 1
 | Warehouse | 5 | 5 |
 | Bin | 1 | 1 |
 | Record `ACC-SINV-2026-00002` | present | present |
+| POS-mode invoices (`is_pos = 1`) | 2 | 2 |
+| POS Next custom fields on those invoices (`posa_*`) | present | present |
 | Item `P004-DOZEN` | present | present |
 
 ## 3. Findings
 
-- The backup/restore path works on ERPNext 16 with POS Next installed: the restore brings the installed-app list, custom fields, stock, invoices and the POS data.
+- The backup/restore path works on ERPNext 16 with POS Next installed: the restore brings the installed-app list, custom fields (including the vendor `posa_*` fields), stock, invoices and the POS-mode invoices. The dev site has no POS shift or `POS Invoice` records yet, so those are not part of this evidence.
 - The database root password is required explicitly for `new-site`, `restore` and `drop-site`; keep it in the environment or the secret manager, never in a script or the repository (`26-secrets-and-rotation.md`).
 - A restore is only as good as the backup cadence: the scheduled daily backup, the off-site encrypted copy and the store-VM restore belong to TASK-E-17; this rehearsal validates the manual path and the data integrity.
 - **The separate-VM proof required by P0-09 is still open**: it needs the owner's second VM (or a disposable cloud VM). Running it on the same host proves the commands and the data, not the recovery from a lost machine.

@@ -113,8 +113,10 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Wrong units (dozen vs piece) | Stock errors | RULE-UOM, tests TEST-11 and TEST-12 |
 | Cosmetics expiry or claims | Compliance and returns | Batch and expiry, FEFO, AI claim guardrail |
 | Exposed legacy credentials | Account takeover | P0-01 rotation; Bitwarden plus quarterly rotation (`26`) |
+| Backup restore proven only on the same host | No proven recovery from a lost machine | Separate-VM proof (P0-09, owner); scheduled off-site backups and store-VM restore (TASK-E-17) |
 
 ## 5. Change log
+v5.3.6 (2026-10-27): P0-09 backup/restore rehearsal (same-host) recorded; risk register entry added.
 v5.3.5 (2026-10-27): POS Next pinned to `v2.0.0` and the smoke subset re-run on it (21 fields, no F-keys, service-worker scope gap); DEC-68 updated.
 v5.3.4 (2026-10-27): ENH-S-02 — Bitwarden chosen as the secrets manager (DEC-69); rotation schedule in `26`.
 v5.3.3 (2026-10-26): POS Next fit test partial result (provisional go, DEC-68); `14` verify/unknown cells answered; owner authorised synthetic data on the dev site and deferred hardware; uninstall rehearsal done; hardware/visual checks pending.

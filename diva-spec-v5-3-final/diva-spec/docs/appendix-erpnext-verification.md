@@ -6,6 +6,8 @@ Evidence for the ERPNext tasks. Created by TASK-P0-04a (2026-10-26); TASK-P0-04 
 
 Built by `scripts/start-dev-erpnext.sh`: it clones `frappe/frappe_docker` into `$HOME/frappe_docker` (or a directory you pass) and runs `docker compose -f pwd.yml up -d`. This is a **disposable demo**: never put real business data in it. The production ERPNext is installed on the store VM in TASK-E-00a.
 
+The `pwd.yml` site starts **without setup-wizard data** (no company, UOMs, item groups or warehouses). TASK-P0-04 bootstrapped it with ERPNext's own fixtures (`erpnext.setup.setup_wizard.operations.install_fixtures.install("Egypt")`) and created a dev company `Diva Dev` (abbr `DD`, EGP, country Egypt). A bare site cannot be used for stock, barcode or payment checks.
+
 | Item | Value |
 |---|---|
 | Date of record | 2026-10-26 |
@@ -49,4 +51,65 @@ frappe_docker-frontend-1 0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
 
 ## 2. Verification findings (TASK-P0-04)
 
-To be filled by TASK-P0-04: version, installed apps, stock reservation behavior, Item Barcode with UOM, Dozen whole-number UOM, Payment Terms, credit limit, and the REST endpoints the adapter needs.
+Performed 2026-10-26 on the disposable dev site (`frontend`) of section 1 — version `erpnext 16.52.1`, `frappe 16.53.0`. **This is not the live site**: DEC-63 has no staging copy; TASK-E-00a installs production ERPNext on the store VM and TASK-E-01 re-runs these checks on the live site. The findings here are version-level and expected to hold. Arabic print/receipt behaviour is out of scope here (TASK-P0-03 and TASK-E-15).
+
+| # | Capability | Finding | Evidence |
+|---|---|---|---|
+| 1 | Version and apps | ERPNext 16.52.1, Frappe 16.53.0; only `frappe` and `erpnext` installed | section 1 |
+| 2 | Stock reservation | **Off by default** (`Stock Settings.enable_stock_reservation = 0`). After enabling it and `auto_reserve_stock`, a submitted Sales Order with `reserve_stock = 1` creates a `Stock Reservation Entry` (`status = Reserved`). `allow_partial_reservation = 1` by default: a second order for 120 Nos against 96 free Nos was **partially reserved (96)** with status `Partially Reserved`. **The counter is blocked (RULE-STOCK 5):** a Material Issue of 10 Nos against fully reserved stock failed with `NegativeStockError` ("As the full stock is reserved for other transactions, you're not allowed to consume the stock"). Native reservation therefore blocks competing stock movements; the backend-hold fallback is not needed for stock. Confirm the POS Next counter path (Sales Invoice with update stock) in TASK-P0-03. | `MAT-SRE-2026-00001` (24 Nos `Reserved`), `MAT-SRE-2026-00002` (96 Nos `Partially Reserved`), `MAT-STE-2026-00002` (rejected) |
+| 3 | Item Barcode with UOM | `Item Barcode` has `barcode`, `barcode_type`, `uom`. One item can carry several barcodes: a Dozen barcode (`uom = Dozen`) and a Nos barcode (`uom = Nos`). | item `P004-DOZEN`, barcodes `2000000000015` (Dozen) and `2000000000022` (Nos) |
+| 4 | Barcode validation | Barcodes flagged `EAN` must be valid EAN-13 (checksum checked). A barcode already used on another item is rejected globally. | `InvalidBarcode: Barcode … is not a valid EAN code`; `ValidationError: Barcode 2000000000015 already used in Item P004-DOZEN` |
+| 5 | Barcode lookup (adapter path) | `GET /api/resource/Item Barcode?filters=[["barcode","=","2000000000015"]]` returns the row; fetch the row by name to read `parent` (item) and `uom`. Child tables (any `istable` doctype, e.g. Item Barcode, Customer Credit Limit, Payment Terms Template Detail) return only `name` when `fields` is passed, while parent doctypes honour `fields`; for child rows, read the full row. | `{"barcode":"2000000000015","parent":"P004-DOZEN","uom":"Dozen"}` |
+| 6 | Dozen whole-number UOM | ERPNext 16 does **not** ship a Dozen UOM (239 UOM fixtures in `uom_data.json`, none named Dozen). Create `UOM` `Dozen` with `must_be_whole_number = 1`; give the Item `uoms = [{uom: Dozen, conversion_factor: 12}]`. A transaction at 2 Dozen became `stock_qty = 24 Nos`; a 1.5 Dozen line was rejected natively. | `UOMMustBeIntegerError: Quantity (1.5) cannot be a fraction … disable Must be Whole Number in UOM Dozen` |
+| 7 | Payment Terms | `Payment Term` (name, `invoice_portion`, `due_date_based_on`, `credit_days`) + `Payment Terms Template` (child `Payment Terms Template Detail`) work. A 30%/70% template produced a correct payment schedule on the Sales Order. | schedule: 864 EGP due 2026-10-27 (30%), 2016 EGP due 2026-11-26 (70%) for a 2,880 EGP order |
+| 8 | Credit limit | `Customer.credit_limits` (child `Customer Credit Limit`: `company`, `credit_limit`, `bypass_credit_limit_check`). Submitting a Sales Order above the limit is **blocked** natively. | customer limit 5,000; 14,400 order rejected: `ValidationError: Please contact your administrator to extend the credit limits for P004 Reseller.` |
+| 9 | REST endpoints | Session login, `GET/POST/PUT/DELETE /api/resource/<doctype>`, filters, `frappe.client.get_count`, `frappe.client.get_value`, `frappe.client.submit` all work. Verified on Item, Item Barcode, Customer, Sales Order, Sales Order Item, Stock Entry, Bin, Stock Reservation Entry, Payment Term(s) Template, Price List, Fiscal Year, Stock Settings, UOM. Session auth was used here; API-key token auth (`Authorization: token <key>:<secret>`) belongs to the adapter contract tests (TASK-E-12). List endpoints page at about 20 rows by default; use `limit_page_length=0` for a full read. | see commands below |
+| 10 | Available-to-promise (`Bin`) | `Bin.reserved_qty` follows the reserved voucher quantity, not the SRE: with 120 Nos actual and SREs of 24 + 96, `Bin` showed `reserved_qty = 144` and `projected_qty = -24`. Compute ATP from `Stock Reservation Entry.reserved_qty` (24 + 96 = 120), not from `Bin.projected_qty`. | `Bin` read |
+
+### Commands and raw results (selected fields shown)
+
+```
+# login (session cookie)
+POST /api/method/login                       -> {"message":"Logged In"}
+GET  /api/method/frappe.auth.get_logged_user -> {"message":"Administrator"}
+
+# reservation: Sales Order with reserve_stock=1, 2 Dozen at 1,440 EGP
+POST /api/resource/Sales Order               -> data.name SAL-ORD-2026-00001 (draft)
+POST /api/method/frappe.client.submit        -> {"docstatus":1}
+GET  /api/resource/Sales Order/SAL-ORD-2026-00001
+  data: {"grand_total":2880.0,"reserve_stock":1,
+         "items":[{"qty":2.0,"uom":"Dozen","stock_qty":24.0,"stock_reserved_qty":24.0}],
+         "payment_schedule":[{"payment_term":"P004 Advance 30","payment_amount":864.0,"due_date":"2026-10-27"},
+                             {"payment_term":"P004 Net 30","payment_amount":2016.0,"due_date":"2026-11-26"}]}
+
+GET /api/resource/Stock Reservation Entry
+    ?filters=[["voucher_no","=","SAL-ORD-2026-00001"]]&fields=["name","reserved_qty","status"]
+  -> [{"name":"MAT-SRE-2026-00001","reserved_qty":24.0,"status":"Reserved"}]
+
+# partial reservation (96 Nos free after the first order)
+GET /api/resource/Stock Reservation Entry
+    ?filters=[["voucher_no","=","SAL-ORD-2026-00002"]]&fields=["name","reserved_qty","status"]
+  -> [{"name":"MAT-SRE-2026-00002","reserved_qty":96.0,"status":"Partially Reserved"}]
+
+# fractional dozen
+POST /api/resource/Stock Entry {"qty":1.5,"uom":"Dozen", ...}
+  -> UOMMustBeIntegerError: Row 1: Quantity (1.5) cannot be a fraction.
+
+# counter blocked by reservations (Material Issue 10 Nos against fully reserved stock)
+POST /api/resource/Stock Entry {"stock_entry_type":"Material Issue","qty":10,"uom":"Nos", ...}
+POST /api/method/frappe.client.submit
+  -> NegativeStockError: "... As the full stock is reserved for other transactions,
+     you're not allowed to consume the stock."
+```
+
+### Test records created on the disposable site (safe to discard)
+
+Company `Diva Dev` (EGP, fiscal year `2026-2027`); UOM `Dozen` (whole number); item `P004-DOZEN` (Nos stock UOM, Dozen conversion 12, two barcodes); customers `P004 Reseller` (credit limit 5,000) and `P004 NoLimit`; payment terms `P004 Advance 30` / `P004 Net 30` and template `P004 30-70`; price list `Standard Selling`; stock entries `MAT-STE-2026-00001` (120 Nos received) and `MAT-STE-2026-00002` (Material Issue probe, rejected — no stock moved); sales orders `SAL-ORD-2026-00001/2` submitted and `SAL-ORD-2026-00003` rejected by the credit limit; reservation entries `MAT-SRE-2026-00001/2`. `Bin` after reservations: actual 120, reserved 144, projected -24. Stock Settings was changed to `enable_stock_reservation = 1` and `auto_reserve_stock = 1`.
+
+### Gaps for later tasks
+
+- Live-site re-check (production on the store VM; there is no staging copy, DEC-63): TASK-E-01.
+- API-key token authentication and the adapter's exact call shapes: TASK-E-12 contract tests (this task used session auth).
+- POS Next counter path against reservations (Sales Invoice with update stock): TASK-P0-03.
+- Delivery Note and Sales Invoice creation, deposit advances and Payment Entry allocation: TASK-E-12 and TASK-O-10.
+- Arabic receipts, 80 mm print formats: TASK-P0-03 and TASK-E-15.

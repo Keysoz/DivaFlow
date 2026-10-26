@@ -1,0 +1,13 @@
+[project]
+name = "local-api"
+version = "0.1.0"
+description = "Diva store gateway and Ops/POS API; the only component that talks to ERPNext."
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/local_api"]

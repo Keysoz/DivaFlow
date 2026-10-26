@@ -6,7 +6,7 @@ What the owner prepares before the coding agent starts. The agent works on **dev
 | # | Item | Needed by | Notes |
 |---|---|---|---|
 | 1 | Private Git repository, branch protection, CI enabled | P0-10 | Agent works on branches; the owner merges |
-| 2 | Secrets manager account (for example Doppler, 1Password or SOPS with age) | P0 | Never paste secrets in chat or files |
+| 2 | Bitwarden account and organization (`26-secrets-and-rotation.md`; DEC-69) | P0 | Never paste secrets in chat or files |
 | 3 | Cloud VPS account and region (decided in P0-05) | P0-05 | Dev and staging first |
 | 4 | **ERPNext:** you do not need an existing site. `P0-04a` installs a disposable dev instance and `E-00a` installs production. If an old site exists, a restored copy helps `P0-12` (optional) | P0-03, P0-04 | Customer data is real until anonymized; restrict access |
 | 5 | Secure access to the store VM for staging work (WireGuard or Tailscale) | P0 | No production admin for the agent |

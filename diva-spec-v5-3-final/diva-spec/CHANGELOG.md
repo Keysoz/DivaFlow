@@ -5,6 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Added
+- TASK-P0-03 (follow-up): POS Next pinned to `v2.0.0` (commit `e0a52c5`; the tag ships code `1.17.0`) and the smoke subset re-run on it: install, POS invoice with Dozen UOM and cash payment, reserved-stock block, uninstall rehearsal; 21 custom fields, no global F-keys, offline service-worker scope gap. Required patches updated; final go/no-go still needs the hardware session.
 - ENH-S-02: Bitwarden chosen as the secrets manager (DEC-69); `docs/26-secrets-and-rotation.md` with the secret inventory, quarterly rotation schedule, owner setup and emergency-rotation procedure.
 - ENH-S-01: `make audit` and a CI `dependency audit` job — `pip-audit` against the `uv.lock` requirements snapshot; `pnpm audit` runs automatically once a root JavaScript workspace exists (TASK-E-13). Current lockfile: no known vulnerabilities.
 - TASK-P0-03: `docs/appendix-posnext-fit-test.md` — POS Next 2.0.0 installed on ERPNext 16.52.1 (develop `47d2c9a`); POS invoice with Dozen UOM, cash payment, shift opening and the reserved-stock block verified; Arabic/RTL and offline/PWA present; required patches identified (`qty*barcode`, full key map, scan info card); provisional go with conditions (pin `v2.0.0`, hardware session, uninstall rehearsal). `docs/14` cells answered and DEC-68 recorded.

@@ -6,6 +6,8 @@ Evidence for the ERPNext tasks. Created by TASK-P0-04a (2026-10-26); TASK-P0-04 
 
 Built by `scripts/start-dev-erpnext.sh`: it clones `frappe/frappe_docker` into `$HOME/frappe_docker` (or a directory you pass) and runs `docker compose -f pwd.yml up -d`. This is a **disposable demo**: never put real business data in it. The production ERPNext is installed on the store VM in TASK-E-00a.
 
+The `pwd.yml` site starts **without setup-wizard data** (no company, UOMs, item groups or warehouses). TASK-P0-04 bootstrapped it with ERPNext's own fixtures (`erpnext.setup.setup_wizard.operations.install_fixtures.install("Egypt")`) and created a dev company `Diva Dev` (abbr `DD`, EGP, country Egypt). A bare site cannot be used for stock, barcode or payment checks.
+
 | Item | Value |
 |---|---|
 | Date of record | 2026-10-26 |
@@ -49,4 +51,52 @@ frappe_docker-frontend-1 0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
 
 ## 2. Verification findings (TASK-P0-04)
 
-To be filled by TASK-P0-04: version, installed apps, stock reservation behavior, Item Barcode with UOM, Dozen whole-number UOM, Payment Terms, credit limit, and the REST endpoints the adapter needs.
+Performed 2026-10-26 on the disposable dev site (`frontend`) of section 1 — version `erpnext 16.52.1`, `frappe 16.53.0`. **This is not the production-data staging site**: no staging copy exists yet (it arrives with TASK-E-00a). The findings are version-level and should hold there; re-run the checks at TASK-E-01. Arabic print/receipt behaviour is out of scope here (TASK-P0-03 and TASK-E-15).
+
+| # | Capability | Finding | Evidence |
+|---|---|---|---|
+| 1 | Version and apps | ERPNext 16.52.1, Frappe 16.53.0; only `frappe` and `erpnext` installed | section 1 |
+| 2 | Stock reservation | **Off by default** (`Stock Settings.enable_stock_reservation = 0`). After enabling it and `auto_reserve_stock`, a submitted Sales Order with `reserve_stock = 1` creates a `Stock Reservation Entry` (`status = Reserved`). `allow_partial_reservation = 1` by default: a second order for 120 Nos against 96 free Nos was **partially reserved (96)** with status `Partially Reserved`. This native behaviour supports DEC-08 (chat reservations protected from counter sales). | `MAT-SRE-2026-00001` (24 Nos `Reserved`), `MAT-SRE-2026-00002` (96 Nos `Partially Reserved`) |
+| 3 | Item Barcode with UOM | `Item Barcode` has `barcode`, `barcode_type`, `uom`. One item can carry several barcodes: a Dozen barcode (`uom = Dozen`) and a Nos barcode (`uom = Nos`). | item `P004-DOZEN`, barcodes `2000000000015` (Dozen) and `2000000000022` (Nos) |
+| 4 | Barcode validation | Barcodes flagged `EAN` must be valid EAN-13 (checksum checked). A barcode already used on another item is rejected globally. | `InvalidBarcode: Barcode … is not a valid EAN code`; `ValidationError: Barcode 2000000000015 already used in Item P004-DOZEN` |
+| 5 | Barcode lookup (adapter path) | `GET /api/resource/Item Barcode?filters=[["barcode","=","2000000000015"]]` returns the row; fetch the row by name to read `parent` (item) and `uom`. A `fields` selection returns only `name`, so read the full row. | `{"barcode":"2000000000015","parent":"P004-DOZEN","uom":"Dozen"}` |
+| 6 | Dozen whole-number UOM | ERPNext 16 does **not** ship a Dozen UOM (239 fixtures loaded, none named Dozen). Create `UOM` `Dozen` with `must_be_whole_number = 1`; give the Item `uoms = [{uom: Dozen, conversion_factor: 12}]`. A transaction at 2 Dozen became `stock_qty = 24 Nos`; a 1.5 Dozen line was rejected natively. | `UOMMustBeIntegerError: Quantity (1.5) cannot be a fraction … disable Must be Whole Number in UOM Dozen` |
+| 7 | Payment Terms | `Payment Term` (name, `invoice_portion`, `due_date_based_on`, `credit_days`) + `Payment Terms Template` (child `Payment Terms Template Detail`) work. A 30%/70% template produced a correct payment schedule on the Sales Order. | schedule: 864 EGP due 2026-10-27 (30%), 2016 EGP due 2026-11-26 (70%) for a 2,880 EGP order |
+| 8 | Credit limit | `Customer.credit_limits` (child `Customer Credit Limit`: `company`, `credit_limit`, `bypass_credit_limit_check`). Submitting a Sales Order above the limit is **blocked** natively. | customer limit 5,000; 14,400 order rejected: `ValidationError: Please contact your administrator to extend the credit limits for P004 Reseller.` |
+| 9 | REST endpoints | Session login, `GET/POST/PUT/DELETE /api/resource/<doctype>`, filters, `frappe.client.get_count`, `frappe.client.get_value`, `frappe.client.submit` all work. Verified on Item, Item Barcode, Customer, Sales Order, Sales Order Item, Stock Entry, Bin, Stock Reservation Entry, Payment Term(s) Template, Price List, Fiscal Year, Stock Settings, UOM. | see commands below |
+
+### Commands and raw results (trimmed)
+
+```
+# login (session cookie)
+POST /api/method/login                      -> {"message":"Logged In"}
+GET  /api/method/frappe.auth.get_logged_user -> {"message":"Administrator"}
+
+# reservation
+POST /api/resource/Sales Order (reserve_stock=1, 2 Dozen) -> draft, then
+POST /api/method/frappe.client.submit        -> {"docstatus":1}
+GET  /api/resource/Sales Order/SAL-ORD-2026-00001
+  -> {"grand_total":2880.0,"reserve_stock":1,
+      "item":[{"qty":2.0,"uom":"Dozen","stock_qty":24.0,"stock_reserved_qty":24.0}],
+      "schedule":[{"payment_term":"P004 Advance 30","payment_amount":864.0,"due_date":"2026-10-27"},
+                  {"payment_term":"P004 Net 30","payment_amount":2016.0,"due_date":"2026-11-26"}]}
+GET  /api/resource/Stock Reservation Entry?filters=[["voucher_no","=","SAL-ORD-2026-00001"]]
+  -> [{"name":"MAT-SRE-2026-00001","reserved_qty":24.0,"status":"Reserved"}]
+
+# partial reservation (only 96 Nos free after the first order)
+GET  /api/resource/Stock Reservation Entry?filters=[["voucher_no","=","SAL-ORD-2026-00002"]]
+  -> [{"name":"MAT-SRE-2026-00002","reserved_qty":96.0,"status":"Partially Reserved"}]
+
+# fractional dozen
+POST /api/resource/Stock Entry (1.5 Dozen)  -> UOMMustBeIntegerError
+```
+
+### Test records created on the disposable site (safe to discard)
+
+Company `Diva Dev` (EGP, fiscal year `2026-2027`); UOM `Dozen` (whole number); item `P004-DOZEN` (Nos stock UOM, Dozen conversion 12, two barcodes); customers `P004 Reseller` (credit limit 5,000) and `P004 NoLimit`; payment terms `P004 Advance 30` / `P004 Net 30` and template `P004 30-70`; price list `Standard Selling`; stock entry `MAT-STE-2026-00001` (120 Nos); sales orders `SAL-ORD-2026-00001/2/3`; reservation entries `MAT-SRE-2026-00001/2`. Stock Settings was changed to `enable_stock_reservation = 1` and `auto_reserve_stock = 1`.
+
+### Gaps for later tasks
+
+- Production-data staging verification: TASK-E-01 (on the store VM site from TASK-E-00a).
+- Delivery Note and Sales Invoice creation, deposit advances and Payment Entry allocation: TASK-E-12 contract tests and TASK-O-10.
+- Arabic receipts, 80 mm print formats and the POS Next flows: TASK-P0-03 and TASK-E-15.

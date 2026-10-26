@@ -10,7 +10,7 @@ Decided 2026-10-27 (DEC-69): **Bitwarden** is the secrets manager.
 
 1. No secret in code, workflow, log, issue or chat. Secrets are injected as environment variables or read from Bitwarden at deploy time.
 2. Production credentials are entered by the owner, never by the agent.
-3. CI scans for secrets on every run (`make secret-scan`, gitleaks) and audits dependencies (`make audit`, pip-audit).
+3. CI scans for secrets on every run — the working tree and **the full git history, all refs** (`make secret-scan`, gitleaks) — and audits dependencies (`make audit`, pip-audit).
 4. A secret that may have leaked is revoked first, then rotated; the incident is recorded in the risk register (`docs/12` section 4).
 5. `docs/12` is updated when the rotation procedure changes.
 

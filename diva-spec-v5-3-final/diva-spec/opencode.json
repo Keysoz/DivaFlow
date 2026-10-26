@@ -45,7 +45,7 @@
     "docs": {
       "description": "Drafts documentation, SOPs and commit messages with a free model. Never give it secrets, credentials or real customer data.",
       "mode": "subagent",
-      "model": "opencode-go/minimax-m3.1-flash-free"
+      "model": "opencode-go/mimo-v2.6-flash"
     },
     "arabic": {
       "description": "Drafts Arabic UI strings and Arabic SOPs. A native Egyptian speaker must review every string.",

@@ -4,7 +4,7 @@
 | ID | Decision |
 |---|---|
 | DEC-01 | One master specification: a repository of Markdown files plus a single-file edition |
-| DEC-02 | **Corrected:** a legacy `diva_store` app exists and is in daily use (earlier answer said none). It is reviewed in `13` and retired after POSNext cutover |
+| DEC-02 | **Corrected 2026-10-26:** the owner deleted the legacy `diva_store` app. `TASK-P0-12` is skipped and `E-00` collapses to confirming nothing depends on the deleted app (earlier answers: none, then exists and in daily use) |
 | DEC-03 | Build order: P0, then ERPNext (E), then Publishing (PUB), then chat orders (O), Bosta (B), chat hub (C), AI (A), Mini App (M), growth (G) |
 | DEC-04 | No custom fields. No custom code inside ERPNext except the two governed exceptions in DEC-29. Configuration stored as data is allowed through the idempotent config script |
 | DEC-05 | Split deployment: cloud node for chat, AI, publishing, dashboard; store node for ERPNext, POS and Ops |
@@ -68,12 +68,13 @@
 | DEC-64 | Cost savings adopted (`25`): small cloud server first; customers message first with the cheapest valid WhatsApp send path and phone verification by inbound message; routine questions answered by fixed logic before any model; small model first with escalation and caching; self-hosted Uptime Kuma and GlitchTip; media and backups on Cloudflare R2 or Backblaze B2 |
 | DEC-65 | Not adopted: dropping n8n (it stays for schedules and briefs) and replacing AI-generated backgrounds (they stay, always on top of the real product photo) |
 | DEC-35 | POS Next is pinned and never auto-upgraded; every upgrade and an uninstall are rehearsed on staging; the unrelated older "POSNext" by exvas is never installed |
+| DEC-66 | Week-1 model bake-off (`21` section 5) skipped by the owner on 2026-10-26; the current OpenCode setup (DEC-60) is kept |
 
 ## 2. Open owner questions (the agent must ask, not guess)
 | ID | Question | Default until answered |
 |---|---|---|
-| OPEN-01 | Manager maximum discount | 15% |
-| OPEN-02 | Who holds approval PINs and how are they set | Manager and owner |
+| OPEN-01 | ~~Manager maximum discount~~ Closed: 15% (owner, 2026-10-26) | closed |
+| OPEN-02 | Who holds approval PINs and how are they set | Administrator (owner, 2026-10-26); how the PIN is set still to confirm |
 | OPEN-03 | Reseller tier definitions and price lists | Standard plus one tier |
 | OPEN-04 | Return policy for opened cosmetics | No returns of opened cosmetics unless defective |
 | OPEN-05 | ~~Purchase flow~~ Closed: Purchase Invoice with Update Stock (DEC-31) | closed |
@@ -81,17 +82,17 @@
 | OPEN-07 | WhatsApp provider and Chatwoot compatibility | Resolved in P0-07 |
 | OPEN-08 | ~~VAT and e-invoicing~~ Closed: none (DEC-26) | closed |
 | OPEN-09 | Hardware models | Record in P0-06 |
-| OPEN-10 | Which ledger account each mode posts to (Cash, Bank Transfer, Vodafone Cash, InstaPay) | One account per mode |
+| OPEN-10 | Which ledger account each mode posts to (Cash, Bank Transfer, Vodafone Cash, InstaPay) | One account per mode (owner: later, 2026-10-26) |
 | OPEN-11 | Staff guideline for setting shipping fees | Manual until defined |
 | OPEN-12 | Reservation expiry hours | 24 |
-| OPEN-13 | Final item group tree and code prefixes | Two top groups per `05a` |
+| OPEN-13 | Final item group tree and code prefixes | Two top groups per `05a` (owner: later, 2026-10-26) |
 | OPEN-14 | Broadcast audience and consent source. Budget cap ignored for now (DEC-33) | Consent required; cap off |
 | OPEN-16 | Digits shown to users: Western (default) or Arabic-Indic | Western |
 | OPEN-17 | Owner approval of the Arabic glossary (`19` section 8) | Draft glossary |
 | OPEN-18 | Do catalogs need English item names for any customer? | Optional English fields |
 | OPEN-19 | Deposit deadline | 24 hours |
 | OPEN-20 | Is Gallery sellable and which warehouses feed chat availability | Main Inventory and Shop count; Gallery display only |
-| OPEN-21 | Return window and cash-refund limit | 14 days and an amount set by the owner |
+| OPEN-21 | Return window and cash-refund limit | 14 days; refund limit "possible total value" (owner, 2026-10-26) — wording to confirm |
 | OPEN-15 | ERPNext roles per employee | Per `05a` section 10 |
 
 ## 3. Assumptions
@@ -111,6 +112,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation |
 
 ## 5. Change log
+v5.3.1 (2026-10-26): owner decisions after the P0 review: OPEN-01 closed at 15%; OPEN-02 = Administrator; OPEN-10 and OPEN-13 deferred (defaults hold); OPEN-21 partially answered ("possible total value"); P0-12 skipped because the owner deleted the legacy app (DEC-02); week-1 model bake-off skipped (DEC-66); `docs` agent model replaced with its `21` fallback (`mimo-v2.6-flash`).
 v5.3 FINAL (2026-10-22): cost savings adopted (DEC-64, DEC-65), tasks A-10, A-11, ENH-S-10, ENH-S-11, ENH-C-09; tests TEST-101 to TEST-107; running cost estimate lowered.
 v5.2 FINAL (2026-10-22): autopilot scripts and permissions, VM guidance, dev and production ERPNext install tasks (DEC-62, DEC-63), cost-saving proposals (`25`).
 v5.1 FINAL (2026-10-22): OpenCode Go limits, privacy table and current model IDs applied to `opencode.json` and `21`; step-by-step OpenCode guide added (`23`).

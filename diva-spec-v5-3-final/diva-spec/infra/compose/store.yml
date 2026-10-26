@@ -1,0 +1,12 @@
+name: diva-store
+
+services:
+  api:
+    build:
+      context: ../../apps/local-api
+    environment:
+      ERPNEXT_URL: ${ERPNEXT_URL:-http://host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8100:8100"

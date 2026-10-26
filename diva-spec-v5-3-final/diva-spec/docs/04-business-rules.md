@@ -71,8 +71,8 @@ All rules are implemented once in `packages/rules-engine` as pure functions with
 
 ## RULE-RET (DEC-52)
 1. Returns use ERPNext return documents and credit notes. Employees may process them within limits; they cannot cancel invoices or issue arbitrary refunds.
-2. A return needs a valid original sale (or an approved return reference). The returned quantity cannot exceed the quantity sold minus earlier returns. A reason is mandatory. The employee and times are recorded.
-3. Refunds go to the original payment method where feasible. **Manager approval** is required for cash refunds above a configured amount (OPEN-21), returns without a valid reference, and policy exceptions.
+2. A return needs a valid original sale (or an approved return reference). The returned quantity cannot exceed the quantity sold minus earlier returns. The return window is 14 days from delivery (OPEN-21). A reason is mandatory. The employee and times are recorded.
+3. Refunds go to the original payment method where feasible. Refunds are capped at the invoice/return total — full or partial, cumulative per invoice (OPEN-21, closed 2026-10-26). **Manager approval** is required for returns without a valid reference and policy exceptions.
 4. Returned goods go to the Returns and Defects warehouse and become sellable only after assessment and a transfer.
 5. Opened cosmetics: OPEN-04.
 

@@ -2,6 +2,14 @@
 
 All notable changes to the Diva platform. The format follows Keep a Changelog; versions track the specification (`docs/00-index.md`).
 
+## [Unreleased]
+
+### Added
+- TASK-P0-04a: `docs/appendix-erpnext-verification.md` records the disposable dev ERPNext 16 stack (erpnext 16.52.1, frappe 16.53.0, mariadb 11.8, redis:6.2-alpine, image pinned to `frappe/erpnext:v16.52.1`) and its health evidence.
+
+### Changed
+- `docs/12`: OPEN-21 closed (refunds up to the invoice/return total, full or partial, cumulative cap); OPEN-02 closed (PIN held by Administrator, set at TASK-E-14a, stored hashed, never in the repo); DEC-67 records that the repository layout stays nested.
+
 ## [0.1.0] - 2026-10-26
 
 ### Added

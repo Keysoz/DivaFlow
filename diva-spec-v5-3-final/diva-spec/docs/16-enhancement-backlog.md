@@ -158,8 +158,6 @@ Accepted: **53 items, about 556 h** (estimate; plan range 80%–125%). Deferred:
 |---|---|---|
 | Phase E start | OPEN-13 final item group tree | Two top groups per `05a` |
 | Phase E start | OPEN-10 ledger account for each payment mode | One account per mode |
-| `E-14a` | OPEN-01 manager discount maximum | 15% |
-| `E-14a` | OPEN-02 who holds approval PINs | Manager and owner |
 | `E-14` | OPEN-04 return policy for opened cosmetics | No returns unless defective |
 | `E-14` | OPEN-06 near-expiry threshold | 90 days |
 | Phase PUB | OPEN-14 broadcast audience and consent source | Consent required, cap off |

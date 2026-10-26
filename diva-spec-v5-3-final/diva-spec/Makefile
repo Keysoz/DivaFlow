@@ -44,3 +44,4 @@ dev-store:
 
 secret-scan:
 	docker run --rm -v "$$(git rev-parse --show-toplevel):/repo" $(GITLEAKS_IMAGE) detect --source=/repo --no-git --verbose --redact --no-banner
+	docker run --rm -v "$$(git rev-parse --show-toplevel):/repo" -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo $(GITLEAKS_IMAGE) detect --source=/repo --verbose --redact --no-banner

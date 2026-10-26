@@ -41,6 +41,7 @@ Date: 2026-10-22. Status: **final and build-ready.** Build order: P0, E (ERPNext
 | `10-quality-security.md` | Test matrix, performance, security, observability |
 | `18-owner-acceptance-scripts.md` | Plain-language acceptance steps for every gate |
 | `21-ai-tooling-policy.md` | Models and tools, budget, data rules |
+| `26-secrets-and-rotation.md` | Secrets manager (Bitwarden), inventories, rotation schedule, emergency procedure |
 | `11-operations-cost.md` | Backups, runbooks, training, running cost |
 
 ## Reference

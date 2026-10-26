@@ -1,6 +1,6 @@
 # Appendix: POS Next fit test (TASK-P0-03)
 
-**Status: partial — hardware/visual checks pending; uninstall rehearsal done.** The owner deferred the scanner, thermal receipt printer and label printer to a later session (P0-06) and authorised synthetic data instead of a production-data copy (owner, 2026-10-26; recorded in DEC-68). Everything that can be verified without the hardware was verified on the disposable dev stack (section 1 of `appendix-erpnext-verification.md`) with synthetic data. No production data or credentials were used (DEC-38).
+**Status: partial — hardware/visual checks pending; uninstall rehearsals done; pinned `v2.0.0` re-run done (2026-10-27).** The owner deferred the scanner, thermal receipt printer and label printer to a later session (P0-06) and authorised synthetic data instead of a production-data copy (owner, 2026-10-26; recorded in DEC-68). Everything that can be verified without the hardware was verified on the disposable dev stack (section 1 of `appendix-erpnext-verification.md`) with synthetic data. No production data or credentials were used (DEC-38).
 
 Date: 2026-10-26. Site: `frontend` (erpnext 16.52.1, frappe 16.53.0).
 
@@ -48,8 +48,8 @@ Pinned tag: **`v2.0.0` = commit `e0a52c5`** — but the tag ships app version **
 | Repeated scan raises quantity | present (`mergeItems`) |
 | Returns dialog | present (`ReturnInvoiceDialog.vue`) |
 | POS invoice, 2 Dozen, cash | **PASS** — EGP 2,880, paid 2,880, change 0, `stock_qty` 24 |
-| Reserved-stock block | **PASS** — blocked while fully reserved (`NegativeStockError`); after cancelling the reservation the same invoice submitted, stock 96 → 72, the other order's 24 stayed reserved |
-| Offline / PWA | **LIMITATION** — the service worker is served at `/assets/pos_next/pos/sw.js`, so its scope cannot control `/pos`; `/pos-sw.js` is 404 at v2.0.0. The develop build adds a root-scope copy (`www/pos-sw.js`). Needs a patch or a newer release before offline is claimed. |
+| Reserved-stock block | **PASS** — blocked while fully reserved (`NegativeStockError` in the API response; the failure is not persisted in Error Log); after cancelling the reservation the same invoice submitted, stock 96 → 72, the other order's 24 stayed reserved |
+| Offline / PWA | **LIMITATION** — the service worker is served at `/assets/pos_next/pos/sw.js` (no `Service-Worker-Allowed` header), so its scope cannot control `/pos`; `/pos-sw.js` is 404 at v2.0.0. The manifest compounds it: `scope: /assets/pos_next/pos/` with `start_url: /pos`. The develop build adds a root-scope copy (`www/pos-sw.js`) registered with `scope: "/pos"`. Needs a patch or a newer release before offline is claimed. |
 | Uninstall rehearsal | uninstall succeeds, `/pos` 404; **10 custom fields** and the two roles remain (the vendor removes only 2 explicitly; the rest depend on module cleanup). Reinstall restores 21 fields and `/pos` 200. |
 
 **Verdict impact:** the pin condition is satisfied for tag pinning, but `v2.0.0` is code `1.17.0`: no global F-keys, fewer fields and an offline scope gap. The required patch set therefore grows (keymap, scan card, `qty*barcode`, service-worker scope). Re-run this smoke subset on the patched pinned build before E-14; the hardware session is still pending.
@@ -90,18 +90,18 @@ Safety rules (never show success before server confirmation, idempotency, no in-
 | Scan info card — "unknown" | **No dedicated card** → required patch E-14b |
 | Returns — "verify" | **Yes** (ReturnInvoiceDialog); standard returns remain the fallback |
 | Low-stock tint — "unknown" | **No evidence** → optional patch candidate |
-| Keyboard shortcuts — "map unverified" | **Partial: F4/F8/F9 only** → required patch (full owner key map) |
-| Offline — "yes (tested)" | Architecture present; full-shift test pending |
+| Keyboard shortcuts — "map unverified" | **None at the pinned v2.0.0**; F4/F8/F9 on develop only (section 1c) → required patch (full owner key map) |
+| Offline — "yes (tested)" | Architecture present; at v2.0.0 the service-worker scope gap applies (section 1c); full-shift test pending |
 
 ## 4. Verdict (provisional)
 
 **Provisional GO for POS Next on ERPNext 16**, subject to these conditions before E-14 starts:
 
 1. **Pin done: `v2.0.0` re-run executed (section 1c).** `v2.0.0` is code `1.17.0` (vendor tag/version mismatch) with 21 fields, no global F-keys and an offline service-worker scope gap. Before E-14, re-run the smoke subset on the **patched** pinned build; never auto-upgrade (DEC-35).
-2. **Patch set E-14b is required**, not optional: `qty*barcode` multiplier, the owner's full key map with `preventDefault`, and the scan info card. Undo and low-stock tint remain optional. (At `v2.0.0` there are no global F-key handlers at all; the patch set grows.)
+2. **Patch set E-14b is required**, not optional: `qty*barcode` multiplier, the owner's full key map with `preventDefault`, the scan info card, and a root-scope service worker for offline. Undo and low-stock tint remain optional. (At `v2.0.0` there are no global F-key handlers at all; the patch set grows.)
 3. **Hardware session (owner):** Arabic receipt printing (80 mm), QZ Tray, Arabic keyboard layout, visual RTL and English switch, full-shift offline, performance figures, returns and shift closing end to end.
 4. **`diva_guard` (E-14a) remains mandatory** for MOQ, discount/PIN, price integrity, full-payment-only and the reserved-stock check (RULE-STOCK).
-5. **Uninstall rehearsal before the first upgrade:** the rehearsal in section 1b passed but leaves 4 vendor custom fields and the two roles behind; plan their cleanup or document them.
+5. **Uninstall rehearsal before the first upgrade:** the pinned rehearsal in section 1c leaves **10 vendor custom fields** and the two roles behind; plan their cleanup or document them. (`custom_brands_table` is not an orphan: it is removed with the `POS Brands Detail` doctype.)
 6. **Config check:** API-created Sales Orders on the dev site defaulted to INR (global default currency) while the POS Profile and the POS invoice carry EGP; the POS invoice required an explicit currency. Verify currency on the real POS Profile and company documents before E-14.
 
 Until conditions 1–3 are done, the decision is provisional; the final go/no-go is recorded after the hardware session.

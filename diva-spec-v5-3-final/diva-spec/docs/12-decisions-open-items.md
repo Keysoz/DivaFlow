@@ -69,12 +69,13 @@
 | DEC-65 | Not adopted: dropping n8n (it stays for schedules and briefs) and replacing AI-generated backgrounds (they stay, always on top of the real product photo) |
 | DEC-35 | POS Next is pinned and never auto-upgraded; every upgrade and an uninstall are rehearsed on staging; the unrelated older "POSNext" by exvas is never installed |
 | DEC-66 | Week-1 model bake-off (`21` section 5) skipped by the owner on 2026-10-26; the current OpenCode setup (DEC-60) is kept |
+| DEC-67 | Repository layout stays nested: the project lives at `diva-spec-v5-3-final/diva-spec/` inside the `Keysoz/DivaFlow` repository, and CI runs from the repository root with `working-directory`. Restructure only if the owner asks (owner, 2026-10-26) |
 
 ## 2. Open owner questions (the agent must ask, not guess)
 | ID | Question | Default until answered |
 |---|---|---|
 | OPEN-01 | ~~Manager maximum discount~~ Closed: 15% (owner, 2026-10-26) | closed |
-| OPEN-02 | Who holds approval PINs and how are they set | Administrator (owner, 2026-10-26); how the PIN is set still to confirm |
+| OPEN-02 | ~~Who holds approval PINs and how are they set~~ Closed: Administrator holds the approval PIN; the owner sets and rotates it at TASK-E-14a, stored as a salted hash in `diva_guard` settings, never in the repo (owner, 2026-10-26) | closed |
 | OPEN-03 | Reseller tier definitions and price lists | Standard plus one tier |
 | OPEN-04 | Return policy for opened cosmetics | No returns of opened cosmetics unless defective |
 | OPEN-05 | ~~Purchase flow~~ Closed: Purchase Invoice with Update Stock (DEC-31) | closed |
@@ -92,7 +93,7 @@
 | OPEN-18 | Do catalogs need English item names for any customer? | Optional English fields |
 | OPEN-19 | Deposit deadline | 24 hours |
 | OPEN-20 | Is Gallery sellable and which warehouses feed chat availability | Main Inventory and Shop count; Gallery display only |
-| OPEN-21 | Return window and cash-refund limit | 14 days; refund limit "possible total value" (owner, 2026-10-26) — wording to confirm |
+| OPEN-21 | ~~Return window and cash-refund limit~~ Closed: 14 days; refunds up to the invoice/return total, full or partial, cumulative cap per invoice; manager approval stays for reference-less returns and policy exceptions (owner, 2026-10-26) | closed |
 | OPEN-15 | ERPNext roles per employee | Per `05a` section 10 |
 
 ## 3. Assumptions
@@ -112,6 +113,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation |
 
 ## 5. Change log
+v5.3.2 (2026-10-26): OPEN-21 and OPEN-02 closed; DEC-67 records the repository layout.
 v5.3.1 (2026-10-26): owner decisions after the P0 review: OPEN-01 closed at 15%; OPEN-02 = Administrator; OPEN-10 and OPEN-13 deferred (defaults hold); OPEN-21 partially answered ("possible total value"); P0-12 skipped because the owner deleted the legacy app (DEC-02); week-1 model bake-off skipped (DEC-66); `docs` agent model replaced with its `21` fallback (`mimo-v2.6-flash`).
 v5.3 FINAL (2026-10-22): cost savings adopted (DEC-64, DEC-65), tasks A-10, A-11, ENH-S-10, ENH-S-11, ENH-C-09; tests TEST-101 to TEST-107; running cost estimate lowered.
 v5.2 FINAL (2026-10-22): autopilot scripts and permissions, VM guidance, dev and production ERPNext install tasks (DEC-62, DEC-63), cost-saving proposals (`25`).

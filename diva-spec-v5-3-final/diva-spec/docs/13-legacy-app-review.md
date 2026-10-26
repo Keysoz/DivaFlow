@@ -2,6 +2,8 @@
 
 Source: the archive the owner uploaded (`diva_store`, version 1.0.0). Reviewed by reading the code; **nothing was run**. Items marked VERIFY must be confirmed on a staging copy in `TASK-P0-12`.
 
+> **2026-10-26:** the owner deleted the legacy `diva_store` app before Phase P0 verification. `TASK-P0-12` is skipped (see `12`, DEC-02). This review is kept as history and as a salvage reference in case any data is recovered from backups.
+
 ## 1. What it is
 A custom Frappe app, in daily use at the counter. It contains:
 - A Desk-based POS built from 22 JavaScript modules injected into the Sales Invoice form (`doctype_js`) plus about 26 KB of CSS that hides Desk elements.

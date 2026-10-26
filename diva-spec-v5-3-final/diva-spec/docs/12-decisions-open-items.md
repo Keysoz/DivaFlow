@@ -112,7 +112,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Solo-developer capacity | Slippage | Staged gates, strangler rollout, agent-assisted work |
 | Wrong units (dozen vs piece) | Stock errors | RULE-UOM, tests TEST-11 and TEST-12 |
 | Cosmetics expiry or claims | Compliance and returns | Batch and expiry, FEFO, AI claim guardrail |
-| Exposed legacy credentials | Account takeover | P0-01 rotation |
+| Exposed legacy credentials | Account takeover | P0-01 rotation; Bitwarden plus quarterly rotation (`26`) |
 
 ## 5. Change log
 v5.3.4 (2026-10-27): ENH-S-02 — Bitwarden chosen as the secrets manager (DEC-69); rotation schedule in `26`.

@@ -5,6 +5,11 @@ set -euo pipefail
 DIR="${1:-$HOME/frappe_docker}"
 [ -d "$DIR/.git" ] || git clone https://github.com/frappe/frappe_docker "$DIR"
 cd "$DIR"
+if ! grep -qE 'image: frappe/erpnext:v16' pwd.yml; then
+  echo "pwd.yml does not pin a frappe/erpnext v16 image; refusing to start (task P0-04a targets ERPNext 16)." >&2
+  echo "Pin the image in $DIR/pwd.yml, then re-run." >&2
+  exit 1
+fi
 docker compose -f pwd.yml up -d
 echo "Waiting for ERPNext to finish creating the site (about 5 minutes on the first start)..."
 for i in $(seq 1 60); do

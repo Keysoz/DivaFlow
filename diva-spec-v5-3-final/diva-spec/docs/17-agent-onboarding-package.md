@@ -24,7 +24,7 @@ What the owner prepares before the coding agent starts. The agent works on **dev
 | 17 | Current valuation setting and stock history export | E-07 | For the FIFO audit |
 
 ## 2. Business material
-Logo and colors; brand voice notes and 10 sample captions you like (ENH-M-01); reseller terms (ENH-L-01); privacy and consent wording (ENH-L-02); return policy for opened cosmetics (OPEN-04); item group tree (OPEN-13); price tiers (OPEN-03); opening balances sheet (ENH-A-01); list of staff with roles and PIN holders (OPEN-02).
+Logo and colors; brand voice notes and 10 sample captions you like (ENH-M-01); reseller terms (ENH-L-01); privacy and consent wording (ENH-L-02); return policy for opened cosmetics (OPEN-04); item group tree (OPEN-13); price tiers (OPEN-03); opening balances sheet (ENH-A-01); list of staff with roles and approval PIN holders (Administrator holds the PIN; `12` OPEN-02).
 
 ## 3. Working agreement
 - One channel for questions (for example a shared chat) and a daily written status from the agent.

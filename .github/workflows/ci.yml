@@ -28,6 +28,19 @@ jobs:
       - run: make lint
       - run: make test
 
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: diva-spec-v5-3-final/diva-spec
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: make audit
+
   secret-scan:
     name: secret scan
     runs-on: ubuntu-latest

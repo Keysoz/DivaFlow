@@ -6,4 +6,4 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 |---|---|---|---|
 | P0-12 | Skipped | — | Legacy `diva_store` app deleted by the owner 2026-10-26; `docs/12` DEC-02 |
 | P0-10 | Merged | [#1](https://github.com/Keysoz/DivaFlow/pull/1) | `make lint`/`make test` green locally (86 tests); CI green on the pull request |
-| P0-04a | In review (auto-merge) | [#4](https://github.com/Keysoz/DivaFlow/pull/4) | Dev ERPNext 16.52.1 / frappe 16.53.0 on port 8080 recorded; script guards against non-v16 tags |
+| P0-04a | Merged | [#4](https://github.com/Keysoz/DivaFlow/pull/4) | Dev ERPNext 16.52.1 / frappe 16.53.0 on port 8080 recorded; script guards against non-v16 tags |

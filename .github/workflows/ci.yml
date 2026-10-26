@@ -46,5 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: gitleaks
+        with:
+          fetch-depth: 0
+      - name: gitleaks (working tree and history)
         run: make -C diva-spec-v5-3-final/diva-spec secret-scan

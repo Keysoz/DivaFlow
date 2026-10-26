@@ -13,7 +13,7 @@ This file records what we use from **standard ERPNext**, from **POS Next**, and 
 
 **Name warning.** There is a different, older app also called "POSNext" (publisher exvas, listed on the Frappe marketplace for ERPNext 14 and 15, MIT). A marketplace review says uninstalling it leaves custom fields behind and can break a site. **Do not install it.** Install only `pos_next` from `https://github.com/BrainWise-DEV/POSNext` (AGPL-3.0, Vue 3, offline-first).
 
-## 2. POS Next: what it gives us (from its published notes; verify in `TASK-P0-03`)
+## 2. POS Next: what it gives us (verified in `TASK-P0-03`, 2026-10-26; hardware/visual items pending)
 Offline-first selling with automatic sync (the developer says it holds for about a day or until shift close); barcode and keyboard use; shift management with Sales vs Shifts and Payments and Cash Control reports (with bank deposit information); credit sales with settings to allow or block them; paying a customer's receivable account from the POS; offers and promotional schemes with minimum and maximum discount logic; packed items for Product Bundles; item scope by POS Profile; customer group and territory defaults; invoice list with payment mode; offline receipt handling and printing; extension hooks.
 **Risks:** the project is young (about 150 stars); its v1.17.0 release notes include a rollback of a change that hid all records, so upgrades can regress; it adds its own custom fields and permission query conditions to ERPNext (vendor-owned; document them and rehearse uninstall); AGPL means a modified fork's source must be available to its users.
 **Rules for using it:** pin the exact version; never auto-upgrade; rehearse every upgrade and an uninstall on staging first; keep our patch set small and rebasable; test offline for a full shift (`TEST-53`).
@@ -34,10 +34,10 @@ Offline-first selling with automatic sync (the developer says it holds for about
 | Payments (cash, non-cash, split, change) | recorded wrongly | yes | **POS Next**; partial and credit blocked at the counter by setting plus `diva_guard` |
 | Shift open and close, reconciliation | legacy shift report | shifts, cash control reports | **POS Next** |
 | Receipts 80 mm and 58 mm | print formats | printing and offline receipts | **POS Next**; reuse the legacy layout if its default receipt is weaker |
-| Returns (Quick Return Ctrl+R) | yes | yes (P0-03) | **POS Next returns**; fall back to standard ERPNext return |
+| Returns (Quick Return Ctrl+R) | yes | present in code, not exercised (P0-03) | **POS Next returns**; fall back to standard ERPNext return |
 | Low-stock tint on rows | yes | no evidence (P0-03) | Optional patch candidate |
 | Today's sales widget | yes | reports | Control Room sales page |
-| Offline operation | no | yes | **POS Next** (tested) |
+| Offline operation | no | architecture verified (P0-03); full-shift test pending | **POS Next** |
 | Product bundles (sets) | no | packed items | **POS Next** (when needed) |
 | Send invoice by WhatsApp | deferred | not core | Phase G |
 | Price check screen | yes | item search shows price | POS Next search; Ops mini screen only if needed |

@@ -70,6 +70,7 @@
 | DEC-35 | POS Next is pinned and never auto-upgraded; every upgrade and an uninstall are rehearsed on staging; the unrelated older "POSNext" by exvas is never installed |
 | DEC-66 | Week-1 model bake-off (`21` section 5) skipped by the owner on 2026-10-26; the current OpenCode setup (DEC-60) is kept |
 | DEC-67 | Repository layout stays nested: the project lives at `diva-spec-v5-3-final/diva-spec/` inside the `Keysoz/DivaFlow` repository, and CI runs from the repository root with `working-directory`. Restructure only if the owner asks (owner, 2026-10-26) |
+| DEC-68 | POS Next fit test (TASK-P0-03): **provisional go** on ERPNext 16 — install, POS invoice with Dozen UOM, the reserved-stock block, Arabic translations/RTL static evidence and shift opening pass; uninstall rehearsal passed but leaves 4 vendor fields and 2 roles. Conditions before E-14: pin a release (`v2.0.0`) **and re-run the smoke subset on it, or pin the tested commit `47d2c9a` with owner sign-off** (v2.0.0 differs materially); required patches (`qty*barcode`, full key map, scan info card); owner hardware/visual/offline session; `diva_guard` remains mandatory; EGP currency check. The owner authorised the dev site with synthetic data instead of a production-data staging copy and deferred the hardware (2026-10-26). Final go/no-go is recorded after the hardware session (`appendix-posnext-fit-test.md`) |
 
 ## 2. Open owner questions (the agent must ask, not guess)
 | ID | Question | Default until answered |
@@ -113,6 +114,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation |
 
 ## 5. Change log
+v5.3.3 (2026-10-26): POS Next fit test partial result (provisional go, DEC-68); `14` verify/unknown cells answered; owner authorised synthetic data on the dev site and deferred hardware; uninstall rehearsal done; hardware/visual checks pending.
 v5.3.2 (2026-10-26): OPEN-21 and OPEN-02 closed; DEC-67 records the repository layout.
 v5.3.1 (2026-10-26): owner decisions after the P0 review: OPEN-01 closed at 15%; OPEN-02 = Administrator; OPEN-10 and OPEN-13 deferred (defaults hold); OPEN-21 partially answered ("possible total value"); P0-12 skipped because the owner deleted the legacy app (DEC-02); week-1 model bake-off skipped (DEC-66); `docs` agent model replaced with its `21` fallback (`mimo-v2.6-flash`).
 v5.3 FINAL (2026-10-22): cost savings adopted (DEC-64, DEC-65), tasks A-10, A-11, ENH-S-10, ENH-S-11, ENH-C-09; tests TEST-101 to TEST-107; running cost estimate lowered.

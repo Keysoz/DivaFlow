@@ -49,6 +49,7 @@ Date: 2026-10-22. Status: **final and build-ready.** Build order: P0, E (ERPNext
 | `12-decisions-open-items.md` | Decision log, open questions, assumptions, risks, change log |
 | `13-legacy-app-review.md` | Review of the old `diva_store` app and retirement plan |
 | `appendix-erpnext-verification.md` | Live ERPNext versions and verification evidence (P0-04a, P0-04) |
+| `appendix-posnext-fit-test.md` | POS Next fit test: POS-CHECK results, docs/14 answers, provisional verdict (P0-03) |
 | `16-enhancement-backlog.md` | Accepted and deferred enhancements |
 | `25-cost-savings.md` | Proposed ways to get the same features cheaper |
 

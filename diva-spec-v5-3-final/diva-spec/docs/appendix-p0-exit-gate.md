@@ -6,7 +6,7 @@ Status as of 2026-10-27. Gate definition: `docs/09-build-plan.md` (Phase P0 exit
 
 | Gate item | Status | Evidence / owner action |
 |---|---|---|
-| No exposed secrets | **Done** — the owner rotated the exposed credentials (2026-10-27) | `make secret-scan` clean on the working tree **and** the full git history (all refs, ~1.16 MB); no secrets in workflows; Bitwarden adopted (`26-secrets-and-rotation.md`) |
+| No exposed secrets | **Done** — the owner rotated the exposed credentials (2026-10-27) | `make secret-scan` clean on the working tree **and** the full git history (all refs, ~1.2 MB); no secrets in workflows; Bitwarden adopted (`26-secrets-and-rotation.md`) |
 | P0-02 legacy webhooks | **Done** — owner checked the n8n instance | Owner confirmation 2026-10-27 |
 | P0-03 results recorded | **Done — hardware validation deferred to purchase** | `appendix-posnext-fit-test.md`; post-patch smoke: `ACC-SINV-2026-00003` (1 Dozen, EGP 1,440, paid), reservation block with `SAL-ORD-2026-00005`; 10-patch set verified |
 | P0-04 results recorded | **Done** | `appendix-erpnext-verification.md` §2 |
@@ -15,7 +15,7 @@ Status as of 2026-10-27. Gate definition: `docs/09-build-plan.md` (Phase P0 exit
 | ENH-R-01 onboarding package | **Partially ready** | repo, CI, secrets manager done; pending: hardware (purchase), datasets, applications |
 | ENH-R-03 / ENH-R-04 | **Done** | PR template + task template in `AGENTS.md` / `.github` |
 | ENH-S-01 supply-chain scanning | **Done** | `make audit` + CI job |
-| ENH-S-02 secrets manager | **Done** | Bitwarden chosen (DEC-69), runbook `26`, owner set up the vault |
+| ENH-S-02 secrets manager | **Done** | Bitwarden chosen (DEC-69), runbook `26`; owner confirmed the vault and the initial rotation (2026-10-27) |
 
 ## 2. Remaining P0 tasks (owner)
 

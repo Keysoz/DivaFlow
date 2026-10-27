@@ -15,7 +15,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 2 | `fix(uom): dedupe the stock UOM option and make the quantity input visible` | The UOM dialog listed "Nos" twice; the quantity field was borderless and easy to miss |
 | 3 | `feat(scan): support qty*barcode multiplier` | Required patch (DEC-36/E-14b): `5*890…` adds five units in one scan |
 | 4 | `fix(offline): register a root-scope service worker for /pos` | The worker was scoped under `/assets/...` and could not control `/pos` |
-| 5 | `i18n(ar): translate the scan placeholder and Shift History` | Two Arabic keys were missing (native review still required) |
+| 5 | `i18n(ar): translate the scan placeholder and Shift History` | Two Arabic keys were missing (native review completed 2026-10-27) |
 | 6 | `fix(offline): serve the precached shell for /pos navigations` | `navigateFallback` was `null`; the shell was never served offline |
 | 7 | `fix(offline): claim clients and activate the new worker immediately` | `clientsClaim` / `skipWaiting` so the first session is controlled |
 | 8 | `fix(offline): absolute precache URLs for the root-served worker` | At `/pos-sw.js` the relative precache URLs resolved to `/assets/...` (404) |

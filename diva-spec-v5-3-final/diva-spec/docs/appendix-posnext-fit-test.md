@@ -72,7 +72,7 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 
 ### 1e. Patch set applied and verified (2026-10-27)
 
-The tracked patch set lives in `infra/posnext-patches/` (**10 patches** on tag `v2.0.0`, applied to the dev site and verified in the browser):
+The tracked patch set lives in `infra/posnext-patches/` (**11 patches** on tag `v2.0.0`, applied to the dev site and verified in the browser):
 
 | Fix | Verified result |
 |---|---|
@@ -92,7 +92,7 @@ Remaining E-14b items (not patched yet): the owner's full key map (F1–F10 and 
 
 ### 1f. Post-patch smoke re-run (2026-10-27)
 
-After applying the 10-patch set and rebuilding the assets:
+After applying the 11-patch set and rebuilding the assets:
 
 - **POS invoice** `ACC-SINV-2026-00003` submitted: EGP, 1 Dozen → `stock_qty` 12 Nos, grand total and paid 1,440.
 - **Reserved-stock block**: `SAL-ORD-2026-00005` reserved all 72 Nos (full); the same POS invoice was rejected with `NegativeStockError`. After cancelling the order the invoice submitted; Bin moved 72 → 60 Nos, reserved 0.

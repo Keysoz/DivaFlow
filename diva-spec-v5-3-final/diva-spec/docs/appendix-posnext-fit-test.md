@@ -72,7 +72,7 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 
 ### 1e. Patch set applied and verified (2026-10-27)
 
-The tracked patch set lives in `infra/posnext-patches/` (**10 patches** on tag `v2.0.0`, applied to the dev site and verified in the browser):
+The tracked patch set lives in `infra/posnext-patches/` (**11 patches** on tag `v2.0.0`, applied to the dev site and verified in the browser):
 
 | Fix | Verified result |
 |---|---|

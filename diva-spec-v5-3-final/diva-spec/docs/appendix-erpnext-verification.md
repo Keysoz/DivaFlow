@@ -120,5 +120,7 @@ Date 2026-10-27. Source: the disposable dev site — no production site exists y
 
 - **Apps:** frappe 16.53.0, erpnext 16.52.1, pos_next 1.17.0 (pinned tag `v2.0.0` + the 11 tracked patches).
 - **Site:** company `Diva Dev` (abbr `DD`), default currency EGP, country Egypt, fiscal year `2026-2027` (2026-07-01 → 2027-06-30).
-- **Field register:** `docs/erp-field-register.csv` — 28 core doctypes, **2,016 fields**, generated from the live DocType metadata (no invented fieldnames; includes the vendor `pos_next` fields).
+- **Field register:** `docs/erp-field-register.csv` — 28 core doctypes, **2,028 rows** (2,016 DocField + 12 Custom Field), generated from the live schema **and** the installed custom fields (no invented fieldnames). It includes the 12 vendor POS Next fields that live on these doctypes (21 exist across all POS Next doctypes).
+- **Classification:** every row carries `classification` = `keep` with a `reason`; TASK-E-02/E-03 change the rows they act on. The `source` column distinguishes schema from custom fields.
+- **Repeatable:** `scripts/gen_field_register.py` (credentials from env) regenerates the file.
 - **Provisional:** re-run this register at TASK-E-00a against the production site and diff; only then is it the authoritative baseline.

@@ -130,6 +130,6 @@ Date 2026-10-27. Source: the disposable dev site — no production site exists y
 Date 2026-10-27. `infra/erpnext-config/apply.py` (idempotent, dry-run by default) with `config.yaml`; credentials from the environment.
 
 - **Dry run (first pass):** property setters hiding `tax_id` and `taxes_and_charges` on Sales Invoice and Sales Order (DEC-26: no VAT); hide the `Manufacturing` workspace (E-02); **singles**: `Stock Settings.allow_negative_stock = 0`, `enable_stock_reservation = 1`, `auto_reserve_stock = 1` (E-04); **records**: `UOM Dozen` whole-number, item groups `Accessories` and `Cosmetics`, price list `Wholesale` (E-04/E-05).
-- **Applied**, then the same dry run again: **0 changes** (14 no-op/missing) — idempotency proven. Reapply after every upgrade (E-03 acceptance).
+- **E-04/E-05 first pass:** 3 changes — the two item groups and the `Wholesale` price list (the stock singles and the UOM already matched). **Applied**, then the same dry run again: **0 changes** (14 no-op/missing) — idempotency proven. Reapply after every upgrade (E-03 acceptance).
 - `HR` and `Payroll` workspaces do not exist on this site; the config reports them as `missing` and skips them. Per-role refinement lands with the roles/users task (E-16).
 - Workspaces are hidden globally (`is_hidden`); no core code or custom fields were created. Batch/expiry per item (E-14c), per-tier prices and price-edit permissions (E-05/E-16) remain.

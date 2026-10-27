@@ -117,6 +117,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation; Bitwarden plus quarterly rotation (`26`) |
 
 ## 5. Change log
+v5.3.10 (2026-10-27): E-02/E-03 — idempotent config script and baseline applied on the dev site (tax fields hidden, Manufacturing workspace hidden; re-run 0 changes).
 v5.3.9 (2026-10-27): Phase E started on the dev stack (DEC-71); E-00 recorded (nothing to retire) and E-01 baseline generated (`erp-field-register.csv`, 28 doctypes, 2,028 rows).
 v5.3.8 (2026-10-27): owner confirmed the credential rotation and the n8n webhook check; Arabic review done (OPEN-17 closed); POS Next baseline approved (DEC-70); P0 gate status recorded (`appendix-p0-exit-gate.md`).
 v5.3.6 (2026-10-27): E-14b — 11-patch POS Next set applied (defects, `qty*barcode`, offline); baseline approved (DEC-70).

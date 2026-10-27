@@ -7,10 +7,10 @@ GITLEAKS_IMAGE := zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9
 # Requirements snapshot for pip-audit (generated from uv.lock; removed after the scan).
 AUDIT_REQ := /tmp/diva-audit-requirements.txt
 
-.PHONY: help setup test lint audit e2e contract dev-cloud dev-store secret-scan
+.PHONY: help setup test lint audit e2e contract dev-cloud dev-store secret-scan config-dry-run config-apply
 
 help:
-	@echo "Targets: setup test lint audit e2e contract dev-cloud dev-store secret-scan"
+	@echo "Targets: setup test lint audit e2e contract dev-cloud dev-store secret-scan config-dry-run config-apply"
 
 setup:
 	uv sync
@@ -41,6 +41,12 @@ dev-cloud:
 
 dev-store:
 	docker compose -f infra/compose/store.yml up --build
+
+config-dry-run:
+	uv run python infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml
+
+config-apply:
+	uv run python infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml --apply
 
 secret-scan:
 	docker run --rm -v "$$(git rev-parse --show-toplevel):/repo" $(GITLEAKS_IMAGE) detect --source=/repo --no-git --verbose --redact --no-banner

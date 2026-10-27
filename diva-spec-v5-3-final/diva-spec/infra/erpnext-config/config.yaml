@@ -1,0 +1,30 @@
+# Configuration baseline (TASK-E-03, TASK-E-02).
+# Applied through apply.py only; every change is data, never core code.
+
+property_setters:
+  # DEC-26: no VAT and no e-invoicing for this shop; hide the tax fields (E-11).
+  - doctype: Sales Invoice
+    fieldname: tax_id
+    property: hidden
+    value: 1
+  - doctype: Sales Order
+    fieldname: tax_id
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice
+    fieldname: taxes_and_charges
+    property: hidden
+    value: 1
+  - doctype: Sales Order
+    fieldname: taxes_and_charges
+    property: hidden
+    value: 1
+
+workspaces:
+  # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).
+  - name: HR
+    hidden: true
+  - name: Payroll
+    hidden: true
+  - name: Manufacturing
+    hidden: true

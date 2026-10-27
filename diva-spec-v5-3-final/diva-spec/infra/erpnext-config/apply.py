@@ -1,0 +1,233 @@
+"""Idempotent ERPNext configuration (TASK-E-03, TASK-E-02).
+
+Applies a declarative config (property setters and workspace visibility) through
+the ERPNext REST API, with a dry-run diff by default. Re-running must change
+nothing (idempotent). Configuration is stored as data; no core code is touched.
+
+Usage (credentials from the environment, never hard-coded):
+  ERPNEXT_URL=... ERPNEXT_API_KEY=... ERPNEXT_API_SECRET=... \
+    python3 infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml [--apply]
+  ERPNEXT_URL=... ERPNEXT_USER=... ERPNEXT_PASSWORD=... (session login fallback)
+"""
+
+import argparse
+import http.cookiejar
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass, field
+from typing import Any
+
+import yaml
+
+
+@dataclass
+class Action:
+    kind: str
+    target: str
+    action: str
+    current: Any = None
+    desired: Any = None
+
+
+def _normalize(value: Any) -> str:
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    return str(value)
+
+
+def plan_property_setters(
+    entries: list[dict[str, Any]], existing: dict[tuple[str, str, str], str]
+) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        key = (entry["doctype"], entry["fieldname"], entry["property"])
+        target = ".".join(key)
+        desired = _normalize(entry["value"])
+        if key not in existing:
+            actions.append(Action("property_setter", target, "create", None, desired))
+        elif _normalize(existing[key]) != desired:
+            actions.append(Action("property_setter", target, "update", existing[key], desired))
+        else:
+            actions.append(Action("property_setter", target, "noop", existing[key], desired))
+    return actions
+
+
+def plan_workspaces(entries: list[dict[str, Any]], existing: dict[str, str]) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        name = entry["name"]
+        desired = _normalize(entry.get("hidden", True))
+        if name not in existing:
+            actions.append(Action("workspace", name, "missing", None, desired))
+        elif _normalize(existing[name]) != desired:
+            actions.append(Action("workspace", name, "update", existing[name], desired))
+        else:
+            actions.append(Action("workspace", name, "noop", existing[name], desired))
+    return actions
+
+
+@dataclass
+class Client:
+    base: str
+    headers: dict[str, str] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        cooker = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cooker))
+
+    def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
+        data = None
+        headers = dict(self.headers)
+        if payload is not None:
+            data = json.dumps(payload).encode()
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(
+            self.base + path, data=data, headers=headers, method=method
+        )
+        try:
+            with self.opener.open(request) as response:
+                return json.loads(response.read() or b"{}")
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"{method} {path} failed: {exc.code} {exc.read()[:200]!r}") from exc
+
+    def get(self, path: str) -> Any:
+        return self._request("GET", path)
+
+    def put(self, path: str, payload: dict[str, Any]) -> Any:
+        return self._request("PUT", path, payload)
+
+    def post(self, path: str, payload: dict[str, Any]) -> Any:
+        return self._request("POST", path, payload)
+
+
+def _quoted(value: str) -> str:
+    return urllib.parse.quote(value)
+
+
+def _query(filters: list[list[str]], fields: list[str]) -> str:
+    return "?filters=" + _quoted(json.dumps(filters)) + "&fields=" + _quoted(json.dumps(fields))
+
+
+def fetch_existing_property_setters(
+    client: Client, entries: list[dict[str, Any]]
+) -> dict[tuple[str, str, str], str]:
+    existing: dict[tuple[str, str, str], str] = {}
+    for entry in entries:
+        filters = [
+            ["doc_type", "=", entry["doctype"]],
+            ["field_name", "=", entry["fieldname"]],
+            ["property", "=", entry["property"]],
+        ]
+        rows = client.get(
+            "/api/resource/" + _quoted("Property Setter") + _query(filters, ["name", "value"])
+        )["data"]
+        if rows:
+            existing[(entry["doctype"], entry["fieldname"], entry["property"])] = (
+                rows[0].get("value") or ""
+            )
+    return existing
+
+
+def fetch_existing_workspaces(client: Client, names: list[str]) -> dict[str, str]:
+    existing: dict[str, str] = {}
+    for name in names:
+        try:
+            data = client.get("/api/resource/Workspace/" + _quoted(name))["data"]
+        except RuntimeError:
+            continue
+        existing[name] = _normalize(data.get("is_hidden", 0))
+    return existing
+
+
+def apply_actions(
+    client: Client, actions: list[Action], entries_by_target: dict[str, dict[str, Any]]
+) -> None:
+    for action in actions:
+        if action.action == "noop" or action.action == "missing":
+            continue
+        if action.kind == "property_setter":
+            doctype, fieldname, prop = action.target.split(".")
+            payload = {
+                "doctype": "Property Setter",
+                "doctype_or_field": "DocField",
+                "doc_type": doctype,
+                "field_name": fieldname,
+                "property": prop,
+                "value": action.desired,
+                "property_type": "Check",
+            }
+            if action.action == "create":
+                client.post("/api/resource/" + _quoted("Property Setter"), payload)
+            else:
+                filters = [
+                    ["doc_type", "=", doctype],
+                    ["field_name", "=", fieldname],
+                    ["property", "=", prop],
+                ]
+                rows = client.get(
+                    "/api/resource/" + _quoted("Property Setter") + _query(filters, ["name"])
+                )["data"]
+                client.put(
+                    "/api/resource/" + _quoted("Property Setter") + "/" + _quoted(rows[0]["name"]),
+                    {"value": action.desired},
+                )
+        elif action.kind == "workspace":
+            client.put(
+                "/api/resource/Workspace/" + _quoted(action.target),
+                {"is_hidden": 1 if action.desired == "1" else 0},
+            )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--apply", action="store_true", help="write the changes (default: dry run)")
+    args = parser.parse_args()
+
+    base = os.environ.get("ERPNEXT_URL", "").rstrip("/")
+    if not base:
+        sys.exit("Set ERPNEXT_URL")
+
+    with open(args.config, encoding="utf-8") as handle:
+        config = yaml.safe_load(handle) or {}
+    entries = config.get("property_setters", [])
+    workspaces = config.get("workspaces", [])
+
+    client = Client(base)
+    key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
+    if key and secret:
+        client.headers["Authorization"] = f"token {key}:{secret}"
+    else:
+        user, password = os.environ.get("ERPNEXT_USER"), os.environ.get("ERPNEXT_PASSWORD")
+        if not (user and password):
+            sys.exit("Set ERPNEXT_API_KEY/ERPNEXT_API_SECRET or ERPNEXT_USER/ERPNEXT_PASSWORD")
+        client.post("/api/method/login", {"usr": user, "pwd": password})
+
+    existing_ps = fetch_existing_property_setters(client, entries)
+    existing_ws = fetch_existing_workspaces(client, [w["name"] for w in workspaces])
+    actions = plan_property_setters(entries, existing_ps) + plan_workspaces(workspaces, existing_ws)
+
+    for action in actions:
+        print(
+            f"{action.action:8} {action.kind:15} {action.target}  "
+            f"current={action.current!r} desired={action.desired!r}"
+        )
+    changed = [a for a in actions if a.action in {"create", "update"}]
+    print(f"\n{len(changed)} change(s), {len(actions) - len(changed)} no-op/missing")
+
+    if args.apply and changed:
+        entries_by_target = {f"{e['doctype']}.{e['fieldname']}.{e['property']}": e for e in entries}
+        apply_actions(client, changed, entries_by_target)
+        print("applied")
+    elif not args.apply:
+        print("dry run (use --apply to write)")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -124,3 +124,12 @@ Date 2026-10-27. Source: the disposable dev site — no production site exists y
 - **Classification:** every row carries `classification` = `keep` with a `reason`; TASK-E-02/E-03 change the rows they act on. The `source` column distinguishes schema from custom fields.
 - **Repeatable:** `scripts/gen_field_register.py` (credentials from env) regenerates the file.
 - **Provisional:** re-run this register at TASK-E-00a against the production site and diff; only then is it the authoritative baseline.
+
+## 4. Configuration applied (E-03/E-02, dev site)
+
+Date 2026-10-27. `infra/erpnext-config/apply.py` (idempotent, dry-run by default) with `config.yaml`; credentials from the environment.
+
+- **Dry run:** 5 changes — property setters hiding `tax_id` and `taxes_and_charges` on Sales Invoice and Sales Order (DEC-26: no VAT), plus hiding the `Manufacturing` workspace (E-02).
+- **Applied**, then the same dry run again: **0 changes** (7 no-op/missing) — idempotency proven. Reapply after every upgrade (E-03 acceptance).
+- `HR` and `Payroll` workspaces do not exist on this site; the config reports them as `missing` and skips them. Per-role refinement lands with the roles/users task (E-16).
+- Workspaces are hidden globally (`is_hidden`); no core code or custom fields were created.

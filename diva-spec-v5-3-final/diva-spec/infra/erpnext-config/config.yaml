@@ -22,6 +22,7 @@ property_setters:
 
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).
+  # HR and Payroll are currently absent on the dev site and are reported as "missing".
   - name: HR
     hidden: true
   - name: Payroll

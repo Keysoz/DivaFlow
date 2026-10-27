@@ -34,5 +34,5 @@ The dry run prints one line per entry (`create` / `update` / `noop` / `missing`)
 
 ## Scope
 
-- Property setters: hidden, read-only, default (any Property Setter property).
+- Property setters: Check-type properties (hidden, read-only) by default; set `property_type: Data` on an entry for a non-check property such as a text default.
 - Workspaces: global visibility (`is_hidden`). Per-role refinement lands with the roles/users task (E-16).

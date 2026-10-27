@@ -70,10 +70,17 @@ def plan_workspaces(entries: list[dict[str, Any]], existing: dict[str, str]) -> 
     return actions
 
 
+class ApiError(RuntimeError):
+    def __init__(self, message: str, code: int) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 @dataclass
 class Client:
     base: str
     headers: dict[str, str] = field(default_factory=dict)
+    opener: urllib.request.OpenerDirector = field(init=False)
 
     def __post_init__(self) -> None:
         cooker = http.cookiejar.CookieJar()
@@ -92,7 +99,9 @@ class Client:
             with self.opener.open(request) as response:
                 return json.loads(response.read() or b"{}")
         except urllib.error.HTTPError as exc:
-            raise RuntimeError(f"{method} {path} failed: {exc.code} {exc.read()[:200]!r}") from exc
+            raise ApiError(
+                f"{method} {path} failed: {exc.code} {exc.read()[:200]!r}", exc.code
+            ) from exc
 
     def get(self, path: str) -> Any:
         return self._request("GET", path)
@@ -137,7 +146,9 @@ def fetch_existing_workspaces(client: Client, names: list[str]) -> dict[str, str
     for name in names:
         try:
             data = client.get("/api/resource/Workspace/" + _quoted(name))["data"]
-        except RuntimeError:
+        except ApiError as exc:
+            if exc.code != 404:
+                raise
             continue
         existing[name] = _normalize(data.get("is_hidden", 0))
     return existing
@@ -158,7 +169,9 @@ def apply_actions(
                 "field_name": fieldname,
                 "property": prop,
                 "value": action.desired,
-                "property_type": "Check",
+                "property_type": entries_by_target.get(action.target, {}).get(
+                    "property_type", "Check"
+                ),
             }
             if action.action == "create":
                 client.post("/api/resource/" + _quoted("Property Setter"), payload)

@@ -8,6 +8,7 @@ dev = [
   "pytest>=8.3",
   "pytest-cov>=6.0",
   "ruff>=0.8",
+  "types-PyYAML>=6.0",
 ]
 
 [tool.ruff]
@@ -21,8 +22,8 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src"]
-mypy_path = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src"]
+files = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
+mypy_path = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps", "tests"]

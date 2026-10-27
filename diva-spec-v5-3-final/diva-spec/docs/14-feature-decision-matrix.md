@@ -23,9 +23,9 @@ Offline-first selling with automatic sync (the developer says it holds for about
 | Feature | Legacy app | POS Next | Decision |
 |---|---|---|---|
 | Barcode scan adds a line; repeated scan raises quantity | yes | yes (P0-03) | **POS Next** |
-| `qty*barcode` multiplier (for example `5*890…`) | yes | no (P0-03) | **Required patch E-14b** (fast shelf-picking in dozens) |
+| `qty*barcode` multiplier (for example `5*890…`) | yes | yes (patched, P0-03) | **POS Next patched** (fast shelf-picking in dozens) |
 | Undo last scan (Ctrl+Z) | yes | no (P0-03) | Patch candidate, low priority |
-| **Scan info card:** name, code, price per dozen and stock shown on every scan | yes (grid and status bar) | partial: dialog + stock + toast, no combined card; duplicate "Nos" and borderless qty input (P0-03) | **Required patch E-14b** |
+| **Scan info card:** name, code, price per dozen and stock shown on every scan | yes (grid and status bar) | partial: dialog + stock + toast; duplicate "Nos" and qty display fixed (patched P0-03); no combined card yet | **Remaining patch E-14b** |
 | Hold and resume | yes, buggy | drafts | **POS Next drafts** |
 | Customer picker and card (outstanding, limit) | yes | customer dialog, credit info | **POS Next**; patch the card only if too thin |
 | **Keyboard shortcuts** (your current map: F1 help, F2 customer, F3 quantity, F4 discount, F5 note, F6 delete line, F7 held sales, F8 payment, F9 print, F10 new sale, Ctrl+F search, Ctrl+Delete clear, Ctrl+Z undo, Ctrl+R return) | yes | none at v2.0.0; F4/F8/F9 on develop only (P0-03) | **Required patch:** the POS Next keymap is replaced by your current keys, with `preventDefault` in a standalone window, tested on the real keyboard; configurable, with a fallback if a browser blocks a key |
@@ -37,7 +37,7 @@ Offline-first selling with automatic sync (the developer says it holds for about
 | Returns (Quick Return Ctrl+R) | yes | present in code, not exercised (P0-03) | **POS Next returns**; fall back to standard ERPNext return |
 | Low-stock tint on rows | yes | no evidence (P0-03) | Optional patch candidate |
 | Today's sales widget | yes | reports | Control Room sales page |
-| Offline operation | no | **fails at v2.0.0** (browser-confirmed); develop fixes the scope (P0-03); full-shift test pending | **POS Next (after SW-scope patch)** |
+| Offline operation | no | shell and assets load offline after the patch (P0-03); full-shift selling test pending | **POS Next (patched)** |
 | Product bundles (sets) | no | packed items | **POS Next** (when needed) |
 | Send invoice by WhatsApp | deferred | not core | Phase G |
 | Price check screen | yes | item search shows price | POS Next search; Ops mini screen only if needed |

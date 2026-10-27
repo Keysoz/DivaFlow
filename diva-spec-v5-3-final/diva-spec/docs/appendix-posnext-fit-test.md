@@ -70,6 +70,26 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 
 **Verdict impact:** the browser pass removes the visual-RTL uncertainty and adds concrete UI defects to the patch list (duplicate UOM option, quantity display, untranslated keys, the `get_receivable_accounts` bug). It also confirms that v2.0.0 cannot be sold as offline-capable. Hardware-only items (physical scanner, 80 mm receipt, label printer) still need the owner session.
 
+### 1e. Patch set applied and verified (2026-10-27)
+
+The tracked patch set lives in `infra/posnext-patches/` (8 patches on tag `v2.0.0`, applied to the dev site and verified in the browser):
+
+| Fix | Verified result |
+|---|---|
+| `cint` import for `get_receivable_accounts` | API returns 200; the `NameError` disappeared from the console |
+| UOM dialog de-duplication | the dialog now lists **one** Nos and Dozen |
+| Quantity input styling | the field has a visible border/background |
+| `qty*barcode` multiplier | scanning `3*2000000000015` pre-fills quantity 3 and adds 3 Dozen (E£ 4,320) |
+| Arabic keys | item-search placeholder and "Shift History" translated; `dir=rtl` (native review still required) |
+| Offline scope + fallback + absolute precache + client claim | worker scope is `/pos`; precache URLs are absolute; with the server stopped, `/pos/` serves the app shell from cache (the sign-in screen appears because authentication needs the server) |
+
+Notes for E-14 packaging:
+- The worker is served from the site root (`/pos-sw.js`, copied from `public/pos/sw.js` by the build) so it can scope `/pos`; the precache URLs must stay absolute.
+- After deploying the worker, clear the Frappe website cache — a stale `/pos-sw.js` otherwise persists (observed during the test).
+- Full offline **selling** (cached session/shift) still needs a browser/hardware-session check; the shell and assets are proven.
+
+Remaining E-14b items (not patched yet): the owner's full key map (F1–F10 and Ctrl combinations; at v2.0.0 there are none) and a single combined scan info card (the dialog + toast remain). Receipt printing and QZ Tray validation need the hardware, which the owner will buy later (2026-10-27); they are deferred, not blocking.
+
 ## 2. POS-CHECK results (docs/07 M-POS)
 
 | # | Check | Result | Evidence |

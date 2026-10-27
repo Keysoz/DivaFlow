@@ -147,7 +147,8 @@ for doctype in DOCTYPES:
 if not rows:
     sys.exit("no fields returned; check the site URL and credentials")
 
-path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "erp-field-register.csv")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+path = os.path.join(REPO_ROOT, "docs", "erp-field-register.csv")
 with open(path, "w", newline="", encoding="utf-8") as handle:
     writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
     writer.writeheader()

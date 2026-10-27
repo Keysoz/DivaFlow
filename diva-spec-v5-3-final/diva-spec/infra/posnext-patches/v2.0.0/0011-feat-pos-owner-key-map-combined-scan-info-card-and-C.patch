@@ -1,4 +1,4 @@
-From 1cb2d1cebc37b70bb520d1c817a5d64bd83cfff5 Mon Sep 17 00:00:00 2001
+From 4ccbfd41a90c85659e531633a9c587111bbf6996 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 13:55:04 +0000
 Subject: [PATCH 11/11] feat(pos): owner key map, combined scan info card and
@@ -6,11 +6,11 @@ Subject: [PATCH 11/11] feat(pos): owner key map, combined scan info card and
 
 ---
  POS/src/components/sale/InvoiceCart.vue   |   9 ++
- POS/src/components/sale/ItemsSelector.vue |  38 +++++++
+ POS/src/components/sale/ItemsSelector.vue |  40 ++++++++
  POS/src/composables/useSearchInput.js     |   3 +-
  POS/src/pages/POSSale.vue                 | 115 ++++++++++++++++++++++
  pos_next/translations/ar.csv              |   9 ++
- 5 files changed, 173 insertions(+), 1 deletion(-)
+ 5 files changed, 175 insertions(+), 1 deletion(-)
 
 diff --git a/POS/src/components/sale/InvoiceCart.vue b/POS/src/components/sale/InvoiceCart.vue
 index 8e6efd7..0e9bf1c 100644
@@ -33,7 +33,7 @@ index 8e6efd7..0e9bf1c 100644
   * Handle item update from edit dialog.
   * Updates item via cart store and emits for parent compatibility.
 diff --git a/POS/src/components/sale/ItemsSelector.vue b/POS/src/components/sale/ItemsSelector.vue
-index 79597bb..f962532 100644
+index 79597bb..ea562f8 100644
 --- a/POS/src/components/sale/ItemsSelector.vue
 +++ b/POS/src/components/sale/ItemsSelector.vue
 @@ -1003,6 +1003,26 @@
@@ -55,15 +55,15 @@ index 79597bb..f962532 100644
 +				<span>{{ __("Price per Dozen") }}</span>
 +				<span class="text-end font-semibold">{{ formatCurrency(lastScan.price_per_dozen) }}</span>
 +				<span>{{ __("Stock") }}</span>
-+				<span class="text-end font-semibold">{{ Math.floor(lastScan.stock) }}</span>
++				<span class="text-end font-semibold">{{ Math.floor(lastScan.stock) }} {{ lastScan.stock_uom }}</span>
 +				<span>{{ __("Quantity") }}</span>
-+				<span class="text-end font-semibold">{{ lastScan.quantity }}</span>
++				<span class="text-end font-semibold">{{ lastScan.quantity }} {{ lastScan.uom }}</span>
 +			</div>
 +		</div>
  </template>
  
  <script setup>
-@@ -1081,10 +1101,27 @@ const {
+@@ -1081,10 +1101,29 @@ const {
  } = useSearchInput({
  	itemStore,
  	onItemFound: selectItem,
@@ -83,6 +83,8 @@ index 79597bb..f962532 100644
 +		price_per_dozen: Number(item.price_list_rate || item.rate || 0),
 +		stock: item.actual_qty ?? item.stock_qty ?? 0,
 +		quantity: qty || 1,
++		uom: item.uom || item.stock_uom || "",
++		stock_uom: item.stock_uom || "",
 +	};
 +	if (scanCardTimer) clearTimeout(scanCardTimer);
 +	scanCardTimer = setTimeout(() => (lastScan.value = null), 4000);
@@ -91,7 +93,7 @@ index 79597bb..f962532 100644
  // Local state
  const viewMode = ref("grid");
  const itemThreshold = ref(50); // Threshold for auto-switching to list view
-@@ -1327,6 +1364,7 @@ onMounted(() => {
+@@ -1327,6 +1366,7 @@ onMounted(() => {
  });
  
  onUnmounted(() => {

@@ -49,9 +49,9 @@ The production packaging (Node build stage in the image, asset deployment) belon
 3. The quantity field has a visible border/background.
 4. Arabic: the item-search placeholder and "Shift History" are translated; layout mirrors (`dir=rtl`).
 5. Service worker (cache-proof protocol): after one load, `navigator.serviceWorker.controller` is **non-null**; the precache cache is named after the `/pos` scope; every precache URL is absolute and 200. With the server **stopped**, opening an **unvisited** `/pos/<random>` path and reloading both serve the app shell.
-6. Key map: F1 lists the shortcuts; F2 focuses the customer search; F3/F4/F5 open the last-line editor (quantity and discount; no line-note field yet); F6 removes the last line; F7 drafts; F8 payment (asks for a customer if none); F9 prints the last invoice or warns before one exists; F10 clears (with confirmation); Ctrl+F search; Ctrl+Delete clear; Ctrl+Z undo last scan (also while the scan field has focus); Ctrl+R return (note: Ctrl+R never reloads the page while the POS is open).
-7. Every scan shows the scan card (name, code, price per Dozen from the price list, stock, quantity added) and focus returns to the barcode field.
-8. Shortcuts are ignored while a dialog is open; Escape closes the help overlay.
+6. Key map: F1 lists the shortcuts; F2 focuses the customer search; F3/F4/F5 open the last-line editor (quantity and discount; no line-note field yet); F6 removes the last line; F7 drafts; F8 payment (asks for a customer if none); F9 prints the last invoice or warns before one exists; F10 clears (with confirmation); Ctrl+F search; Ctrl+Delete clear; Ctrl+Z undo last scan (also while the scan field has focus); Ctrl+R return on the main POS view (with no registered dialog open it is intercepted, so it does not reload the page).
+7. Every scan shows the scan card (name, code, price per Dozen from the price list, stock in its UOM, quantity added in the scanned UOM) and focus returns to the barcode field.
+8. Shortcuts are ignored while a **registered** dialog is open (payment, drafts, return, clear cart, offers) and while the help overlay is up; Escape closes the help overlay. The edit-item and scan dialogs are not registered yet.
 9. `make secret-scan` stays clean (no secrets in the patches).
 
 ## Rebase recipe

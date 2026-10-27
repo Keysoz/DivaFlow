@@ -5,6 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Added
+- TASK-P0-03 (browser checks): automated Playwright pass on the pinned POS Next v2.0.0 — shift opening, barcode scan → UOM dialog → cart (1 → 2 Dozen), Arabic RTL verified visually; offline **fails** at v2.0.0; UOM dialog duplicate "Nos" and a borderless qty input; `get_receivable_accounts` raises `NameError: cint`; POS Profiles require `applicable_for_users`. Recorded in `docs/appendix-posnext-fit-test.md` §1d.
 - TASK-P0-01 (partial): `make secret-scan` now also scans the **full git history, all refs** (gitleaks with `safe.directory`, `--redact`); CI checks out the full history. Current result: ~1.16 MB of history, no leaks. Credential rotation and the n8n workflow check remain owner actions.
 - TASK-P0-03 (follow-up): POS Next pinned to `v2.0.0` (commit `e0a52c5`; the tag ships code `1.17.0`) and the smoke subset re-run on it: install, POS invoice with Dozen UOM and cash payment, reserved-stock block, uninstall rehearsal; 21 custom fields, no global F-keys, offline service-worker scope gap. Required patches updated; final go/no-go still needs the hardware session.
 - ENH-S-02: Bitwarden chosen as the secrets manager (DEC-69); `docs/26-secrets-and-rotation.md` with the secret inventory, quarterly rotation schedule, owner setup and emergency-rotation procedure.

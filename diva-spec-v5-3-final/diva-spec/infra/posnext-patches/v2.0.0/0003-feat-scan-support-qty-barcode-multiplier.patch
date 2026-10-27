@@ -1,7 +1,7 @@
 From 107fecb0ae863cb945dbf5d9671680333df25021 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 08:56:26 +0000
-Subject: [PATCH 3/8] feat(scan): support qty*barcode multiplier
+Subject: [PATCH 03/10] feat(scan): support qty*barcode multiplier
 
 ---
  POS/src/composables/useSearchInput.js | 25 +++++++++++++++++--------

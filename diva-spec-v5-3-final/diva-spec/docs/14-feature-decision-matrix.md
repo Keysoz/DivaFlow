@@ -37,7 +37,7 @@ Offline-first selling with automatic sync (the developer says it holds for about
 | Returns (Quick Return Ctrl+R) | yes | present in code, not exercised (P0-03) | **POS Next returns**; fall back to standard ERPNext return |
 | Low-stock tint on rows | yes | no evidence (P0-03) | Optional patch candidate |
 | Today's sales widget | yes | reports | Control Room sales page |
-| Offline operation | no | shell and assets load offline after the patch (P0-03); full-shift selling test pending | **POS Next (patched)** |
+| Offline operation | no | shell and assets load offline, **verified** (P0-03, patched); full-shift selling test pending | **POS Next (patched)** |
 | Product bundles (sets) | no | packed items | **POS Next** (when needed) |
 | Send invoice by WhatsApp | deferred | not core | Phase G |
 | Price check screen | yes | item search shows price | POS Next search; Ops mini screen only if needed |

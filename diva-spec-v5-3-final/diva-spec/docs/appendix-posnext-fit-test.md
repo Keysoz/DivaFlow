@@ -72,7 +72,7 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 
 ### 1e. Patch set applied and verified (2026-10-27)
 
-The tracked patch set lives in `infra/posnext-patches/` (8 patches on tag `v2.0.0`, applied to the dev site and verified in the browser):
+The tracked patch set lives in `infra/posnext-patches/` (**10 patches** on tag `v2.0.0`, applied to the dev site and verified in the browser):
 
 | Fix | Verified result |
 |---|---|
@@ -81,12 +81,12 @@ The tracked patch set lives in `infra/posnext-patches/` (8 patches on tag `v2.0.
 | Quantity input styling | the field has a visible border/background |
 | `qty*barcode` multiplier | scanning `3*2000000000015` pre-fills quantity 3 and adds 3 Dozen (E£ 4,320) |
 | Arabic keys | item-search placeholder and "Shift History" translated; `dir=rtl` (native review still required) |
-| Offline scope + fallback + absolute precache + client claim | worker scope is `/pos`; precache URLs are absolute; with the server stopped, `/pos/` serves the app shell from cache (the sign-in screen appears because authentication needs the server) |
+| Offline (scope, fallback, absolute precache, workbox import, injected manifest entry, client claim) | **verified with a cache-proof protocol**: the controller is non-null after the first load; every precache URL is absolute; with the frontend **stopped**, an **unvisited** `/pos/<random>` path and a reload both serve the app shell (the sign-in screen appears because authentication needs the server) |
 
 Notes for E-14 packaging:
-- The worker is served from the site root (`/pos-sw.js`, copied from `public/pos/sw.js` by the build) so it can scope `/pos`; the precache URLs must stay absolute.
-- After deploying the worker, clear the Frappe website cache — a stale `/pos-sw.js` otherwise persists (observed during the test).
-- Full offline **selling** (cached session/shift) still needs a browser/hardware-session check; the shell and assets are proven.
+- The worker is served from the site root (`/pos-sw.js`, copied from `public/pos/sw.js` by the build) so it can scope `/pos`; the precache URLs **and the workbox import** must stay absolute, the injected `manifest.webmanifest` entry included, and `injectRegister` stays `false` (main.js is the only registrar).
+- After deploying the worker, clear the Frappe website cache — a stale `/pos-sw.js` otherwise persists (observed during the test), and serve it with `Cache-Control: no-cache`.
+- Full offline **selling** (cached session/shift) still needs a browser/hardware-session check; the shell and assets are proven. An early check that reported "offline works" was a browser HTTP-cache false positive; the cache-proof protocol above replaced it.
 
 Remaining E-14b items (not patched yet): the owner's full key map (F1–F10 and Ctrl combinations; at v2.0.0 there are none) and a single combined scan info card (the dialog + toast remain). Receipt printing and QZ Tray validation need the hardware, which the owner will buy later (2026-10-27); they are deferred, not blocking.
 

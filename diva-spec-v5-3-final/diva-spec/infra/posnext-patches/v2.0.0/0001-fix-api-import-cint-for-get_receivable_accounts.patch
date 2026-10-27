@@ -1,7 +1,7 @@
 From 87c23d9776e3f9914a4a7c4b9ea6a2f441f3e47d Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 08:56:26 +0000
-Subject: [PATCH 1/8] fix(api): import cint for get_receivable_accounts
+Subject: [PATCH 01/10] fix(api): import cint for get_receivable_accounts
 
 ---
  pos_next/api/pos_profile.py | 1 +

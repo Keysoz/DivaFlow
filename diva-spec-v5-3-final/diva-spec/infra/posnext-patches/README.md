@@ -19,6 +19,8 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 6 | `fix(offline): serve the precached shell for /pos navigations` | `navigateFallback` was `null`; the shell was never served offline |
 | 7 | `fix(offline): claim clients and activate the new worker immediately` | `clientsClaim` / `skipWaiting` so the first session is controlled |
 | 8 | `fix(offline): absolute precache URLs for the root-served worker` | At `/pos-sw.js` the relative precache URLs resolved to `/assets/...` (404) |
+| 9 | `fix(offline): absolutize the workbox import and precache injected assets` | The root worker imported `./workbox-…` (→ `/workbox-…js`, 404), aborting the install; also stops the injected registrar and prefetches the manifest |
+| 10 | `fix(offline): absolute URL for the injected webmanifest precache entry` | The plugin injects that entry outside the transform; a relative URL aborts the install |
 
 ## Apply
 
@@ -26,13 +28,15 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 bash infra/posnext-patches/apply.sh /home/frappe/frappe-bench/apps/pos_next
 ```
 
+The script refuses to apply unless the checkout is at the recorded base tag/commit, and it supplies a commit identity when the checkout has none.
+
 Then rebuild the frontend and re-deploy the assets (see `docs/appendix-posnext-fit-test.md` §1 for the dev steps and §1e for the verification results):
 
 ```bash
 cd apps/pos_next/POS
 export PATH=/path/to/node24/bin:$PATH
 yarn install
-yarn build          # writes public/pos/ and copies the worker to www/pos-sw.js
+yarn build          # writes public/pos/ and www/pos-sw.js (workbox import absolutized)
 ```
 
 The production packaging (Node build stage in the image, asset deployment) belongs to TASK-E-14.
@@ -43,7 +47,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 2. Scanning a barcode opens the UOM dialog with **one** `Nos` option; scanning `3*<barcode>` pre-fills quantity 3.
 3. The quantity field has a visible border/background.
 4. Arabic: the item-search placeholder and "Shift History" are translated; layout mirrors (`dir=rtl`).
-5. Service worker: scope `http://<site>/pos`, precache URLs absolute; with the server unreachable, opening `/pos/` serves the app shell.
+5. Service worker (cache-proof protocol): after one load, `navigator.serviceWorker.controller` is **non-null**; the precache cache is named after the `/pos` scope; every precache URL is absolute and 200. With the server **stopped**, opening an **unvisited** `/pos/<random>` path and reloading both serve the app shell.
 6. `make secret-scan` stays clean (no secrets in the patches).
 
 ## Rebase recipe
@@ -54,7 +58,9 @@ git fetch --tags
 git checkout -b diva-patches <new-tag>
 git am --3way /path/to/patches/v<new>/*.patch     # resolve conflicts by hand
 yarn --cwd POS install && yarn --cwd POS build
-# run the verification list, then record the new base tag here and in the appendix
+# run the verification list, then update the base tag here and in the appendix
 ```
+
+After deploying a new worker, clear the Frappe website cache — a stale `/pos-sw.js` otherwise persists. Serve `/pos-sw.js` with `Cache-Control: no-cache` in production (E-14 packaging).
 
 Keep the patches vendor-neutral where possible and offer them upstream (AGPL: the modified source stays available to its users).

@@ -71,6 +71,7 @@
 | DEC-66 | Week-1 model bake-off (`21` section 5) skipped by the owner on 2026-10-26; the current OpenCode setup (DEC-60) is kept |
 | DEC-67 | Repository layout stays nested: the project lives at `diva-spec-v5-3-final/diva-spec/` inside the `Keysoz/DivaFlow` repository, and CI runs from the repository root with `working-directory`. Restructure only if the owner asks (owner, 2026-10-26) |
 | DEC-69 | Secrets manager is **Bitwarden** (Secrets Manager for machine secrets, organization vault for people, 2FA, collections per environment); rotation schedule and emergency procedure in `26-secrets-and-rotation.md` (owner, 2026-10-27) |
+| DEC-70 | **POS Next baseline approved** (owner, 2026-10-27): pin tag `v2.0.0` (vendor code `1.17.0`) plus the tracked patch set in `infra/posnext-patches/`; hardware validation is deferred until the owner buys the scanner and printers. The modified source stays available (AGPL) |
 | DEC-68 | POS Next fit test (TASK-P0-03): **provisional go** on ERPNext 16. Pin executed: **`v2.0.0`** (commit `e0a52c5`; the tag ships code `1.17.0`); smoke subset passed (POS invoice with Dozen UOM, reserved-stock block, uninstall rehearsal; 21 fields, no global F-keys). Automated browser checks (2026-10-27): RTL verified visually; **offline fails at v2.0.0**; scan flow works but the UOM dialog duplicates "Nos" and the qty input is borderless (easy to miss); `get_receivable_accounts` raises `NameError: cint`; a POS Profile needs `applicable_for_users`. Patch set applied on v2.0.0 (`infra/posnext-patches/`, 10 patches): `get_receivable_accounts` cint fix, UOM de-duplication, visible quantity field, `qty*barcode`, two Arabic keys, and the offline fixes (scope, fallback, client claim, absolute precache + workbox import + injected manifest entry) — offline **verified** with the server stopped (shell + assets load; full offline selling to confirm). Remaining: re-run the smoke subset on the patched build, the full key map, a combined scan card, and hardware receipt/QZ validation (owner buys the hardware later, 2026-10-27). `diva_guard` stays mandatory; EGP currency check. The owner authorised the dev site with synthetic data and deferred the hardware (2026-10-26). Final go/no-go after the hardware session (`appendix-posnext-fit-test.md`) |
 
 ## 2. Open owner questions (the agent must ask, not guess)
@@ -91,7 +92,7 @@
 | OPEN-13 | Final item group tree and code prefixes | Two top groups per `05a` (owner: later, 2026-10-26) |
 | OPEN-14 | Broadcast audience and consent source. Budget cap ignored for now (DEC-33) | Consent required; cap off |
 | OPEN-16 | Digits shown to users: Western (default) or Arabic-Indic | Western |
-| OPEN-17 | Owner approval of the Arabic glossary (`19` section 8) | Draft glossary |
+| OPEN-17 | ~~Owner approval of the Arabic glossary (`19` section 8)~~ Closed: native Egyptian review completed, including the two POS strings (owner, 2026-10-27) | closed |
 | OPEN-18 | Do catalogs need English item names for any customer? | Optional English fields |
 | OPEN-19 | Deposit deadline | 24 hours |
 | OPEN-20 | Is Gallery sellable and which warehouses feed chat availability | Main Inventory and Shop count; Gallery display only |
@@ -115,6 +116,7 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation; Bitwarden plus quarterly rotation (`26`) |
 
 ## 5. Change log
+v5.3.8 (2026-10-27): owner confirmed the credential rotation and the n8n webhook check; Arabic review done (OPEN-17 closed); POS Next baseline approved (DEC-70); P0 gate status recorded (`appendix-p0-exit-gate.md`).
 v5.3.7 (2026-10-27): P0-03 automated browser checks — RTL verified, offline failure confirmed, UOM/qty UI defects and the `get_receivable_accounts` bug recorded.
 v5.3.5 (2026-10-27): POS Next pinned to `v2.0.0` and the smoke subset re-run on it (21 fields, no F-keys, service-worker scope gap); DEC-68 updated.
 v5.3.4 (2026-10-27): ENH-S-02 — Bitwarden chosen as the secrets manager (DEC-69); rotation schedule in `26`.

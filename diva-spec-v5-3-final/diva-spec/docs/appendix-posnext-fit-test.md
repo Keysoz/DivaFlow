@@ -1,6 +1,6 @@
 # Appendix: POS Next fit test (TASK-P0-03)
 
-**Status: partial — hardware/visual checks pending; uninstall rehearsals done; pinned `v2.0.0` re-run done (2026-10-27).** The owner deferred the scanner, thermal receipt printer and label printer to a later session (P0-06) and authorised synthetic data instead of a production-data copy (owner, 2026-10-26; recorded in DEC-68). Everything that can be verified without the hardware was verified on the disposable dev stack (section 1 of `appendix-erpnext-verification.md`) with synthetic data. No production data or credentials were used (DEC-38).
+**Status: complete for the agent side — hardware validation deferred to purchase (owner, 2026-10-27); uninstall rehearsals done; pinned `v2.0.0` re-run and post-patch smoke done.** The owner deferred the scanner, thermal receipt printer and label printer to a later session (P0-06) and authorised synthetic data instead of a production-data copy (owner, 2026-10-26; recorded in DEC-68). Everything that can be verified without the hardware was verified on the disposable dev stack (section 1 of `appendix-erpnext-verification.md`) with synthetic data. No production data or credentials were used (DEC-38).
 
 Date: 2026-10-26. Site: `frontend` (erpnext 16.52.1, frappe 16.53.0).
 
@@ -52,7 +52,7 @@ Pinned tag: **`v2.0.0` = commit `e0a52c5`** — but the tag ships app version **
 | Offline / PWA | **LIMITATION** — the service worker is served at `/assets/pos_next/pos/sw.js` (no `Service-Worker-Allowed` header), so its scope cannot control `/pos`; `/pos-sw.js` is 404 at v2.0.0. The manifest compounds it: `scope: /assets/pos_next/pos/` with `start_url: /pos`. The develop build adds a root-scope copy (`www/pos-sw.js`) registered with `scope: "/pos"`. Needs a patch or a newer release before offline is claimed. |
 | Uninstall rehearsal | uninstall succeeds, `/pos` 404; **10 custom fields** and the two roles remain (the vendor removes only 2 explicitly; the rest depend on module cleanup). Reinstall restores 21 fields and `/pos` 200. |
 
-**Verdict impact:** the pin condition is satisfied for tag pinning, but `v2.0.0` is code `1.17.0`: no global F-keys, fewer fields and an offline scope gap. The required patch set therefore grows (keymap, scan card, `qty*barcode`, service-worker scope). Re-run this smoke subset on the patched pinned build before E-14; the hardware session is still pending.
+**Verdict impact:** the pin condition is satisfied for tag pinning, but `v2.0.0` is code `1.17.0`: no global F-keys, fewer fields and an offline scope gap. The patch set (section 1e) fixed `qty*barcode` and offline; the smoke subset was re-run on the patched build (section 1f). Hardware validation is deferred until the owner buys the hardware.
 
 ### 1d. Automated browser checks (2026-10-27)
 
@@ -89,6 +89,15 @@ Notes for E-14 packaging:
 - Full offline **selling** (cached session/shift) still needs a browser/hardware-session check; the shell and assets are proven. An early check that reported "offline works" was a browser HTTP-cache false positive; the cache-proof protocol above replaced it.
 
 Remaining E-14b items (not patched yet): the owner's full key map (F1–F10 and Ctrl combinations; at v2.0.0 there are none) and a single combined scan info card (the dialog + toast remain). Receipt printing and QZ Tray validation need the hardware, which the owner will buy later (2026-10-27); they are deferred, not blocking.
+
+### 1f. Post-patch smoke re-run (2026-10-27)
+
+After applying the 10-patch set and rebuilding the assets:
+
+- **POS invoice** `ACC-SINV-2026-00003` submitted: EGP, 1 Dozen → `stock_qty` 12 Nos, grand total and paid 1,440.
+- **Reserved-stock block**: `SAL-ORD-2026-00005` reserved all 72 Nos (full); the same POS invoice was rejected with `NegativeStockError`. After cancelling the order the invoice submitted; Bin moved 72 → 60 Nos, reserved 0.
+- The patch set does not change install/uninstall behaviour; the rehearsals in sections 1b/1c stand.
+- The user's language was restored to English after the Arabic checks; the dev site keeps the synthetic `P004*` data.
 
 ## 2. POS-CHECK results (docs/07 M-POS)
 
@@ -140,4 +149,4 @@ Safety rules (never show success before server confirmation, idempotency, no in-
 5. **Uninstall rehearsal before the first upgrade:** the pinned rehearsal in section 1c leaves **10 vendor custom fields** and the two roles behind; plan their cleanup or document them. (`custom_brands_table` is not an orphan: it is removed with the `POS Brands Detail` doctype.)
 6. **Config check:** API-created Sales Orders on the dev site defaulted to INR (global default currency) while the POS Profile and the POS invoice carry EGP; the POS invoice required an explicit currency. Verify currency on the real POS Profile and company documents before E-14.
 
-Until conditions 1–3 are done, the decision is provisional; the final go/no-go is recorded after the hardware session.
+Conditions 1 (pin) and 2 (patches) are done; condition 3 (hardware) is deferred to the owner's purchase. The baseline is approved (DEC-70): the decision is final for the software, subject to hardware validation when the hardware arrives.

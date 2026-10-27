@@ -49,6 +49,8 @@ Review the whole list **quarterly** (calendar reminder). Record each rotation in
 5. Put the owner's second device (phone) in the organization for recovery; document the break-glass procedure offline.
 6. Tell the agent when the vault exists; the agent will then confirm that no file references a real value and that CI scans stay green.
 
+**Status 2026-10-27:** the owner confirmed the vault and the initial rotation (P0-01); CI secret scanning is clean on the working tree and the full history.
+
 ## 4. Emergency rotation (suspected exposure)
 
 1. **Revoke** the credential at the provider immediately (do not wait for the rotation date).

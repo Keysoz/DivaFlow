@@ -53,11 +53,8 @@ class TestContract:
     def test_barcode_lookup(self, erp_client: ErpNextClient) -> None:
         """Barcode 2000000000015 resolves to P004-DOZEN.
 
-        NOTE: This test currently FAILS due to a bug in the adapter.
-        The adapter's get_item_by_barcode() requests fields ["parent","uom"]
-        from the Item Barcode list endpoint, but Frappe's REST API for child
-        doctypes only returns {"name": "..."}. The adapter needs to be fixed
-        to fetch the full record or use a different query approach.
+        Child tables (Item Barcode) return only the row name from a list query;
+        the adapter reads the row by name to get parent/uom.
         """
         item = erp_client.get_item_by_barcode("2000000000015")
         assert item is not None, "Barcode 2000000000015 should exist in dev ERPNext"

@@ -48,7 +48,11 @@ def item_by_barcode(barcode: str, client: ErpNextClient = Depends(get_client)) -
 
 @app.post("/api/rules/counter/evaluate", dependencies=[Depends(require_token)])
 def evaluate_counter(request: CounterRequest) -> CounterResponse:
-    """Run the counter rules (MOQ + effective discount) for the provided lines."""
+    """Run the counter rules (MOQ + effective discount) for the provided lines.
+
+    TODO(TASK-E-14a): re-check price_list_rate/net_rate against the server price list
+    (diva_guard owns the enforced check); this endpoint is advisory for the UI.
+    """
     violations: list[dict[str, object]] = []
     audits: list[dict[str, object]] = []
     requires_manager = False

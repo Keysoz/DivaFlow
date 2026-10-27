@@ -30,6 +30,7 @@ class CounterLine(BaseModel):
 
 
 class CounterRequest(BaseModel):
+    # TODO(TASK-E-14a): the role must come from the authenticated principal, not the body.
     role: Literal["cashier", "manager"] = "cashier"
     lines: list[CounterLine] = Field(min_length=1)
 

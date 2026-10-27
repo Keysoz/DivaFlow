@@ -68,6 +68,9 @@ def validate_discount(
         "cashier_limit": str(cashier),
         "manager_limit": str(manager),
         "requires_manager": requires_manager,
+        "actor": None,
+        "reason": None,
+        "amount": str(price - net),
         "approved_by": None,
     }
     return {

@@ -1,5 +1,6 @@
 """Typed ERPNext REST client (TASK-E-12)."""
 
+import json
 from decimal import Decimal
 from typing import Any, cast
 
@@ -131,7 +132,7 @@ class ErpNextClient:
             )
         created = response.json()["data"]
         submit = self._http.post(
-            "/api/method/frappe.client.submit", data={"doc": __import__("json").dumps(created)}
+            "/api/method/frappe.client.submit", data={"doc": json.dumps(created)}
         )
         if submit.status_code >= 400:
             raise ErpNextError(f"submit {doctype} failed: {submit.status_code} {submit.text[:200]}")

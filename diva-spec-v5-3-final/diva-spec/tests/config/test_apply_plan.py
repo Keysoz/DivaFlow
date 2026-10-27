@@ -1,6 +1,13 @@
 """Unit tests for the ERPNext configuration planner (TASK-E-03)."""
 
-from apply import Action, apply_actions, plan_property_setters, plan_workspaces
+from apply import (
+    Action,
+    apply_actions,
+    plan_property_setters,
+    plan_records,
+    plan_singles,
+    plan_workspaces,
+)
 
 
 def test_property_setter_create() -> None:
@@ -62,7 +69,11 @@ class FakeClient:
 def test_property_setter_create_payload() -> None:
     client = FakeClient()
     apply_actions(
-        client, [Action("property_setter", "Sales Invoice.tax_id.hidden", "create", None, "1")], {}
+        client,
+        [Action("property_setter", "Sales Invoice.tax_id.hidden", "create", None, "1")],
+        {},
+        {},
+        {},
     )
     method, _path, payload = client.calls[0]
     assert method == "POST"
@@ -74,8 +85,40 @@ def test_property_setter_create_payload() -> None:
 def test_property_setter_update_payload() -> None:
     client = FakeClient()
     apply_actions(
-        client, [Action("property_setter", "Sales Invoice.tax_id.hidden", "update", "0", "1")], {}
+        client,
+        [Action("property_setter", "Sales Invoice.tax_id.hidden", "update", "0", "1")],
+        {},
+        {},
+        {},
     )
     method, _path, payload = client.calls[-1]
     assert method == "PUT"
     assert payload == {"value": "1"}
+
+
+def test_plan_singles() -> None:
+    entries = [{"doctype": "Stock Settings", "field": "allow_negative_stock", "value": 0}]
+    assert plan_singles(entries, {})[0].action == "create"
+    assert (
+        plan_singles(entries, {("Stock Settings", "allow_negative_stock"): "0"})[0].action == "noop"
+    )
+    assert (
+        plan_singles(entries, {("Stock Settings", "allow_negative_stock"): "1"})[0].action
+        == "update"
+    )
+
+
+def test_plan_records() -> None:
+    entries = [
+        {"doctype": "UOM", "match": {"uom_name": "Dozen"}, "set": {"must_be_whole_number": 1}}
+    ]
+    assert plan_records(entries, {})[0].action == "create"
+    key = "UOM::" + '{"uom_name": "Dozen"}'
+    assert (
+        plan_records(entries, {key: {"name": "Dozen", "must_be_whole_number": 1}})[0].action
+        == "noop"
+    )
+    assert (
+        plan_records(entries, {key: {"name": "Dozen", "must_be_whole_number": 0}})[0].action
+        == "update"
+    )

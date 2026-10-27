@@ -9,6 +9,8 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 | E-01 | Done (provisional on dev) | — | `docs/erp-field-register.csv` (28 doctypes, 2,028 rows) + apps/company/FY snapshot; regenerate at TASK-E-00a |
 | E-02 | Done (dev) | — | Manufacturing workspace hidden via the config script; HR/Payroll absent; per-role refinement at E-16 |
 | E-03 | Done (dev) | — | Idempotent `infra/erpnext-config/apply.py` + config + tests; re-run prints 0 changes; tax fields hidden (DEC-26) |
+| E-04 | Partial (dev) | — | Dozen whole-number, negative stock off, reservations on, item groups Accessories/Cosmetics via config; batch/expiry per item + simplified Item form pending |
+| E-05 | Partial (dev) | — | `Wholesale` tier price list created; per-tier prices and price-edit permissions later (E-16) |
 | P0-10 | Merged | [#1](https://github.com/Keysoz/DivaFlow/pull/1) | `make lint`/`make test` green locally (86 tests); CI green on the pull request |
 | P0-04a | Merged | [#4](https://github.com/Keysoz/DivaFlow/pull/4) | Dev ERPNext 16.52.1 / frappe 16.53.0 on port 8080 recorded; script guards against non-v16 tags |
 | P0-04 | Merged | [#6](https://github.com/Keysoz/DivaFlow/pull/6) | ERPNext 16 findings in `docs/appendix-erpnext-verification.md` §2; RULE-STOCK 5 answered (native reservation blocks the counter) |

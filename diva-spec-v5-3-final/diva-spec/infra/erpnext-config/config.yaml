@@ -29,3 +29,31 @@ workspaces:
     hidden: true
   - name: Manufacturing
     hidden: true
+
+singles:
+  # E-04: negative stock off; reservations on (RULE-STOCK / DEC-08).
+  - doctype: Stock Settings
+    field: allow_negative_stock
+    value: 0
+  - doctype: Stock Settings
+    field: enable_stock_reservation
+    value: 1
+  - doctype: Stock Settings
+    field: auto_reserve_stock
+    value: 1
+
+records:
+  # E-04: the Dozen UOM is a whole number (DEC-20); item group tree default (OPEN-13).
+  - doctype: UOM
+    match: { uom_name: Dozen }
+    set: { must_be_whole_number: 1, enabled: 1 }
+  - doctype: Item Group
+    match: { item_group_name: Accessories }
+    set: { is_group: 0, parent_item_group: All Item Groups }
+  - doctype: Item Group
+    match: { item_group_name: Cosmetics }
+    set: { is_group: 0, parent_item_group: All Item Groups }
+  # E-05: one extra selling tier (OPEN-03 default: standard plus one tier).
+  - doctype: Price List
+    match: { price_list_name: Wholesale }
+    set: { selling: 1, currency: EGP, enabled: 1 }

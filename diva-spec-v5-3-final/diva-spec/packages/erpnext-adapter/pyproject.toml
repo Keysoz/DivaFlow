@@ -1,0 +1,13 @@
+[project]
+name = "erpnext-adapter"
+version = "0.1.0"
+description = "Typed ERPNext REST client used by local-api (the only component that talks to ERPNext)."
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/erpnext_adapter"]

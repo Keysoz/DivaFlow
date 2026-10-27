@@ -5,6 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Added
+- E-12: rules-engine MOQ (dozens + step), effective discount with cashier/manager limits and audit, chat minimum order, Decimal helpers; `erpnext-adapter` typed client (login/token, item, barcode, price, bin, customer, submit) with env-gated contract tests (green on the dev site); `local-api` skeleton with `/health`, item-by-barcode and counter-rules endpoints behind a bearer token. 149 tests; ruff/mypy clean.
 - E-02/E-03: `infra/erpnext-config/` — an idempotent REST-based apply script (dry-run diff, `--apply`, env credentials), a declarative `config.yaml` (hide tax fields per DEC-26; hide the Manufacturing workspace), unit tests for the planner, and `make config-dry-run` / `make config-apply`. Applied on the dev site: re-run reports **0 changes**.
 - E-04/E-05 (partial): config now also applies singles (negative stock off, stock reservation on) and records (Dozen whole-number, Accessories/Cosmetics item groups, Wholesale price list); re-run reports **0 changes**. Batch/expiry per item, the simplified Item form and per-tier price permissions remain.
 - Phase E start (DEC-71): E-00 recorded (legacy app deleted, nothing to retire) and E-01 baseline from the dev site — `docs/erp-field-register.csv` (28 doctypes, 2,028 rows (2,016 DocField + 12 Custom Field)), app/company/fiscal-year snapshot; provisional until TASK-E-00a.

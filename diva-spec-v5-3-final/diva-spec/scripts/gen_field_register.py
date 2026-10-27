@@ -102,7 +102,9 @@ for doctype in DOCTYPES:
 
     filters = urllib.parse.quote(json.dumps([["dt", "=", doctype]]))
     custom = get_json(
-        "/api/resource/" + urllib.parse.quote("Custom Field") + "?filters="
+        "/api/resource/"
+        + urllib.parse.quote("Custom Field")
+        + "?filters="
         + filters
         + "&fields="
         + urllib.parse.quote(

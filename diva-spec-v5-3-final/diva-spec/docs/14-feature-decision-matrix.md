@@ -24,7 +24,7 @@ Offline-first selling with automatic sync (the developer says it holds for about
 |---|---|---|---|
 | Barcode scan adds a line; repeated scan raises quantity | yes | yes (P0-03) | **POS Next** |
 | `qty*barcode` multiplier (for example `5*890…`) | yes | yes (patched, P0-03) | **POS Next patched** (fast shelf-picking in dozens) |
-| Undo last scan (Ctrl+Z) | yes | no (P0-03) | Patch candidate, low priority |
+| Undo last scan (Ctrl+Z) | yes | yes (patched, P0-03) | **POS Next patched** |
 | **Scan info card:** name, code, price per dozen and stock shown on every scan | yes (grid and status bar) | yes (patched, P0-03): card with name, code, price per Dozen, stock and qty added | **POS Next patched** |
 | Hold and resume | yes, buggy | drafts | **POS Next drafts** |
 | Customer picker and card (outstanding, limit) | yes | customer dialog, credit info | **POS Next**; patch the card only if too thin |

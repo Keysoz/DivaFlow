@@ -1,15 +1,16 @@
-From f84ab5f36e4ea1792444792780ae16f67bcf2df5 Mon Sep 17 00:00:00 2001
+From 1cb2d1cebc37b70bb520d1c817a5d64bd83cfff5 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
-Date: Tue, 27 Oct 2026 13:14:38 +0000
-Subject: [PATCH 11/12] feat(pos): owner key map and combined scan info card
+Date: Tue, 27 Oct 2026 13:55:04 +0000
+Subject: [PATCH 11/11] feat(pos): owner key map, combined scan info card and
+ Ctrl+Z focus fix
 
 ---
  POS/src/components/sale/InvoiceCart.vue   |   9 ++
- POS/src/components/sale/ItemsSelector.vue |  38 ++++++++
+ POS/src/components/sale/ItemsSelector.vue |  38 +++++++
  POS/src/composables/useSearchInput.js     |   3 +-
- POS/src/pages/POSSale.vue                 | 107 ++++++++++++++++++++++
+ POS/src/pages/POSSale.vue                 | 115 ++++++++++++++++++++++
  pos_next/translations/ar.csv              |   9 ++
- 5 files changed, 165 insertions(+), 1 deletion(-)
+ 5 files changed, 173 insertions(+), 1 deletion(-)
 
 diff --git a/POS/src/components/sale/InvoiceCart.vue b/POS/src/components/sale/InvoiceCart.vue
 index 8e6efd7..0e9bf1c 100644
@@ -32,7 +33,7 @@ index 8e6efd7..0e9bf1c 100644
   * Handle item update from edit dialog.
   * Updates item via cart store and emits for parent compatibility.
 diff --git a/POS/src/components/sale/ItemsSelector.vue b/POS/src/components/sale/ItemsSelector.vue
-index 79597bb..45e59ae 100644
+index 79597bb..f962532 100644
 --- a/POS/src/components/sale/ItemsSelector.vue
 +++ b/POS/src/components/sale/ItemsSelector.vue
 @@ -1003,6 +1003,26 @@
@@ -79,7 +80,7 @@ index 79597bb..45e59ae 100644
 +	lastScan.value = {
 +		item_name: item.item_name,
 +		item_code: item.item_code,
-+		price_per_dozen: Number(item.price_list_rate || item.rate || 0) * 12,
++		price_per_dozen: Number(item.price_list_rate || item.rate || 0),
 +		stock: item.actual_qty ?? item.stock_qty ?? 0,
 +		quantity: qty || 1,
 +	};
@@ -120,10 +121,18 @@ index 715623c..1b39c2c 100644
  					focusSearchInput();
  					return;
 diff --git a/POS/src/pages/POSSale.vue b/POS/src/pages/POSSale.vue
-index 9b29537..2497815 100644
+index 9b29537..e090e94 100644
 --- a/POS/src/pages/POSSale.vue
 +++ b/POS/src/pages/POSSale.vue
-@@ -1024,6 +1024,28 @@
+@@ -380,6 +380,7 @@
+ 							style="min-width: 300px; contain: layout style paint"
+ 						>
+ 							<InvoiceCart
++								ref="invoiceCartRef"
+ 								:items="cartStore.invoiceItems"
+ 								:customer="cartStore.customer"
+ 								:subtotal="cartStore.subtotal"
+@@ -1024,6 +1025,28 @@
  		<!-- Session Lock Screen (outside v-if/v-else so it renders even during loading) -->
  		<SessionLockScreen />
  	</div>
@@ -152,10 +161,11 @@ index 9b29537..2497815 100644
  </template>
  
  <script>
-@@ -1151,6 +1173,23 @@ const { isRTL } = useLocale();
+@@ -1151,6 +1174,24 @@ const { isRTL } = useLocale();
  
  // Component refs
  const itemsSelectorRef = ref(null);
++const invoiceCartRef = ref(null);
 +const showShortcutsHelp = ref(false);
 +const shortcutList = computed(() => [
 +	{ key: "F1", label: __("Help") },
@@ -176,7 +186,7 @@ index 9b29537..2497815 100644
  const offersDialogRef = ref(null);
  const containerRef = ref(null);
  const dividerRef = ref(null);
-@@ -1294,6 +1333,7 @@ onMounted(async () => {
+@@ -1294,6 +1335,7 @@ onMounted(async () => {
  		updateLayoutBounds();
  	};
  	window.addEventListener("resize", handleResize, { passive: true });
@@ -184,7 +194,7 @@ index 9b29537..2497815 100644
  
  	// Set up real-time stock update listener
  	const cleanup = onStockUpdate(async (stockUpdates) => {
-@@ -1443,6 +1483,7 @@ onMounted(async () => {
+@@ -1443,6 +1485,7 @@ onMounted(async () => {
  
  	// Store cleanup function for unmount
  	onUnmounted(() => {
@@ -192,7 +202,7 @@ index 9b29537..2497815 100644
  		cleanup();
  		stopActivityTracking();
  		qzDisconnect();
-@@ -2320,6 +2361,72 @@ async function handlePaymentCompleted(paymentData) {
+@@ -2320,6 +2363,78 @@ async function handlePaymentCompleted(paymentData) {
  	}
  }
  
@@ -208,6 +218,12 @@ index 9b29537..2497815 100644
 +}
 +
 +function handleGlobalShortcuts(event) {
++	if (showShortcutsHelp.value) {
++		if (event.key === "Escape") showShortcutsHelp.value = false;
++		return;
++	}
++	if (uiStore.isAnyDialogOpen) return;
++
 +	const active = document.activeElement;
 +	const typing =
 +		active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
@@ -247,7 +263,7 @@ index 9b29537..2497815 100644
 +				document.getElementById("item-search")?.focus();
 +			} else if (mod && event.key === "Delete") {
 +				handleClearCart();
-+			} else if (mod && !typing && (event.key === "z" || event.key === "Z")) {
++			} else if (mod && (event.key === "z" || event.key === "Z") && (!typing || active?.id === "item-search")) {
 +				removeLastLine();
 +			} else if (mod && (event.key === "r" || event.key === "R")) {
 +				uiStore.showReturnDialog = true;

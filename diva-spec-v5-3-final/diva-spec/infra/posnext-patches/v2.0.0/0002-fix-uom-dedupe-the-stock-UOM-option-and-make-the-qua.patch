@@ -1,7 +1,7 @@
 From ded0c7880f4e826bfcd24999008a646d5011cd61 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 08:56:26 +0000
-Subject: [PATCH 02/12] fix(uom): dedupe the stock UOM option and make the
+Subject: [PATCH 02/11] fix(uom): dedupe the stock UOM option and make the
  quantity input visible
 
 ---

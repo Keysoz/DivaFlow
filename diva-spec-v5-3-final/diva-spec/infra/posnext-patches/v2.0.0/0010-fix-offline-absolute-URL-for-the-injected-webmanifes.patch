@@ -1,7 +1,7 @@
 From 81b834a128c95b91dba620d734bae516841d636b Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 11:02:47 +0000
-Subject: [PATCH 10/12] fix(offline): absolute URL for the injected webmanifest
+Subject: [PATCH 10/11] fix(offline): absolute URL for the injected webmanifest
  precache entry
 
 ---

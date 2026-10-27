@@ -24,7 +24,7 @@ Status as of 2026-10-27. Gate definition: `docs/09-build-plan.md` (Phase P0 exit
 | P0-05 infrastructure | Record: store VM size (vCPU/RAM/disk), internet uptime and latency to the chosen cloud region, WireGuard feasibility, UPS model; choose the cloud provider |
 | P0-06 hardware | Buy the USB scanner, 80 mm thermal receipt printer and label printer; record the models. **Deferred by the owner (pay later)** |
 | P0-07 WhatsApp / Meta | Status of the WhatsApp provider, approved templates and number; Chatwoot compatibility; Meta business verification; Instagram/Facebook Page connection |
-| P0-08 accountant | Map the six payment modes to ledger accounts (OPEN-10); VAT/e-invoicing are closed (none, DEC-26) |
+| P0-08 accountant | **Answered (owner, 2026-10-27)**: the six modes are Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash and WePay; one ledger account per mode, mapped in TASK-E-09. VAT/e-invoicing are closed (none, DEC-26) |
 | P0-09 datasets + VM | Provide a second VM for the restore proof; the item master export; 100 anonymized chats; 50 voice notes (anonymize locally — never send real customer data to any model, docs/21 §4) |
 | P0-11 applications | Submit the TikTok developer app + audit; request Meta app permissions for publishing |
 | Merge PR #13 | The backup/restore rehearsal PR is `critical`, checks green — the owner merges it |

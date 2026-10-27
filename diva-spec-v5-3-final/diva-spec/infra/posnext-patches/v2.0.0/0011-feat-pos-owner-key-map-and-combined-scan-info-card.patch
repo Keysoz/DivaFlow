@@ -1,0 +1,287 @@
+From f84ab5f36e4ea1792444792780ae16f67bcf2df5 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 13:14:38 +0000
+Subject: [PATCH 11/12] feat(pos): owner key map and combined scan info card
+
+---
+ POS/src/components/sale/InvoiceCart.vue   |   9 ++
+ POS/src/components/sale/ItemsSelector.vue |  38 ++++++++
+ POS/src/composables/useSearchInput.js     |   3 +-
+ POS/src/pages/POSSale.vue                 | 107 ++++++++++++++++++++++
+ pos_next/translations/ar.csv              |   9 ++
+ 5 files changed, 165 insertions(+), 1 deletion(-)
+
+diff --git a/POS/src/components/sale/InvoiceCart.vue b/POS/src/components/sale/InvoiceCart.vue
+index 8e6efd7..0e9bf1c 100644
+--- a/POS/src/components/sale/InvoiceCart.vue
++++ b/POS/src/components/sale/InvoiceCart.vue
+@@ -2161,6 +2161,15 @@ function openEditDialog(item) {
+ 	showEditDialog.value = true;
+ }
+ 
++/** Open the edit dialog for the last cart line (F3/F4/F5 shortcuts). */
++function openLastItemEditor() {
++	const items = cartStore.invoiceItems || [];
++	const item = items[items.length - 1];
++	if (item) openEditDialog(item);
++}
++
++defineExpose({ openLastItemEditor });
++
+ /**
+  * Handle item update from edit dialog.
+  * Updates item via cart store and emits for parent compatibility.
+diff --git a/POS/src/components/sale/ItemsSelector.vue b/POS/src/components/sale/ItemsSelector.vue
+index 79597bb..45e59ae 100644
+--- a/POS/src/components/sale/ItemsSelector.vue
++++ b/POS/src/components/sale/ItemsSelector.vue
+@@ -1003,6 +1003,26 @@
+ 		:uom="warehouseDialogItem.uom"
+ 		:company="warehouseDialogItem.company"
+ 	/>
++
++		<!-- Scan info card: shown after every barcode scan -->
++		<div
++			v-if="lastScan"
++			class="fixed bottom-4 start-4 z-40 w-80 max-w-[90vw] rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
++		>
++			<p class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
++				{{ __("Scanned") }}
++			</p>
++			<p class="mt-1 text-sm font-semibold text-gray-900">{{ lastScan.item_name }}</p>
++			<p class="text-xs text-gray-500">{{ lastScan.item_code }}</p>
++			<div class="mt-2 grid grid-cols-2 gap-y-1 text-xs text-gray-700">
++				<span>{{ __("Price per Dozen") }}</span>
++				<span class="text-end font-semibold">{{ formatCurrency(lastScan.price_per_dozen) }}</span>
++				<span>{{ __("Stock") }}</span>
++				<span class="text-end font-semibold">{{ Math.floor(lastScan.stock) }}</span>
++				<span>{{ __("Quantity") }}</span>
++				<span class="text-end font-semibold">{{ lastScan.quantity }}</span>
++			</div>
++		</div>
+ </template>
+ 
+ <script setup>
+@@ -1081,10 +1101,27 @@ const {
+ } = useSearchInput({
+ 	itemStore,
+ 	onItemFound: selectItem,
++	onScanFound: handleScanFound,
+ 	showWarning,
+ 	isAnyDialogOpen,
+ });
+ 
++// Scan info card: name, code, price per Dozen, stock and the quantity added.
++const lastScan = ref(null);
++let scanCardTimer = null;
++
++function handleScanFound(item, qty) {
++	lastScan.value = {
++		item_name: item.item_name,
++		item_code: item.item_code,
++		price_per_dozen: Number(item.price_list_rate || item.rate || 0) * 12,
++		stock: item.actual_qty ?? item.stock_qty ?? 0,
++		quantity: qty || 1,
++	};
++	if (scanCardTimer) clearTimeout(scanCardTimer);
++	scanCardTimer = setTimeout(() => (lastScan.value = null), 4000);
++}
++
+ // Local state
+ const viewMode = ref("grid");
+ const itemThreshold = ref(50); // Threshold for auto-switching to list view
+@@ -1327,6 +1364,7 @@ onMounted(() => {
+ });
+ 
+ onUnmounted(() => {
++	if (scanCardTimer) clearTimeout(scanCardTimer);
+ 	// Cleanup background sync when component unmounts
+ 	itemStore.cleanup();
+ 
+diff --git a/POS/src/composables/useSearchInput.js b/POS/src/composables/useSearchInput.js
+index 715623c..1b39c2c 100644
+--- a/POS/src/composables/useSearchInput.js
++++ b/POS/src/composables/useSearchInput.js
+@@ -23,7 +23,7 @@ import { QueuedMutex } from "@/utils/mutex";
+  * @param {Object} options.showWarning        - useToast().showWarning
+  * @param {import('vue').Ref<boolean>} options.isAnyDialogOpen
+  */
+-export function useSearchInput({ itemStore, onItemFound, showWarning, isAnyDialogOpen }) {
++export function useSearchInput({ itemStore, onItemFound, onScanFound, showWarning, isAnyDialogOpen }) {
+ 	// --- Reactive state (exposed) ---
+ 	const searchInputRef = ref(null);
+ 	const scannerEnabled = ref(false);
+@@ -159,6 +159,7 @@ export function useSearchInput({ itemStore, onItemFound, showWarning, isAnyDialo
+ 				const item = await itemStore.searchByBarcode(barcode);
+ 				if (item) {
+ 					if (scanQty && scanQty > 0) item.resolved_qty = scanQty;
++					if (onScanFound) onScanFound(item, scanQty || 1);
+ 					onItemFound(item, shouldAutoAdd);
+ 					focusSearchInput();
+ 					return;
+diff --git a/POS/src/pages/POSSale.vue b/POS/src/pages/POSSale.vue
+index 9b29537..2497815 100644
+--- a/POS/src/pages/POSSale.vue
++++ b/POS/src/pages/POSSale.vue
+@@ -1024,6 +1024,28 @@
+ 		<!-- Session Lock Screen (outside v-if/v-else so it renders even during loading) -->
+ 		<SessionLockScreen />
+ 	</div>
++
++		<!-- Keyboard shortcuts help (F1) -->
++		<div
++			v-if="showShortcutsHelp"
++			class="fixed inset-0 z-[90] flex items-center justify-center bg-black/40"
++			@click.self="showShortcutsHelp = false"
++		>
++			<div class="w-[26rem] max-w-[92vw] rounded-xl bg-white p-5 shadow-xl">
++				<div class="flex items-center justify-between">
++					<h3 class="text-base font-semibold text-gray-900">{{ __("Keyboard shortcuts") }}</h3>
++					<button class="text-gray-400 hover:text-gray-600" @click="showShortcutsHelp = false">
++						✕
++					</button>
++				</div>
++				<ul class="mt-3 space-y-1.5 text-sm text-gray-700">
++					<li v-for="s in shortcutList" :key="s.key" class="flex items-center justify-between gap-4">
++						<span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">{{ s.key }}</span>
++						<span class="text-end">{{ s.label }}</span>
++					</li>
++				</ul>
++			</div>
++		</div>
+ </template>
+ 
+ <script>
+@@ -1151,6 +1173,23 @@ const { isRTL } = useLocale();
+ 
+ // Component refs
+ const itemsSelectorRef = ref(null);
++const showShortcutsHelp = ref(false);
++const shortcutList = computed(() => [
++	{ key: "F1", label: __("Help") },
++	{ key: "F2", label: __("Customer") },
++	{ key: "F3", label: __("Quantity") },
++	{ key: "F4", label: __("Discount") },
++	{ key: "F5", label: __("Note") },
++	{ key: "F6", label: __("Delete line") },
++	{ key: "F7", label: __("Held sales") },
++	{ key: "F8", label: __("Payment") },
++	{ key: "F9", label: __("Print") },
++	{ key: "F10", label: __("New sale") },
++	{ key: "Ctrl+F", label: __("Search") },
++	{ key: "Ctrl+Delete", label: __("Clear") },
++	{ key: "Ctrl+Z", label: __("Undo") },
++	{ key: "Ctrl+R", label: __("Return") },
++]);
+ const offersDialogRef = ref(null);
+ const containerRef = ref(null);
+ const dividerRef = ref(null);
+@@ -1294,6 +1333,7 @@ onMounted(async () => {
+ 		updateLayoutBounds();
+ 	};
+ 	window.addEventListener("resize", handleResize, { passive: true });
++	window.addEventListener("keydown", handleGlobalShortcuts);
+ 
+ 	// Set up real-time stock update listener
+ 	const cleanup = onStockUpdate(async (stockUpdates) => {
+@@ -1443,6 +1483,7 @@ onMounted(async () => {
+ 
+ 	// Store cleanup function for unmount
+ 	onUnmounted(() => {
++		window.removeEventListener("keydown", handleGlobalShortcuts);
+ 		cleanup();
+ 		stopActivityTracking();
+ 		qzDisconnect();
+@@ -2320,6 +2361,72 @@ async function handlePaymentCompleted(paymentData) {
+ 	}
+ }
+ 
++
++function lastCartLine() {
++	const items = cartStore.invoiceItems || [];
++	return items.length ? items[items.length - 1] : null;
++}
++
++function removeLastLine() {
++	const item = lastCartLine();
++	if (item) cartStore.removeItem(item.item_code, item.uom);
++}
++
++function handleGlobalShortcuts(event) {
++	const active = document.activeElement;
++	const typing =
++		active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
++	const mod = event.ctrlKey || event.metaKey;
++	let handled = true;
++
++	switch (event.key) {
++		case "F1":
++			showShortcutsHelp.value = true;
++			break;
++		case "F2":
++			document.getElementById("cart-customer-search")?.focus();
++			break;
++		case "F3":
++		case "F4":
++		case "F5":
++			invoiceCartRef.value?.openLastItemEditor?.();
++			break;
++		case "F6":
++			removeLastLine();
++			break;
++		case "F7":
++			uiStore.showDraftDialog = true;
++			break;
++		case "F8":
++			handleProceedToPayment();
++			break;
++		case "F9":
++			if (uiStore.lastInvoiceName) handlePrintInvoice({ name: uiStore.lastInvoiceName });
++			else showWarning(__("Print is available after the invoice is created"));
++			break;
++		case "F10":
++			handleClearCart();
++			break;
++		default:
++			if (mod && (event.key === "f" || event.key === "F")) {
++				document.getElementById("item-search")?.focus();
++			} else if (mod && event.key === "Delete") {
++				handleClearCart();
++			} else if (mod && !typing && (event.key === "z" || event.key === "Z")) {
++				removeLastLine();
++			} else if (mod && (event.key === "r" || event.key === "R")) {
++				uiStore.showReturnDialog = true;
++			} else {
++				handled = false;
++			}
++	}
++
++	if (handled) {
++		event.preventDefault();
++		event.stopPropagation();
++	}
++}
++
+ function handleClearCart() {
+ 	if (cartStore.isEmpty) return;
+ 	uiStore.showClearCartDialog = true;
+diff --git a/pos_next/translations/ar.csv b/pos_next/translations/ar.csv
+index bddfa47..354bb98 100644
+--- a/pos_next/translations/ar.csv
++++ b/pos_next/translations/ar.csv
+@@ -1590,3 +1590,12 @@ Points applied: {0}. Please pay remaining {1} with {2},تم خصم النقاط:
+ "Hide this product from the POS.","إخفاء هذا المنتج من نقطة البيع.",""
+ "Search by item code, name, item group or scan barcode","ابحث برمز الصنف أو الاسم أو مجموعة الأصناف أو امسح الباركود",""
+ "Shift History","سجل الورديات",""
++"Scanned","تم المسح",""
++"Price per Dozen","السعر للدستة",""
++"Keyboard shortcuts","اختصارات لوحة المفاتيح",""
++"Print is available after the invoice is created","الطباعة متاحة بعد إنشاء الفاتورة",""
++"Note","ملاحظة",""
++"Delete line","حذف السطر",""
++"Held sales","المبيعات المعلقة",""
++"New sale","بيع جديد",""
++"Undo","تراجع",""
+-- 
+2.47.3
+

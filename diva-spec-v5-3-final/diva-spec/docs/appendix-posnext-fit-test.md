@@ -99,6 +99,16 @@ After applying the 10-patch set and rebuilding the assets:
 - The patch set does not change install/uninstall behaviour; the rehearsals in sections 1b/1c stand.
 - The user's language was restored to English after the Arabic checks; the dev site keeps the synthetic `P004*` data.
 
+### 1g. Key map and scan card (patches 11–12, 2026-10-27)
+
+Verified with Playwright on the patched build:
+
+- **Key map:** F1 opens the shortcut help; F2 focuses the customer search; F3/F4/F5 open the last-line editor (quantity, discount and note); F6 removes the last line; F7 drafts; F8 payment (asks for a customer when none is selected); F9 prints the last invoice or warns before one exists; F10 clears the cart (with confirmation); Ctrl+F focuses the item search; Ctrl+Delete clears; Ctrl+Z undoes the last scan even while the search field has focus; Ctrl+R opens the return dialog.
+- **Scan card:** every scan shows the item name, code, price per Dozen, stock and the quantity added; it hides after four seconds and focus returns to the barcode field.
+- New Arabic keys were added for the card and the shortcut labels after the glossary review; a spot-check by the owner is recommended for wording.
+
+Remaining: hardware validation only (80 mm receipt, QZ Tray, Arabic keyboard, full offline shift).
+
 ## 2. POS-CHECK results (docs/07 M-POS)
 
 | # | Check | Result | Evidence |

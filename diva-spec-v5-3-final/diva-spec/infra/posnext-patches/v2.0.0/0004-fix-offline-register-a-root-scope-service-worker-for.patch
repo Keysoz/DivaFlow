@@ -1,7 +1,7 @@
 From 3ff61cc08fc32cd2e35da3645e4ba03926933e61 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 08:56:26 +0000
-Subject: [PATCH 04/10] fix(offline): register a root-scope service worker for
+Subject: [PATCH 04/12] fix(offline): register a root-scope service worker for
  /pos
 
 ---

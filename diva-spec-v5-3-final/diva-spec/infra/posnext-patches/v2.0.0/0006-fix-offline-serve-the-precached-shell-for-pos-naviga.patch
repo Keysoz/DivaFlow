@@ -1,7 +1,7 @@
 From 7a53a37e32c8ad38ab6a3063765af3f7da010ee6 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 09:15:23 +0000
-Subject: [PATCH 06/10] fix(offline): serve the precached shell for /pos
+Subject: [PATCH 06/12] fix(offline): serve the precached shell for /pos
  navigations
 
 ---

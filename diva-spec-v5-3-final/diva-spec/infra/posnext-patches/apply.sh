@@ -7,7 +7,7 @@ PATCH_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE_TAG="v2.0.0"
 BASE_COMMIT="e0a52c5"
 
-if [ ! -d "$APP_DIR/.git" ]; then
+if ! git -C "$APP_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Not a git checkout: $APP_DIR" >&2
   exit 1
 fi
@@ -20,7 +20,7 @@ if [ "$HEAD_COMMIT" != "$BASE_COMMIT" ]; then
   exit 1
 fi
 
-if ! git am -c user.name="Diva Patches" -c user.email="patches@diva.local" "$PATCH_DIR"/v2.0.0/*.patch; then
+if ! git -c user.name="Diva Patches" -c user.email="patches@diva.local" am "$PATCH_DIR"/v2.0.0/*.patch; then
   echo "Patch series stopped. Fix the conflict, then 'git am --continue' or 'git am --abort'." >&2
   exit 1
 fi

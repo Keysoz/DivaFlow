@@ -28,7 +28,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 bash infra/posnext-patches/apply.sh /home/frappe/frappe-bench/apps/pos_next
 ```
 
-The script refuses to apply unless the checkout is at the recorded base tag/commit, and it supplies a commit identity when the checkout has none.
+The script refuses to apply unless the checkout is at the recorded base tag/commit, and it supplies a commit identity when the checkout has none (it works on linked worktrees too).
 
 Then rebuild the frontend and re-deploy the assets (see `docs/appendix-posnext-fit-test.md` §1 for the dev steps and §1e for the verification results):
 
@@ -62,5 +62,7 @@ yarn --cwd POS install && yarn --cwd POS build
 ```
 
 After deploying a new worker, clear the Frappe website cache — a stale `/pos-sw.js` otherwise persists. Serve `/pos-sw.js` with `Cache-Control: no-cache` in production (E-14 packaging).
+
+The built worker may list `manifest.webmanifest` twice (the globbed entry and the plugin-injected one); both have the same revision, so Workbox deduplicates them. If a future build gives them different revisions, `precacheAndRoute` throws — strip one entry in `copy-sw.cjs` if that happens.
 
 Keep the patches vendor-neutral where possible and offer them upstream (AGPL: the modified source stays available to its users).

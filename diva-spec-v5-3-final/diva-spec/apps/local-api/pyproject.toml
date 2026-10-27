@@ -3,7 +3,16 @@ name = "local-api"
 version = "0.1.0"
 description = "Diva store gateway and Ops/POS API; the only component that talks to ERPNext."
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.115", "uvicorn[standard]>=0.32"]
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "erpnext-adapter",
+  "rules-engine",
+]
+
+[tool.uv.sources]
+erpnext-adapter = { workspace = true }
+rules-engine = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

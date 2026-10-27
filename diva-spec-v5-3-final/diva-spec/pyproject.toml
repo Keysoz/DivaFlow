@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["packages/rules-engine", "apps/cloud-api", "apps/local-api"]
+members = ["packages/rules-engine", "packages/erpnext-adapter", "apps/cloud-api", "apps/local-api"]
 
 [dependency-groups]
 dev = [
@@ -14,16 +14,19 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src"]
+src = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
-mypy_path = ["packages/rules-engine/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
+files = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
+mypy_path = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps", "tests"]

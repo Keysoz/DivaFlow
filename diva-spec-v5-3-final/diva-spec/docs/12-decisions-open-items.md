@@ -117,9 +117,9 @@ ERPNext 16 on a private VM with admin access; the store has stable LAN and mostl
 | Exposed legacy credentials | Account takeover | P0-01 rotation; Bitwarden plus quarterly rotation (`26`) |
 
 ## 5. Change log
-v5.3.9 (2026-10-27): Phase E started on the dev stack (DEC-71); E-00 recorded (nothing to retire) and E-01 baseline generated (`erp-field-register.csv`, 28 doctypes, 2,016 fields).
+v5.3.9 (2026-10-27): Phase E started on the dev stack (DEC-71); E-00 recorded (nothing to retire) and E-01 baseline generated (`erp-field-register.csv`, 28 doctypes, 2,028 rows).
 v5.3.8 (2026-10-27): owner confirmed the credential rotation and the n8n webhook check; Arabic review done (OPEN-17 closed); POS Next baseline approved (DEC-70); P0 gate status recorded (`appendix-p0-exit-gate.md`).
-v5.3.6 (2026-10-27): E-14b — 10-patch POS Next set applied (defects, `qty*barcode`, offline); baseline approved (DEC-70).
+v5.3.6 (2026-10-27): E-14b — 11-patch POS Next set applied (defects, `qty*barcode`, offline); baseline approved (DEC-70).
 v5.3.7 (2026-10-27): P0-03 automated browser checks — RTL verified, offline failure confirmed, UOM/qty UI defects and the `get_receivable_accounts` bug recorded.
 v5.3.5 (2026-10-27): POS Next pinned to `v2.0.0` and the smoke subset re-run on it (21 fields, no F-keys, service-worker scope gap); DEC-68 updated.
 v5.3.4 (2026-10-27): ENH-S-02 — Bitwarden chosen as the secrets manager (DEC-69); rotation schedule in `26`.

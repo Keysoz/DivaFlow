@@ -5,6 +5,9 @@ Reads both the source schema (DocField) and the installed Custom Field rows, so
 vendor fields (for example POS Next) are included. Every row carries a baseline
 `classification` ("keep") and a `reason`; TASK-E-02/E-03 change the rows they act on.
 
+The register is re-run at TASK-E-00a against the production site; use
+ERPNEXT_URL=https://... there so credentials never cross the LAN in cleartext.
+
 Usage (credentials from the environment; never hard-coded):
   ERPNEXT_URL=http://localhost:8080 ERPNEXT_USER=Administrator ERPNEXT_PASSWORD=... \
     python3 scripts/gen_field_register.py
@@ -77,6 +80,7 @@ for doctype in DOCTYPES:
     for field in meta.get("fields", []):
         key = (doctype, field.get("fieldname", ""))
         if key in seen:
+            print(f"skip collision: {doctype}.{key[1]}")
             continue
         seen.add(key)
         rows.append(
@@ -120,6 +124,7 @@ for doctype in DOCTYPES:
     for field in custom:
         key = (doctype, field.get("fieldname", ""))
         if key in seen:
+            print(f"skip collision: {doctype}.{key[1]}")
             continue
         seen.add(key)
         rows.append(
@@ -138,6 +143,9 @@ for doctype in DOCTYPES:
                 "reason": "baseline keep; E-02/E-03 change the rows they act on",
             }
         )
+
+if not rows:
+    sys.exit("no fields returned; check the site URL and credentials")
 
 path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "erp-field-register.csv")
 with open(path, "w", newline="", encoding="utf-8") as handle:

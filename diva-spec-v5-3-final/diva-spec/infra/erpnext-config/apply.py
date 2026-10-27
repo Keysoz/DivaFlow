@@ -1,8 +1,9 @@
-"""Idempotent ERPNext configuration (TASK-E-03, TASK-E-02).
+"""Idempotent ERPNext configuration (TASK-E-03, E-04, E-05, E-02).
 
-Applies a declarative config (property setters and workspace visibility) through
-the ERPNext REST API, with a dry-run diff by default. Re-running must change
-nothing (idempotent). Configuration is stored as data; no core code is touched.
+Applies a declarative config (property setters, single-doctype settings,
+records and workspace visibility) through the ERPNext REST API, with a dry-run
+diff by default. Re-running must change nothing (idempotent). Configuration is
+stored as data; no core code is touched.
 
 Usage (credentials from the environment, never hard-coded):
   ERPNEXT_URL=... ERPNEXT_API_KEY=... ERPNEXT_API_SECRET=... \
@@ -70,6 +71,46 @@ def plan_workspaces(entries: list[dict[str, Any]], existing: dict[str, str]) -> 
     return actions
 
 
+def plan_singles(
+    entries: list[dict[str, Any]], existing: dict[tuple[str, str], str]
+) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        key = (entry["doctype"], entry["field"])
+        target = f"{key[0]}.{key[1]}"
+        desired = _normalize(entry["value"])
+        if key not in existing:
+            actions.append(Action("single", target, "create", None, desired))
+        elif _normalize(existing[key]) != desired:
+            actions.append(Action("single", target, "update", existing[key], desired))
+        else:
+            actions.append(Action("single", target, "noop", existing[key], desired))
+    return actions
+
+
+def _record_key(entry: dict[str, Any]) -> str:
+    doctype = str(entry["doctype"])
+    return doctype + "::" + json.dumps(entry["match"], sort_keys=True)
+
+
+def plan_records(
+    entries: list[dict[str, Any]], existing: dict[str, dict[str, Any]]
+) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        key = _record_key(entry)
+        desired = {k: _normalize(v) for k, v in entry["set"].items()}
+        if key not in existing:
+            actions.append(Action("record:" + entry["doctype"], key, "create", None, desired))
+            continue
+        current = existing[key]
+        if any(_normalize(current.get(k)) != v for k, v in desired.items()):
+            actions.append(Action("record:" + entry["doctype"], key, "update", current, desired))
+        else:
+            actions.append(Action("record:" + entry["doctype"], key, "noop", current, desired))
+    return actions
+
+
 class ApiError(RuntimeError):
     def __init__(self, message: str, code: int) -> None:
         super().__init__(message)
@@ -99,9 +140,8 @@ class Client:
             with self.opener.open(request) as response:
                 return json.loads(response.read() or b"{}")
         except urllib.error.HTTPError as exc:
-            raise ApiError(
-                f"{method} {path} failed: {exc.code} {exc.read()[:200]!r}", exc.code
-            ) from exc
+            message = f"{method} {path} failed: {exc.code} {exc.read()[:200]!r}"
+            raise ApiError(message, exc.code) from exc
 
     def get(self, path: str) -> Any:
         return self._request("GET", path)
@@ -154,14 +194,44 @@ def fetch_existing_workspaces(client: Client, names: list[str]) -> dict[str, str
     return existing
 
 
+def fetch_existing_singles(
+    client: Client, entries: list[dict[str, Any]]
+) -> dict[tuple[str, str], str]:
+    existing: dict[tuple[str, str], str] = {}
+    for entry in entries:
+        doctype = entry["doctype"]
+        data = client.get("/api/resource/" + _quoted(doctype) + "/" + _quoted(doctype))["data"]
+        existing[(doctype, entry["field"])] = data.get(entry["field"])
+    return existing
+
+
+def fetch_existing_records(
+    client: Client, entries: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    existing: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        doctype = entry["doctype"]
+        filters = [[k, "=", v] for k, v in entry["match"].items()]
+        fields = ["name", *entry["match"].keys(), *entry["set"].keys()]
+        rows = client.get("/api/resource/" + _quoted(doctype) + _query(filters, fields))["data"]
+        if rows:
+            existing[_record_key(entry)] = rows[0]
+    return existing
+
+
 def apply_actions(
-    client: Client, actions: list[Action], entries_by_target: dict[str, dict[str, Any]]
+    client: Client,
+    actions: list[Action],
+    entries_by_target: dict[str, dict[str, Any]],
+    singles_by_target: dict[str, dict[str, Any]],
+    records_by_key: dict[str, dict[str, Any]],
 ) -> None:
     for action in actions:
-        if action.action == "noop" or action.action == "missing":
+        if action.action in {"noop", "missing"}:
             continue
         if action.kind == "property_setter":
             doctype, fieldname, prop = action.target.split(".")
+            entry = entries_by_target.get(action.target, {})
             payload = {
                 "doctype": "Property Setter",
                 "doctype_or_field": "DocField",
@@ -169,9 +239,7 @@ def apply_actions(
                 "field_name": fieldname,
                 "property": prop,
                 "value": action.desired,
-                "property_type": entries_by_target.get(action.target, {}).get(
-                    "property_type", "Check"
-                ),
+                "property_type": entry.get("property_type", "Check"),
             }
             if action.action == "create":
                 client.post("/api/resource/" + _quoted("Property Setter"), payload)
@@ -193,6 +261,34 @@ def apply_actions(
                 "/api/resource/Workspace/" + _quoted(action.target),
                 {"is_hidden": 1 if action.desired == "1" else 0},
             )
+        elif action.kind == "single":
+            doctype, fieldname = action.target.split(".")
+            client.put(
+                "/api/resource/" + _quoted(doctype) + "/" + _quoted(doctype),
+                {fieldname: _typed(singles_by_target.get(action.target, {}).get("value"))},
+            )
+        elif action.kind.startswith("record:"):
+            doctype = action.kind.split(":", 1)[1]
+            record_entry = records_by_key.get(action.target)
+            if record_entry is None:
+                continue
+            if action.action == "create":
+                client.post(
+                    "/api/resource/" + _quoted(doctype),
+                    {**record_entry["match"], **record_entry["set"]},
+                )
+            else:
+                name = action.current.get("name")
+                client.put(
+                    "/api/resource/" + _quoted(doctype) + "/" + _quoted(name),
+                    record_entry["set"],
+                )
+
+
+def _typed(value: Any) -> Any:
+    if isinstance(value, bool):
+        return 1 if value else 0
+    return value
 
 
 def main() -> int:
@@ -209,6 +305,8 @@ def main() -> int:
         config = yaml.safe_load(handle) or {}
     entries = config.get("property_setters", [])
     workspaces = config.get("workspaces", [])
+    singles = config.get("singles", [])
+    records = config.get("records", [])
 
     client = Client(base)
     key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
@@ -222,7 +320,14 @@ def main() -> int:
 
     existing_ps = fetch_existing_property_setters(client, entries)
     existing_ws = fetch_existing_workspaces(client, [w["name"] for w in workspaces])
-    actions = plan_property_setters(entries, existing_ps) + plan_workspaces(workspaces, existing_ws)
+    existing_singles = fetch_existing_singles(client, singles)
+    existing_records = fetch_existing_records(client, records)
+    actions = (
+        plan_property_setters(entries, existing_ps)
+        + plan_workspaces(workspaces, existing_ws)
+        + plan_singles(singles, existing_singles)
+        + plan_records(records, existing_records)
+    )
 
     for action in actions:
         print(
@@ -234,7 +339,9 @@ def main() -> int:
 
     if args.apply and changed:
         entries_by_target = {f"{e['doctype']}.{e['fieldname']}.{e['property']}": e for e in entries}
-        apply_actions(client, changed, entries_by_target)
+        singles_by_target = {f"{e['doctype']}.{e['field']}": e for e in singles}
+        records_by_key = {_record_key(e): e for e in records}
+        apply_actions(client, changed, entries_by_target, singles_by_target, records_by_key)
         print("applied")
     elif not args.apply:
         print("dry run (use --apply to write)")

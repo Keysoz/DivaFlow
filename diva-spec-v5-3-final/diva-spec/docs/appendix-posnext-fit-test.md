@@ -54,7 +54,7 @@ Pinned tag: **`v2.0.0` = commit `e0a52c5`** — but the tag ships app version **
 
 **Verdict impact:** the pin condition is satisfied for tag pinning, but `v2.0.0` is code `1.17.0`: no global F-keys, fewer fields and an offline scope gap. The required patch set therefore grows (keymap, scan card, `qty*barcode`, service-worker scope). Re-run this smoke subset on the patched pinned build before E-14; the hardware session is still pending.
 
-### 1d. Automated browser checks (2026-10-28)
+### 1d. Automated browser checks (2026-10-27)
 
 Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned v2.0.0 build, signed in as Administrator, POS Profile `P003 POS`, shift opened through the UI (500 cash).
 
@@ -63,10 +63,10 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 | POS Profile visibility | **Setup finding**: the app lists only profiles whose `applicable_for_users` contains the user. A profile created without that row shows "No POS Profiles available"; adding Administrator fixed it. Note this for E-14. |
 | Shift open through the UI | PASS — welcome screen → profile → opening balance → sale screen with the shift timer. |
 | Barcode scan (EAN-13, Dozen) | PASS — the scan opens the "Select Unit of Measure" dialog (Dozen E£ 1,440 / Nos E£ 0), adding Dozen gives 1 × Dozen at E£ 1,440; a second scan raises the line to 2 (E£ 2,880). The product card stock drops 72 → 60 → 48 as the cart grows. |
-| Scan info on screen | **Partial**: the dialog shows the item name, code, per-UOM prices and the stock is on the item card; a success toast names the added line. There is no single combined scan card, and two defects were visible: the **"Nos" UOM appears twice** (the item's UOM table includes the stock UOM row) and the **quantity input renders empty** while the "1" chip is selected (the DOM value is 1). |
+| Scan info on screen | **Partial**: the dialog shows the item name, code, per-UOM prices and the stock is on the item card; a success toast names the added line. There is no single combined scan card, and two defects were visible: the **"Nos" UOM appears twice** (the item's UOM table includes the stock UOM row) and the **quantity input is borderless with a transparent background**, so its centered value is easy to miss (the DOM value is 1). |
 | Arabic / RTL | **PASS (visual)**: with the user's language Arabic the document direction is `rtl` and the header, icon rail, panels, badges, icons and totals all mirror correctly. Untranslated strings: **"Shift History"**, the **item-search placeholder**, and the unit name "Nos" (UOM data, not a UI key). The header language control shows العربية. |
 | Offline | **FAIL confirmed in a real browser**: with the network off, reload fails (`ERR_INTERNET_DISCONNECTED`). The app is **not offline-capable at v2.0.0**, despite its "Data is ready for offline use" toast — consistent with the service-worker scope gap in section 1c. |
-| Runtime errors | `pos_next.api.pos_profile.get_receivable_accounts` raises **`NameError: name 'cint' is not defined`** (customer/credit UI); the socket.io connection is refused in this dev setup (realtime unavailable); leftover `nexus_demo` demo-banner assets return 404 (unrelated to POS Next). |
+| Runtime errors | `pos_next.api.pos_profile.get_receivable_accounts` raises **`NameError: name 'cint' is not defined`** (customer/credit UI); the socket.io connection is refused in this dev setup (realtime unavailable); the vendor page still references `/assets/nexus_demo` demo-banner files, which return 404 (harmless; note for cleanup); `pos_next.api.qz.get_certificate` returns 417 (QZ print certificate, relevant to the hardware session). |
 
 **Verdict impact:** the browser pass removes the visual-RTL uncertainty and adds concrete UI defects to the patch list (duplicate UOM option, quantity display, untranslated keys, the `get_receivable_accounts` bug). It also confirms that v2.0.0 cannot be sold as offline-capable. Hardware-only items (physical scanner, 80 mm receipt, label printer) still need the owner session.
 
@@ -91,7 +91,7 @@ Playwright (Chromium headless) against `http://localhost:8080/pos` on the pinned
 | 15 | Works with no internet while the LAN is up | **FAIL at v2.0.0 (browser-confirmed, section 1d); the SW scope cannot control `/pos`** — PWA service worker + workbox precache + `workers/offline.worker.js` + IndexedDB (`dexie`) | build output |
 | 16 | No ERPNext core modification, no custom code inside ERPNext | **PASS** — 37 vendor-owned custom fields (at the tested build), 1 print format, no core file edits | see section 1 |
 | 17 | Performance (UI < 100 ms; search/barcode < 500 ms; large invoices) | **Pending (browser)** | — |
-| 18 | Scan info card (name, code, price per dozen, stock, qty added, focus returns) | **Partial → patch (E-14b)** — the browser check (section 1d) shows the scan dialog, item card stock and a toast with the added line, but there is no combined card; the "Nos" option is duplicated and the quantity input renders empty | code + browser |
+| 18 | Scan info card (name, code, price per dozen, stock, qty added, focus returns) | **Partial → patch (E-14b)** — the browser check (section 1d) shows the scan dialog, item card stock and a toast with the added line, but there is no combined card; the "Nos" option is duplicated and the qty input is borderless (easy to miss) | code + browser |
 | 19 | `qty*barcode` multiplier | **FAIL → required patch (E-14b)** — no `*` parsing in the barcode path | code |
 
 Safety rules (never show success before server confirmation, idempotency, no in-place edits): reviewed in code; confirm during the hardware/UI session.

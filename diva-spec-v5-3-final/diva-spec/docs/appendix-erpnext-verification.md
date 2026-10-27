@@ -125,6 +125,18 @@ Date 2026-10-27. Source: the disposable dev site — no production site exists y
 - **Repeatable:** `scripts/gen_field_register.py` (credentials from env) regenerates the file.
 - **Provisional:** re-run this register at TASK-E-00a against the production site and diff; only then is it the authoritative baseline.
 
+## 5. Bulk synthetic data (E-06/E-07/E-08/E-09, dev site)
+
+Seeded idempotently with `scripts/seed_dev_data.py` (credentials from env; synthetic only):
+
+- **Warehouses (DEC-49):** Main Inventory, Shop, Gallery, Returns and Defects added beside Stores / WIP / Finished Goods / Goods In Transit.
+- **Items + barcodes (E-06):** 12 items (6 Accessories, 6 Cosmetics) with Dozen and Nos EAN-13 barcodes (e.g. `BULK-ACC-01`: `2100001000011` Dozen, `2100001000028` Nos) and a per-Dozen selling price.
+- **Opening stock (E-07):** Stock Reconciliation (Opening Stock) posted 120 Nos per item into Main Inventory.
+- **Purchasing (E-08):** 2 suppliers and Purchase Invoice `ACC-PINV-2026-00001` (bill `BULK-PI-01`) with Update Stock — two stock ledger movements of +60 Nos each (5 Dozen).
+- **Sales (E-09):** 5 customers; a paid POS invoice (Cash) and a credit Sales Invoice with `outstanding_amount = 2,496`; six payment modes (Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash, WePay) mapped to `Cash - DD` and a new ledger account `Diva Bank - DD`.
+- Bin check after all movements: `BULK-ACC-01` = 168 Nos (120 opening + 60 purchase − 12 sold).
+- Pending for the full tasks: FIFO valuation audit, supplier payments/payables, receivable report reconciliation, China import flow (E-08b), expenses (E-10).
+
 ## 4. Configuration applied (E-03/E-02, dev site)
 
 Date 2026-10-27. `infra/erpnext-config/apply.py` (idempotent, dry-run by default) with `config.yaml`; credentials from the environment.

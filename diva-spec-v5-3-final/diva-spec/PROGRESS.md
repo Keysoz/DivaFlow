@@ -12,6 +12,10 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 | E-04 | Partial (dev) | — | Dozen whole-number, negative stock off, reservations on, item groups Accessories/Cosmetics via config; batch/expiry per item + simplified Item form pending |
 | E-05 | Partial (dev) | — | `Wholesale` tier price list created; per-tier prices and price-edit permissions later (E-16) |
 | E-12 | Partial — rules + adapter + local-api skeleton | — | rules-engine MOQ/discount/min-order with tests; typed adapter with contract tests (pass on the dev site); local-api `/health`, item-by-barcode, counter rules with bearer auth. More endpoints and nightly staging later |
+| E-06 | Done (dev) | — | 12 items with Dozen + Nos EAN-13 barcodes and per-Dozen prices; uniqueness enforced (P0-04) |
+| E-07 | Partial (dev) | — | DEC-49 warehouses + opening stock (Stock Reconciliation 120 Nos each); FIFO valuation audit pending |
+| E-08 | Partial (dev) | — | Suppliers + Purchase Invoice with Update Stock verified (one stock movement per delivery); supplier payments/payables and the China flow remain |
+| E-09 | Partial (dev) | — | Customers, six modes + accounts, paid POS invoice and a credit invoice with outstanding balance; receivable report reconciliation remains |
 | P0-10 | Merged | [#1](https://github.com/Keysoz/DivaFlow/pull/1) | `make lint`/`make test` green locally (86 tests); CI green on the pull request |
 | P0-04a | Merged | [#4](https://github.com/Keysoz/DivaFlow/pull/4) | Dev ERPNext 16.52.1 / frappe 16.53.0 on port 8080 recorded; script guards against non-v16 tags |
 | P0-04 | Merged | [#6](https://github.com/Keysoz/DivaFlow/pull/6) | ERPNext 16 findings in `docs/appendix-erpnext-verification.md` §2; RULE-STOCK 5 answered (native reservation blocks the counter) |

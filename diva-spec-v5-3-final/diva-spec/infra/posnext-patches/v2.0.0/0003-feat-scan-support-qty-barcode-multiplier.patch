@@ -1,0 +1,75 @@
+From 107fecb0ae863cb945dbf5d9671680333df25021 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 08:56:26 +0000
+Subject: [PATCH 03/10] feat(scan): support qty*barcode multiplier
+
+---
+ POS/src/composables/useSearchInput.js | 25 +++++++++++++++++--------
+ 1 file changed, 17 insertions(+), 8 deletions(-)
+
+diff --git a/POS/src/composables/useSearchInput.js b/POS/src/composables/useSearchInput.js
+index 833fdef..715623c 100644
+--- a/POS/src/composables/useSearchInput.js
++++ b/POS/src/composables/useSearchInput.js
+@@ -74,14 +74,17 @@ export function useSearchInput({ itemStore, onItemFound, showWarning, isAnyDialo
+ 			clearAutoSearchTimer();
+ 
+ 			// Snapshot the barcode NOW from the DOM input, before anything overwrites it
+-			const barcode = searchInputRef.value?.value?.trim() || itemStore.searchTerm?.trim();
+-			if (barcode) {
++			const rawValue = searchInputRef.value?.value?.trim() || itemStore.searchTerm?.trim();
++			if (rawValue) {
+ 				// Clear input immediately so next scan starts clean
+ 				itemStore.clearSearch();
+ 				if (searchInputRef.value) searchInputRef.value.value = "";
+ 
+-				// Queue the search with the captured barcode
+-				processBarcodeScan(barcode, autoAddEnabled.value);
++				// qty*barcode multiplier (for example 5*890...): add that quantity in one scan
++				const multiplier = rawValue.match(/^(\d+)\s*\*\s*(\S+)$/);
++				const barcode = multiplier ? multiplier[2] : rawValue;
++				const scanQty = multiplier ? Number(multiplier[1]) : null;
++				processBarcodeScan(barcode, autoAddEnabled.value, scanQty);
+ 			}
+ 			return;
+ 		}
+@@ -113,12 +116,17 @@ export function useSearchInput({ itemStore, onItemFound, showWarning, isAnyDialo
+ 		// Auto-add: after user stops typing for 500 ms, trigger barcode search
+ 		if (autoAddEnabled.value && value.trim().length > 0) {
+ 			autoSearchTimer = setTimeout(() => {
+-				const barcode =
++				const rawValue =
+ 					searchInputRef.value?.value?.trim() || itemStore.searchTerm?.trim();
+-				if (barcode) {
++				if (rawValue) {
+ 					itemStore.clearSearch();
+ 					if (searchInputRef.value) searchInputRef.value.value = "";
+-					processBarcodeScan(barcode, true);
++					const multiplier = rawValue.match(/^(\d+)\s*\*\s*(\S+)$/);
++					processBarcodeScan(
++						multiplier ? multiplier[2] : rawValue,
++						true,
++						multiplier ? Number(multiplier[1]) : null
++					);
+ 				}
+ 			}, 500);
+ 		}
+@@ -143,13 +151,14 @@ export function useSearchInput({ itemStore, onItemFound, showWarning, isAnyDialo
+ 	 * @param {string}  barcode      - Pre-captured barcode value
+ 	 * @param {boolean} forceAutoAdd - When true, item is added without user click
+ 	 */
+-	function processBarcodeScan(barcode, forceAutoAdd) {
++	function processBarcodeScan(barcode, forceAutoAdd, scanQty) {
+ 		const shouldAutoAdd = forceAutoAdd || (scannerEnabled.value && autoAddEnabled.value);
+ 
+ 		barcodeQueue.withLock(async () => {
+ 			try {
+ 				const item = await itemStore.searchByBarcode(barcode);
+ 				if (item) {
++					if (scanQty && scanQty > 0) item.resolved_qty = scanQty;
+ 					onItemFound(item, shouldAutoAdd);
+ 					focusSearchInput();
+ 					return;
+-- 
+2.47.3
+

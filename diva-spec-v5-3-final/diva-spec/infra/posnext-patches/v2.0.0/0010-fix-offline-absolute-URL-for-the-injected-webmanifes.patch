@@ -1,0 +1,25 @@
+From 81b834a128c95b91dba620d734bae516841d636b Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 11:02:47 +0000
+Subject: [PATCH 10/10] fix(offline): absolute URL for the injected webmanifest
+ precache entry
+
+---
+ POS/copy-sw.cjs | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/POS/copy-sw.cjs b/POS/copy-sw.cjs
+index 9ab270b..8e458c3 100644
+--- a/POS/copy-sw.cjs
++++ b/POS/copy-sw.cjs
+@@ -7,5 +7,7 @@ const src = '../pos_next/public/pos/sw.js';
+ const dest = '../pos_next/www/pos-sw.js';
+ let sw = fs.readFileSync(src, 'utf8');
+ sw = sw.replace(/(["'(])\.\/workbox-/g, '$1/assets/pos_next/pos/workbox-');
++// The injected manifest entry is not covered by the vite transform; make it absolute too.
++sw = sw.replace(/url:"manifest\.webmanifest"/g, 'url:"/assets/pos_next/pos/manifest.webmanifest"');
+ fs.writeFileSync(dest, sw);
+ console.log('copied service worker to www/pos-sw.js (workbox import absolutized)');
+-- 
+2.47.3
+

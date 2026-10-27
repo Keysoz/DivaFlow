@@ -1,0 +1,62 @@
+From 3ff61cc08fc32cd2e35da3645e4ba03926933e61 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 08:56:26 +0000
+Subject: [PATCH 04/10] fix(offline): register a root-scope service worker for
+ /pos
+
+---
+ POS/package.json |  2 +-
+ POS/src/main.js  | 24 +++++++++++++++---------
+ 2 files changed, 16 insertions(+), 10 deletions(-)
+
+diff --git a/POS/package.json b/POS/package.json
+index 9c9f0df..b350dd3 100644
+--- a/POS/package.json
++++ b/POS/package.json
+@@ -5,7 +5,7 @@
+ 	"type": "module",
+ 	"scripts": {
+ 		"dev": "vite",
+-		"build": "vite build --base=/assets/pos_next/pos/",
++		"build": "vite build --base=/assets/pos_next/pos/ && node -e \"const fs=require('fs');fs.copyFileSync('../pos_next/public/pos/sw.js','../pos_next/www/pos-sw.js')\"",
+ 		"preview": "vite preview",
+ 		"lint": "biome check .",
+ 		"lint:fix": "biome check --write .",
+diff --git a/POS/src/main.js b/POS/src/main.js
+index 04e24a6..b5012f4 100644
+--- a/POS/src/main.js
++++ b/POS/src/main.js
+@@ -54,15 +54,21 @@ if ("serviceWorker" in navigator) {
+ 	window.addEventListener(
+ 		"load",
+ 		() => {
+-			import("virtual:pwa-register").then(({ registerSW }) => {
+-				registerSW({
+-					immediate: true,
+-					onNeedRefresh: () => log.info("New content available, reloading..."),
+-					onOfflineReady: () => log.info("App ready to work offline"),
+-					onRegistered: (reg) => log.info("Service Worker registered", reg),
+-					onRegisterError: (err) => log.error("Service Worker registration error", err),
+-				});
+-			});
++			// Scope /pos (not /assets/...) so the POS page itself can open offline.
++			navigator.serviceWorker
++				.register("/pos-sw.js", { scope: "/pos" })
++				.then(async (reg) => {
++					log.info("Service Worker registered", reg);
++					// Drop the old worker registered under the assets scope
++					for (const old of await navigator.serviceWorker.getRegistrations()) {
++						if (old.scope.endsWith("/assets/pos_next/pos/")) old.unregister();
++					}
++					// Cache the POS page now so the first visit already works offline
++					await navigator.serviceWorker.ready;
++					const shell = await caches.open("pos-page-cache");
++					if (!(await shell.match("/pos/"))) await shell.add("/pos/");
++				})
++				.catch((err) => log.error("Service Worker registration error", err));
+ 		},
+ 		{ passive: true }
+ 	);
+-- 
+2.47.3
+

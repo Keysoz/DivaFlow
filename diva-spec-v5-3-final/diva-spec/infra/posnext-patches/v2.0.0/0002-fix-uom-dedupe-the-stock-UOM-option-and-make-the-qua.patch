@@ -1,0 +1,40 @@
+From ded0c7880f4e826bfcd24999008a646d5011cd61 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 08:56:26 +0000
+Subject: [PATCH 02/10] fix(uom): dedupe the stock UOM option and make the
+ quantity input visible
+
+---
+ POS/src/components/sale/ItemSelectionDialog.vue | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/POS/src/components/sale/ItemSelectionDialog.vue b/POS/src/components/sale/ItemSelectionDialog.vue
+index 68e63ef..099ba9e 100644
+--- a/POS/src/components/sale/ItemSelectionDialog.vue
++++ b/POS/src/components/sale/ItemSelectionDialog.vue
+@@ -201,7 +201,7 @@
+ 									min="1"
+ 									step="1"
+ 									inputmode="numeric"
+-									class="w-full text-center border-0 text-sm font-semibold focus:outline-none focus:ring-0 bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
++									class="w-full text-center border border-gray-300 rounded-md bg-white text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+ 									@blur="validateQuantity"
+ 									@keydown.enter="confirm"
+ 								/>
+@@ -643,9 +643,12 @@ function buildUomOptions() {
+ 		priceLabel: __("per {0}", [props.item.stock_uom]),
+ 	});
+ 
+-	// Additional UOMs
++	// Additional UOMs (skip the stock UOM row: ERPNext also stores it in item_uoms)
++	const seenUoms = new Set([props.item.stock_uom]);
+ 	if (props.item.item_uoms && props.item.item_uoms.length > 0) {
+ 		props.item.item_uoms.forEach((uomData) => {
++			if (!uomData.uom || seenUoms.has(uomData.uom)) return;
++			seenUoms.add(uomData.uom);
+ 			uomOptions.push({
+ 				type: "uom",
+ 				uom: uomData.uom,
+-- 
+2.47.3
+

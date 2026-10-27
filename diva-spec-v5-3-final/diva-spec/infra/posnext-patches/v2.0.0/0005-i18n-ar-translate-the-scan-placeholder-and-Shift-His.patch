@@ -1,0 +1,23 @@
+From b2e04ed0727abc993859717da258eb855ecc1f61 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Tue, 27 Oct 2026 08:56:26 +0000
+Subject: [PATCH 05/10] i18n(ar): translate the scan placeholder and Shift
+ History
+
+---
+ pos_next/translations/ar.csv | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/pos_next/translations/ar.csv b/pos_next/translations/ar.csv
+index b71f6e8..bddfa47 100644
+--- a/pos_next/translations/ar.csv
++++ b/pos_next/translations/ar.csv
+@@ -1588,3 +1588,5 @@ Points applied: {0}. Please pay remaining {1} with {2},تم خصم النقاط:
+ "Options","خيارات",""
+ "Track quantity on hand for this product.","تتبع الكمية المتوفرة لهذا المنتج.",""
+ "Hide this product from the POS.","إخفاء هذا المنتج من نقطة البيع.",""
++"Search by item code, name, item group or scan barcode","ابحث برمز الصنف أو الاسم أو مجموعة الأصناف أو امسح الباركود",""
++"Shift History","سجل الورديات",""
+-- 
+2.47.3
+

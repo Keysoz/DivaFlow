@@ -1,7 +1,7 @@
 From 6ff99a731c0125783f70bd00118b0a4572b15848 Mon Sep 17 00:00:00 2001
 From: Diva Patches <patches@diva.local>
 Date: Tue, 27 Oct 2026 10:57:23 +0000
-Subject: [PATCH 09/10] fix(offline): absolutize the workbox import and
+Subject: [PATCH 09/11] fix(offline): absolutize the workbox import and
  precache injected assets
 
 ---

@@ -24,11 +24,11 @@ Offline-first selling with automatic sync (the developer says it holds for about
 |---|---|---|---|
 | Barcode scan adds a line; repeated scan raises quantity | yes | yes (P0-03) | **POS Next** |
 | `qty*barcode` multiplier (for example `5*890…`) | yes | yes (patched, P0-03) | **POS Next patched** (fast shelf-picking in dozens) |
-| Undo last scan (Ctrl+Z) | yes | no (P0-03) | Patch candidate, low priority |
-| **Scan info card:** name, code, price per dozen and stock shown on every scan | yes (grid and status bar) | partial: dialog + stock + toast; duplicate "Nos" and qty display fixed (patched P0-03); no combined card yet | **Remaining patch E-14b** |
+| Undo last scan (Ctrl+Z) | yes | yes (patched, P0-03) | **POS Next patched** |
+| **Scan info card:** name, code, price per dozen and stock shown on every scan | yes (grid and status bar) | yes (patched, P0-03): card with name, code, price per Dozen, stock and qty added | **POS Next patched** |
 | Hold and resume | yes, buggy | drafts | **POS Next drafts** |
 | Customer picker and card (outstanding, limit) | yes | customer dialog, credit info | **POS Next**; patch the card only if too thin |
-| **Keyboard shortcuts** (your current map: F1 help, F2 customer, F3 quantity, F4 discount, F5 note, F6 delete line, F7 held sales, F8 payment, F9 print, F10 new sale, Ctrl+F search, Ctrl+Delete clear, Ctrl+Z undo, Ctrl+R return) | yes | none at v2.0.0; F4/F8/F9 on develop only (P0-03) | **Required patch:** the POS Next keymap is replaced by your current keys, with `preventDefault` in a standalone window, tested on the real keyboard; configurable, with a fallback if a browser blocks a key |
+| **Keyboard shortcuts** (your current map: F1 help, F2 customer, F3 quantity, F4 discount, F5 note, F6 delete line, F7 held sales, F8 payment, F9 print, F10 new sale, Ctrl+F search, Ctrl+Delete clear, Ctrl+Z undo, Ctrl+R return) | yes | yes (patched, P0-03); physical-keyboard validation with the hardware | **POS Next patched** |
 | Command palette (Ctrl+K) | yes | no | Drop |
 | Discounts | unlimited, client-trusted | offers, min/max discount | **POS Next offers + `diva_guard`** (5% cashier limit, PIN above, server-side) |
 | Payments (cash, non-cash, split, change) | recorded wrongly | yes | **POS Next**; partial and credit blocked at the counter by setting plus `diva_guard` |

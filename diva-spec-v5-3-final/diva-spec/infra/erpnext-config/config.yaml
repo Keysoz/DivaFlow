@@ -147,6 +147,13 @@ records:
   - doctype: Price List
     match: { price_list_name: Wholesale }
     set: { selling: 1, currency: EGP, enabled: 1 }
+  # Arabic for the one new quick-entry label/description (DEC-79).
+  - doctype: Translation
+    match: { language: ar, source_text: "Selling Price (EGP/Dozen)" }
+    set: { translated_text: "سعر البيع (جنيه/دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Saved to the Standard Selling price list per Dozen when the item is saved." }
+    set: { translated_text: "يُحفظ في قائمة أسعار البيع القياسية لكل دستة عند حفظ الصنف." }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

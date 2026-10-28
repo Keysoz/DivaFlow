@@ -90,7 +90,7 @@ prices = (
         "/api/resource/Item Price",
         params={
             "filters": json.dumps([["item_code", "=", "BULK-QB-01"]]),
-            "fields": json.dumps(["uom", "price_list_rate"]),
+            "fields": json.dumps(["name", "uom", "price_list_rate"]),
             "limit_page_length": "0",
         },
     )
@@ -103,6 +103,37 @@ check(
     "quick price saved per Dozen and per Nos",
     by_uom.get("Dozen") == 1200 and by_uom.get("Nos") == 100,
     str(by_uom),
+)
+
+dozen = next((row for row in prices if row["uom"] == "Dozen"), None)
+if dozen:
+    http.put(
+        f"/api/resource/Item Price/{dozen['name']}",
+        json={"price_list_rate": 1250},
+    )
+unrelated = http.put(
+    "/api/resource/Item/BULK-QB-01",
+    json={"description": "Synthetic quick-entry test"},
+)
+check("unrelated Item save succeeds", unrelated.status_code == 200, unrelated.text[:160])
+kept = {
+    row["uom"]: float(row["price_list_rate"])
+    for row in http.get(
+        "/api/resource/Item Price",
+        params={
+            "filters": json.dumps([["item_code", "=", "BULK-QB-01"]]),
+            "fields": json.dumps(["name", "uom", "price_list_rate"]),
+            "limit_page_length": "0",
+        },
+    )
+    .json()
+    .get("data")
+    or []
+}
+check(
+    "unrelated Item save keeps a deliberate price edit",
+    kept.get("Dozen") == 1250,
+    str(kept),
 )
 
 resave = http.put(
@@ -121,7 +152,7 @@ after_prices = (
         "/api/resource/Item Price",
         params={
             "filters": json.dumps([["item_code", "=", "BULK-QB-01"]]),
-            "fields": json.dumps(["uom", "price_list_rate"]),
+            "fields": json.dumps(["name", "uom", "price_list_rate"]),
             "limit_page_length": "0",
         },
     )

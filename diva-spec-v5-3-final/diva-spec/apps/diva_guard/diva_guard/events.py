@@ -12,7 +12,7 @@ from decimal import Decimal
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, now_datetime
-from rules_engine import PCS_PER_DOZEN, to_decimal, validate_discount, validate_moq
+from rules_engine import PCS_PER_DOZEN, quantize_money, to_decimal, validate_discount, validate_moq
 
 MANAGER_ROLES = {"Sales Manager", "Sales Master Manager", "System Manager"}
 OVERRIDE_HEADER = "X-Diva-Override-Token"
@@ -306,13 +306,14 @@ def _sync_standard_selling_price(doc) -> None:
 	if rate <= 0:
 		return
 	if not any(str(row.uom) == "Dozen" for row in doc.get("uoms") or []):
-		doc.append("uoms", {"uom": "Dozen", "conversion_factor": 12})
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
 	if not frappe.db.exists("Price List", "Standard Selling"):
 		return
 	rows = frappe.get_all(
 		"Item Price",
 		filters={"item_code": doc.name, "price_list": "Standard Selling"},
 		fields=["name", "uom"],
+		limit=0,
 	)
 	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
 	stock = next((row for row in rows if str(row.uom) == str(doc.stock_uom)), None)
@@ -330,7 +331,7 @@ def _sync_standard_selling_price(doc) -> None:
 			}
 		).insert(ignore_permissions=True)
 	if str(doc.stock_uom) != "Dozen":
-		stock_rate = rate / 12
+		stock_rate = quantize_money(rate / Decimal(PCS_PER_DOZEN))
 		if stock:
 			frappe.db.set_value(
 				"Item Price", stock.name, "price_list_rate", stock_rate, update_modified=False
@@ -355,7 +356,7 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 	if _dec(doc.get("standard_rate")) > 0 and not any(
 		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
 	):
-		doc.append("uoms", {"uom": "Dozen", "conversion_factor": 12})
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
 	if not doc.meta.has_field("custom_barcode"):
 		return
 	value = str(doc.get("custom_barcode") or "").strip()
@@ -381,5 +382,8 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 def sync_quick_price(doc, method: str | None = None) -> None:
 	"""Sync the quick-entry selling rate after the Item exists (DEC-79)."""
 	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	if method == "on_update" and not doc.has_value_changed("standard_rate"):
+		# Do not clobber a deliberate Item Price edit on an unrelated Item save.
 		return
 	_sync_standard_selling_price(doc)

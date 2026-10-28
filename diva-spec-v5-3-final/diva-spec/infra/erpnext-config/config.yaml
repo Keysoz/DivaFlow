@@ -42,6 +42,27 @@ singles:
     field: auto_reserve_stock
     value: 1
 
+# E-16 / DEC-72: POS Next ships Custom DocPerm rows. Frappe ignores the
+# standard DocPerm table for any doctype that has custom rows, so roles without
+# a custom row lose access. Mirror the standard rows back (existing custom rows,
+# including the vendor's POSNext Cashier, are left untouched).
+permission_mirrors:
+  - Account
+  - Address
+  - Bin
+  - Customer
+  - Item
+  - Journal Entry
+  - POS Closing Entry
+  - POS Opening Entry
+  - POS Profile
+  - Payment Entry
+  - Promotional Scheme
+  - Sales Invoice
+  - Serial and Batch Bundle
+  - Territory
+  - Warehouse
+
 records:
   # E-04: the Dozen UOM is a whole number (DEC-20); item group tree default (OPEN-13).
   - doctype: UOM

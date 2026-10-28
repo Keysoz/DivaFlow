@@ -1,4 +1,4 @@
-"""Idempotent ERPNext configuration (TASK-E-03, E-04, E-05, E-02).
+"""Idempotent ERPNext configuration (TASK-E-03, E-04, E-05, E-02, E-16).
 
 Applies a declarative config (property setters, single-doctype settings,
 records and workspace visibility) through the ERPNext REST API, with a dry-run
@@ -88,6 +88,69 @@ def plan_singles(
     return actions
 
 
+PERMISSION_FLAGS = (
+    "read",
+    "write",
+    "create",
+    "select",
+    "delete",
+    "submit",
+    "cancel",
+    "amend",
+    "print",
+    "email",
+    "report",
+    "import",
+    "export",
+    "share",
+)
+
+# Rows owned by the POS Next app; never overwrite them, even if a future
+# vendor release also ships a standard DocPerm row for the same role.
+VENDOR_ONLY_ROLES = frozenset({"POSNext Cashier", "Nexus POS Manager"})
+
+
+def _perm_key(row: dict[str, Any]) -> tuple[str, str, int]:
+    return (str(row["parent"]), str(row["role"]), int(row.get("permlevel") or 0))
+
+
+def plan_permission_mirrors(
+    standard: dict[tuple[str, str, int], dict[str, Any]],
+    custom: dict[tuple[str, str, int], dict[str, Any]],
+) -> list[Action]:
+    """Re-create standard DocPerm rows that Custom DocPerm rows have shadowed.
+
+    Installing POS Next writes Custom DocPerm rows. Frappe then ignores the
+    standard DocPerm table for those doctypes, so every role without a custom
+    row loses access (TASK-E-16 / DEC-72). Mirroring the standard rows restores
+    ERPNext's documented role baseline; vendor-only roles (POSNext Cashier,
+    Nexus POS Manager) have no standard row and are left untouched.
+    """
+    actions: list[Action] = []
+    for key, row in standard.items():
+        if key[1] in VENDOR_ONLY_ROLES:
+            continue
+        target = "::".join([key[0], key[1], str(key[2])])
+        wanted = {flag: int(row.get(flag) or 0) for flag in PERMISSION_FLAGS}
+        if key not in custom:
+            actions.append(Action("docperm", target, "create", None, wanted))
+            continue
+        current = {flag: int(custom[key].get(flag) or 0) for flag in PERMISSION_FLAGS}
+        if current != wanted:
+            actions.append(
+                Action(
+                    "docperm",
+                    target,
+                    "update",
+                    {"name": custom[key].get("name"), **current},
+                    wanted,
+                )
+            )
+        else:
+            actions.append(Action("docperm", target, "noop", current, wanted))
+    return actions
+
+
 def _record_key(entry: dict[str, Any]) -> str:
     doctype = str(entry["doctype"])
     return doctype + "::" + json.dumps(entry["match"], sort_keys=True)
@@ -157,7 +220,7 @@ def _quoted(value: str) -> str:
     return urllib.parse.quote(value)
 
 
-def _query(filters: list[list[str]], fields: list[str]) -> str:
+def _query(filters: list[list[Any]], fields: list[str]) -> str:
     return "?filters=" + _quoted(json.dumps(filters)) + "&fields=" + _quoted(json.dumps(fields))
 
 
@@ -219,6 +282,34 @@ def fetch_existing_records(
     return existing
 
 
+def fetch_standard_permissions(
+    client: Client, doctypes: list[str]
+) -> dict[tuple[str, str, int], dict[str, Any]]:
+    if not doctypes:
+        return {}
+    fields = ["parent", "role", "permlevel", *PERMISSION_FLAGS]
+    filters = [["parent", "in", doctypes]]
+    rows = client.get(
+        "/api/resource/" + _quoted("DocPerm") + _query(filters, fields) + "&limit_page_length=0"
+    )["data"]
+    return {_perm_key(row): row for row in rows}
+
+
+def fetch_custom_permissions(
+    client: Client, doctypes: list[str]
+) -> dict[tuple[str, str, int], dict[str, Any]]:
+    if not doctypes:
+        return {}
+    filters = [["parent", "in", doctypes]]
+    rows = client.get(
+        "/api/resource/"
+        + _quoted("Custom DocPerm")
+        + _query(filters, ["name", "parent", "role", "permlevel", *PERMISSION_FLAGS])
+        + "&limit_page_length=0"
+    )["data"]
+    return {_perm_key(row): row for row in rows}
+
+
 def apply_actions(
     client: Client,
     actions: list[Action],
@@ -267,6 +358,24 @@ def apply_actions(
                 "/api/resource/" + _quoted(doctype) + "/" + _quoted(doctype),
                 {fieldname: _typed(singles_by_target.get(action.target, {}).get("value"))},
             )
+        elif action.kind == "docperm":
+            doctype, role, permlevel = action.target.split("::")
+            payload = {
+                "parent": doctype,
+                "parenttype": "DocType",
+                "parentfield": "permissions",
+                "role": role,
+                "permlevel": int(permlevel),
+                **action.desired,
+            }
+            if action.action == "update":
+                name = action.current.get("name")
+                client.put(
+                    "/api/resource/" + _quoted("Custom DocPerm") + "/" + _quoted(name),
+                    action.desired,
+                )
+            else:
+                client.post("/api/resource/" + _quoted("Custom DocPerm"), payload)
         elif action.kind.startswith("record:"):
             doctype = action.kind.split(":", 1)[1]
             record_entry = records_by_key.get(action.target)
@@ -307,6 +416,7 @@ def main() -> int:
     workspaces = config.get("workspaces", [])
     singles = config.get("singles", [])
     records = config.get("records", [])
+    permission_mirrors = config.get("permission_mirrors", [])
 
     client = Client(base)
     key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
@@ -322,11 +432,14 @@ def main() -> int:
     existing_ws = fetch_existing_workspaces(client, [w["name"] for w in workspaces])
     existing_singles = fetch_existing_singles(client, singles)
     existing_records = fetch_existing_records(client, records)
+    standard_perms = fetch_standard_permissions(client, permission_mirrors)
+    custom_perms = fetch_custom_permissions(client, permission_mirrors)
     actions = (
         plan_property_setters(entries, existing_ps)
         + plan_workspaces(workspaces, existing_ws)
         + plan_singles(singles, existing_singles)
         + plan_records(records, existing_records)
+        + plan_permission_mirrors(standard_perms, custom_perms)
     )
 
     for action in actions:

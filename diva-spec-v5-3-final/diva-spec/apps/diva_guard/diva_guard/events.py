@@ -12,7 +12,7 @@ from decimal import Decimal
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, now_datetime
-from rules_engine import PCS_PER_DOZEN, to_decimal, validate_discount, validate_moq
+from rules_engine import PCS_PER_DOZEN, quantize_money, to_decimal, validate_discount, validate_moq
 
 MANAGER_ROLES = {"Sales Manager", "Sales Master Manager", "System Manager"}
 OVERRIDE_HEADER = "X-Diva-Override-Token"
@@ -295,10 +295,68 @@ def validate_sales_invoice(doc, method: str | None = None) -> None:
 		_check_stock(doc)
 
 
+def _sync_standard_selling_price(doc) -> None:
+	"""Keep the Standard Selling prices in step with the quick-entry rate.
+
+	The quick-entry field is per Dozen. ERPNext's Item.after_insert creates a
+	stock-UOM price from standard_rate; convert that one to a per-piece rate and
+	keep an explicit Dozen row.
+	"""
+	rate = _dec(doc.get("standard_rate"))
+	if rate <= 0:
+		return
+	if not any(str(row.uom) == "Dozen" for row in doc.get("uoms") or []):
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
+	if not frappe.db.exists("Price List", "Standard Selling"):
+		return
+	rows = frappe.get_all(
+		"Item Price",
+		filters={"item_code": doc.name, "price_list": "Standard Selling"},
+		fields=["name", "uom"],
+		limit=0,
+	)
+	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
+	stock = next((row for row in rows if str(row.uom) == str(doc.stock_uom)), None)
+	if dozen:
+		frappe.db.set_value("Item Price", dozen.name, "price_list_rate", rate, update_modified=False)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"item_code": doc.name,
+				"price_list": "Standard Selling",
+				"uom": "Dozen",
+				"price_list_rate": rate,
+				"selling": 1,
+			}
+		).insert(ignore_permissions=True)
+	if str(doc.stock_uom) != "Dozen":
+		stock_rate = quantize_money(rate / Decimal(PCS_PER_DOZEN))
+		if stock:
+			frappe.db.set_value(
+				"Item Price", stock.name, "price_list_rate", stock_rate, update_modified=False
+			)
+		else:
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": doc.name,
+					"price_list": "Standard Selling",
+					"uom": doc.stock_uom,
+					"price_list_rate": stock_rate,
+					"selling": 1,
+				}
+			).insert(ignore_permissions=True)
+
+
 def apply_quick_barcode(doc, method: str | None = None) -> None:
-	"""Copy the one-field quick-entry barcode into the Item Barcodes table (DEC-78)."""
+	"""Copy the one-field quick-entry barcode and price (DEC-78/79)."""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
+	if _dec(doc.get("standard_rate")) > 0 and not any(
+		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
+	):
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
 	if not doc.meta.has_field("custom_barcode"):
 		return
 	value = str(doc.get("custom_barcode") or "").strip()
@@ -319,3 +377,13 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 			},
 		)
 	doc.set("custom_barcode", None)
+
+
+def sync_quick_price(doc, method: str | None = None) -> None:
+	"""Sync the quick-entry selling rate after the Item exists (DEC-79)."""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	if method == "on_update" and not doc.has_value_changed("standard_rate"):
+		# Do not clobber a deliberate Item Price edit on an unrelated Item save.
+		return
+	_sync_standard_selling_price(doc)

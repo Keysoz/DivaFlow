@@ -287,5 +287,7 @@ doc_events = {
 	},
 	"Item": {
 		"validate": "diva_guard.events.apply_quick_barcode",
+		"after_insert": "diva_guard.events.sync_quick_price",
+		"on_update": "diva_guard.events.sync_quick_price",
 	},
 }

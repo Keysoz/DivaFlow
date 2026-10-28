@@ -211,6 +211,6 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 
 ## 13. Item quick-entry barcode (DEC-78, dev site)
 
-- `infra/erpnext-config` creates the owner-approved `Item.custom_barcode` Data field with `allow_in_quick_entry=1`, placed after `item_name`; `asset_category` is removed from quick entry so the quick form stays at seven fields.
+- `infra/erpnext-config` creates the owner-approved `Item.custom_barcode` Data field with `allow_in_quick_entry=1`, placed after `item_name`; it exposes the built-in `standard_rate` as "Selling Price (EGP/Dozen)" and removes `asset_category`/`is_fixed_asset` from quick entry so the quick form stays at seven fields.
 - `diva_guard` on Item validate copies the value into the `Item Barcode` child table, sets the barcode UOM to the item stock UOM, clears `custom_barcode`, and rejects a barcode used by another item.
-- Verified with `scripts/test_quick_barcode.py`: item saves, barcode appears in the Barcodes table, input is cleared, duplicate is rejected; config re-run 0 changes. A headless browser opened the Item quick entry and confirmed the Barcode field is present; the quick form has seven fields.
+- Verified with `scripts/test_quick_barcode.py`: item saves, barcode appears in the Barcodes table, input is cleared, duplicate is rejected, and the price is written as Dozen 1,200 / Nos 100; a deliberate Dozen edit to 1,250 survives an unrelated Item save; re-saving the Item at 1,320 updates both rows. The Arabic label/description are Translation records. Config re-run 0 changes. A headless browser confirmed the Barcode field in the quick entry.

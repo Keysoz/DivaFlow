@@ -68,7 +68,9 @@ Not applicable (DEC-26): the shop charges no VAT and issues no e-invoices. Keep 
 ## 10. Permissions
 - Owner: System Manager (only the owner).
 - Manager: sales, purchase and stock manager roles, accounts access as needed, price list edit.
-- Cashier and employees: sales user and stock user only. Restricted: price lists, large discounts, cancelling submitted documents, Stock Reconciliation, Journal Entry, Chart of Accounts, user management, sensitive reports.
+- Cashier and employees: sales user and stock user only, plus the POS Next vendor role `POSNext Cashier` (required by the approved POS app, DEC-70). Restricted: price lists, large discounts, cancelling submitted documents, Stock Reconciliation, Journal Entry, Chart of Accounts, user management, sensitive reports.
+- **POS Next custom permissions (DEC-72):** POS Next installs `Custom DocPerm` rows, which make Frappe ignore the standard `DocPerm` table for those doctypes. `infra/erpnext-config` mirrors the ERPNext standard rows back into `Custom DocPerm` so managers and cashiers keep their documented access; run `make config-apply` after every POS Next install or upgrade. The vendor `POSNext Cashier` and `Nexus POS Manager` rows are never modified.
+- **Baseline verified on the dev site (TASK-E-16)** with synthetic accounts `manager@diva.test` and `cashier@diva.test` (`scripts/seed_dev_users.py`): manager can edit price lists, list invoices, payments, Stock Reconciliation and Journal Entry; cashier can create invoices and open the POS but cannot edit price lists, list Stock Reconciliation or Journal Entry, or create users.
 - Each staff member has their own ERPNext user (DEC-09). Test every workflow with real employee accounts, not only Administrator.
 
 ## 11. Standard reports (saved filters first)

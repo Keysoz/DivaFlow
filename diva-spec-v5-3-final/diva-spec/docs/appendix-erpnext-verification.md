@@ -145,3 +145,14 @@ Seeded idempotently with `scripts/seed_dev_data.py` (credentials from env; synth
 - **Sales (E-09):** 5 customers; a paid POS invoice (Cash) and a credit Sales Invoice with `outstanding_amount = 2,496`; six payment modes (Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash, WePay) mapped to `Cash - DD` and a new ledger account `Diva Bank - DD`.
 - Bin check after all movements: `BULK-ACC-01` = 168 Nos (120 opening + 60 purchase − 12 sold).
 - Pending for the full tasks: FIFO valuation audit, supplier payments/payables, receivable report reconciliation, China import flow (E-08b), expenses (E-10).
+
+## 6. Roles and permissions (E-16, dev site)
+
+Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA_TEST_PASSWORD`, never committed):
+
+- `manager@diva.test`: Sales Manager, Sales Master Manager, Purchase Manager, Stock Manager, Accounts User.
+- `cashier@diva.test`: Sales User, Stock User, POSNext Cashier (vendor role required by POS Next).
+- **Finding:** POS Next ships `Custom DocPerm` rows for 15 doctypes. Frappe ignores the standard `DocPerm` table for a doctype once custom rows exist, so installing POS Next removed Sales Invoice and Journal Entry access from `Accounts User` (and Item/Customer/Warehouse access from stock/sales roles). `infra/erpnext-config` now mirrors the standard rows into `Custom DocPerm` (17 created, existing vendor rows preserved); a second run reports 0 changes.
+- **Verified with real logins (not Administrator):** manager can edit price lists, list Sales Invoice, Payment Entry, Stock Reconciliation and Journal Entry; cashier can create a draft Sales Invoice and open the POS (POS Profile) but cannot write price lists, list Stock Reconciliation or Journal Entry, or create users.
+- **Known gap:** the vendor `POSNext Cashier` role includes cancel on Sales Invoice (POS void). The rules engine and local-api must keep void approval with a manager (TASK-E-14a); this is not yet enforced at the ERPNext permission layer.
+

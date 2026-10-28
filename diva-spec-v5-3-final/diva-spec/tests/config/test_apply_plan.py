@@ -3,6 +3,7 @@
 from apply import (
     Action,
     apply_actions,
+    plan_permission_mirrors,
     plan_property_setters,
     plan_records,
     plan_singles,
@@ -122,3 +123,73 @@ def test_plan_records() -> None:
         plan_records(entries, {key: {"name": "Dozen", "must_be_whole_number": 0}})[0].action
         == "update"
     )
+
+
+def test_permission_mirror_creates_missing_standard_rows() -> None:
+    standard = {
+        ("Sales Invoice", "Accounts User", 0): {
+            "parent": "Sales Invoice",
+            "role": "Accounts User",
+            "permlevel": 0,
+            "read": 1,
+            "create": 1,
+            "submit": 1,
+        }
+    }
+    actions = plan_permission_mirrors(standard, {})
+    assert len(actions) == 1
+    assert actions[0].action == "create"
+    assert actions[0].target == "Sales Invoice::Accounts User::0"
+    assert actions[0].desired["read"] == 1
+    assert actions[0].desired["create"] == 1
+    assert actions[0].desired["delete"] == 0
+
+
+def test_permission_mirror_repairs_narrowed_vendor_rows() -> None:
+    standard = {
+        ("Address", "All", 0): {
+            "parent": "Address",
+            "role": "All",
+            "permlevel": 0,
+            "read": 1,
+            "write": 1,
+            "create": 1,
+        }
+    }
+    custom = {("Address", "All", 0): {"name": "abc", "read": 1, "write": 0, "create": 0}}
+    actions = plan_permission_mirrors(standard, custom)
+    assert actions[0].action == "update"
+    assert actions[0].current["name"] == "abc"
+    assert actions[0].desired["write"] == 1
+
+
+def test_permission_mirror_is_idempotent() -> None:
+    standard = {
+        ("Sales Invoice", "Accounts User", 0): {
+            "parent": "Sales Invoice",
+            "role": "Accounts User",
+            "permlevel": 0,
+            "read": 1,
+        }
+    }
+    custom = {
+        ("Sales Invoice", "Accounts User", 0): {
+            "name": "abc",
+            "read": 1,
+            "write": 0,
+            "create": 0,
+            "select": 0,
+            "delete": 0,
+            "submit": 0,
+            "cancel": 0,
+            "amend": 0,
+            "print": 0,
+            "email": 0,
+            "report": 0,
+            "import": 0,
+            "export": 0,
+            "share": 0,
+        }
+    }
+    actions = plan_permission_mirrors(standard, custom)
+    assert actions[0].action == "noop"

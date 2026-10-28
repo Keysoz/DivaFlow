@@ -214,3 +214,11 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - `infra/erpnext-config` creates the owner-approved `Item.custom_barcode` Data field with `allow_in_quick_entry=1`, placed after `item_name`; it exposes the built-in `standard_rate` as "Selling Price (EGP/Dozen)" and removes `asset_category`/`is_fixed_asset` from quick entry so the quick form stays at seven fields.
 - `diva_guard` on Item validate copies the value into the `Item Barcode` child table, sets the barcode UOM to the item stock UOM, clears `custom_barcode`, and rejects a barcode used by another item.
 - Verified with `scripts/test_quick_barcode.py`: item saves, barcode appears in the Barcodes table, input is cleared, duplicate is rejected, and the price is written as Dozen 1,200 / Nos 100; a deliberate Dozen edit to 1,250 survives an unrelated Item save; re-saving the Item at 1,320 updates both rows. The Arabic label/description are Translation records. Config re-run 0 changes. A headless browser confirmed the Barcode field in the quick entry.
+- Opening quantity: `opening_stock` is visible on the normal Item form and quick entry; `scripts/test_quick_quantity.py` creates an item with 24 Nos, verifies Bin quantity 24 in Stores, valuation 100 from a 1,200/Dozen price, and Dozen/Nos prices 1,200/100.
+
+## 14. Modern print formats with QR (DEC-81, dev site)
+
+- Sales Invoice A4, Purchase Invoice A4, Purchase Receipt A4, Payment Receipt A5 and Journal Entry A4 were redesigned with an RTL modern layout, company name/logo block (monogram when no logo is uploaded), customer-facing fields only and an inline QR verification code.
+- `diva_guard.api.qr_svg` renders the QR with PyQRCode (a Frappe dependency) and adds a `viewBox`/crisp edge rendering so it stays decodable when CSS constrains it to 27 mm. No external service.
+- Verified print views return 200 with an inline SVG QR for `ACC-SINV-2026-00007`, `ACC-PINV-2026-00006`, `MAT-PRE-2026-00003`, `ACC-PAY-2026-00010` and `ACC-JV-2026-00002`; amount rows use EGP, zero paid/outstanding rows are suppressed, the JE party column is hidden when empty and the JE shows one total.
+- Pending: upload the real company logo (the block currently falls back to a monogram), and validate the QR/print output on the real 80 mm/A4 printers.

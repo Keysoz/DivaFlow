@@ -353,6 +353,10 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 	"""Copy the one-field quick-entry barcode and price (DEC-78/79)."""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
+	if _dec(doc.get("opening_stock")) > 0 and not _dec(doc.get("valuation_rate")):
+		selling = _dec(doc.get("standard_rate"))
+		if selling > 0:
+			doc.valuation_rate = quantize_money(selling / Decimal(PCS_PER_DOZEN))
 	if _dec(doc.get("standard_rate")) > 0 and not any(
 		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
 	):

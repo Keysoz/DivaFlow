@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif; color: #16232b; font-size: 10.5pt; line-height: 1.5; }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 8pt; color: #6b7c86; display: block; }
+  .muted { color: #6b7c86; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; padding-bottom: 5mm; border-bottom: 1px solid #d9e2e6; }
+  .brand { display: flex; gap: 4mm; align-items: center; }
+  .logo, .monogram { width: 18mm; height: 18mm; border-radius: 4mm; object-fit: contain; }
+  .monogram { display: flex; align-items: center; justify-content: center; background: #0f4c5c; color: #fff; font-size: 17pt; font-weight: 700; }
+  .brand h1 { margin: 0; font-size: 16pt; color: #0f4c5c; }
+  .brand .meta { font-size: 8.5pt; color: #6b7c86; }
+  .doc-title { text-align: left; }
+  .doc-title h2 { margin: 0; font-size: 17pt; color: #0f4c5c; }
+  .doc-title .number { font-size: 11pt; font-weight: 700; direction: ltr; }
+  .doc-title .date { font-size: 9pt; color: #6b7c86; }
+  .chip-row { display: flex; gap: 3mm; margin: 5mm 0; flex-wrap: wrap; }
+  .chip { background: #f2f7f8; border: 1px solid #d9e2e6; border-radius: 2mm; padding: 2mm 3mm; font-size: 8.8pt; }
+  .chip strong { color: #0f4c5c; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+  table.lines th, table.lines td { border-bottom: 1px solid #e3eaed; padding: 2.2mm 1.8mm; text-align: right !important; vertical-align: top; }
+  table.lines thead th { background: #0f4c5c; color: #fff; font-size: 8.8pt; }
+  table.lines thead th .en { color: #d9e2e6; font-size: 7pt; }
+  table.lines tbody tr:nth-child(even) { background: #f8fafb; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .bottom { display: flex; gap: 8mm; align-items: flex-start; margin-top: 5mm; }
+  .totals { flex: 1; max-width: 80mm; }
+  .totals table { width: 100%; border-collapse: collapse; }
+  .totals td { padding: 1.6mm 2mm; border-bottom: 1px solid #e3eaed; }
+  .totals td.value { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .totals tr.grand td { border-top: 2px solid #0f4c5c; border-bottom: none; font-weight: 700; font-size: 12pt; color: #0f4c5c; }
+  .qr-card { width: 34mm; text-align: center; border: 1px solid #d9e2e6; border-radius: 3mm; padding: 2.5mm 2mm; }
+  .qr-card svg { width: 27mm !important; height: 27mm !important; }
+  .qr-card .cap { font-size: 7.5pt; color: #6b7c86; margin-top: 1mm; }
+  .remark { margin-top: 4mm; padding: 3mm 4mm; background: #f8fafb; border: 1px solid #e3eaed; border-radius: 2mm; font-size: 9pt; }
+  .footer { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #d9e2e6; display: flex; justify-content: space-between; font-size: 8.5pt; color: #6b7c86; }
+</style>
+</head>
+<body>
+{% set company = doc.company %}
+{% set logo = frappe.db.get_value("Company", company, "company_logo") %}
+{% set qr_text = "Diva|Journal Entry|" ~ doc.name ~ "|" ~ doc.get_formatted("posting_date") ~ "|" ~ doc.get_formatted("total_debit") %}
+<div class="header">
+  <div class="brand">
+    {% if logo %}<img class="logo" src="{{ logo }}" alt="">{% else %}<div class="monogram">{{ company[:2] }}</div>{% endif %}
+    <div><h1>{{ company }}</h1><div class="meta">قيد محاسبي<span class="en">Accounting Entry</span></div></div>
+  </div>
+  <div class="doc-title">
+    <h2>قيد يومية<span class="en">Journal Entry</span></h2>
+    <div class="number">{{ doc.name }}</div>
+    <div class="date">التاريخ / Date · <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+  </div>
+</div>
+
+<div class="chip-row">
+  <div class="chip">النوع / Type · <strong>{{ doc.voucher_type }}</strong></div>
+  {% if doc.cheque_no %}<div class="chip">المرجع / Ref · <strong dir="ltr">{{ doc.cheque_no }}</strong></div>{% endif %}
+  <div class="chip">العملة / Currency · <strong dir="ltr">{{ doc.currency or frappe.db.get_value("Company", company, "default_currency") }}</strong></div>
+</div>
+
+{% set ns = namespace(party=false) %}{% for row in doc.accounts %}{% if row.party %}{% set ns.party = true %}{% endif %}{% endfor %}
+<table class="lines">
+  <thead><tr><th style="width: 8mm">#</th><th>الحساب<span class="en">Account</span></th>{% if ns.party %}<th>الطرف<span class="en">Party</span></th>{% endif %}<th>مركز التكلفة<span class="en">Cost Center</span></th><th class="num" style="width: 26mm">مدين<span class="en">Debit</span></th><th class="num" style="width: 26mm">دائن<span class="en">Credit</span></th></tr></thead>
+  <tbody>
+    {% for row in doc.accounts %}
+    <tr><td>{{ row.idx }}</td><td>{{ row.account }}</td>{% if ns.party %}<td>{{ row.party or "" }}</td>{% endif %}<td>{{ row.cost_center or "" }}</td><td class="num">{{ row.get_formatted("debit") }}</td><td class="num">{{ row.get_formatted("credit") }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="bottom">
+  <div class="totals">
+    <table>
+      <tr class="grand"><td>الإجمالي<span class="en">Total</span></td><td class="value">{{ doc.get_formatted("total_debit") }}</td></tr>
+    </table>
+  </div>
+  <div class="qr-card">{{ frappe.call("diva_guard.api.qr_svg", text=qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
+</div>
+
+{% if doc.user_remark %}<div class="remark"><strong>ملاحظات / Remarks:</strong> {{ doc.user_remark }}</div>{% endif %}
+<div class="footer"><div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div><div>قيد داخلي — ليس فاتورة<span class="en">Internal entry — not an invoice</span></div></div>
+</body>
+</html>

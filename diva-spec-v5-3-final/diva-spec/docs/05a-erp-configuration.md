@@ -45,7 +45,7 @@ Hide by blocking modules and workspaces per user or role. Never uninstall an app
 
 ## 6. Purchasing (RULE-PUR)
 - Supplier master. Employees see: company name, contact person, phone, address; overseas suppliers also country and currency. Managers see payment terms and outstanding payables. A "China" supplier group is bank-transfer-only (enforced by `diva_guard`).
-- **China imports (DEC-47):** Purchase Order, partial Purchase Receipts, Landed Cost Voucher for freight, insurance, customs and clearance, foreign currency with the agreed exchange rate, advances allocated to the final invoice. Confirm exchange-difference treatment with the accountant.
+- **China imports (DEC-47, DEC-75):** the owner treats the Chinese supplier like an Egyptian supplier for accounting: items and prices are registered in EGP, no foreign currency or exchange-rate handling. Keep the Purchase Order, partial Purchase Receipts (ordered vs received), a Landed Cost Voucher for freight/customs, a Purchase Invoice and two instalments (40% then 60%). Pay by bank transfer. The landed cost increases stock value; the supplier balance must return to zero. Tested on the dev site with `scripts/seed_china_import.py`.
 - Purchase Invoice keep: supplier, supplier invoice number and date, posting date, items, quantity, UOM, rate, taxes, totals, paid and outstanding, remarks. Hide project, cost center if unused, landed-cost fields unless used.
 - Flow (DEC-31): goods and supplier invoices arrive together, so use **Purchase Invoice with Update Stock**. Hide Purchase Receipt from daily navigation. Turn on supplier invoice number uniqueness.
 - Supplier payments through Payment Entry with allocation to invoices; supplier statements and payables reports.

@@ -180,3 +180,14 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 - Manager PIN stored only as PBKDF2-HMAC-SHA256 (at least 260,000 iterations, random salt) in `Diva Guard Settings`; the approval API is rate-limited (five attempts per five minutes) and returns a 10-minute, single-use token (only its SHA-256 hash is stored) sent as `X-Diva-Override-Token`. Consumption is serialised with a Redis lock and is idempotent for the same voucher; replay, expiry and another user’s token are rejected.
 - `scripts/test_diva_guard.py` with real cashier/manager logins passes all checks: MOQ rejected; compliant sale created and submitted; cashier 10% discount blocked at submit; manager 10% accepted; PIN-token discount submitted and replay blocked; wrong-user and expired tokens rejected; approval below the actual discount rejected; counter partial payment blocked; rate above the price list blocked; Nos line priced from Dozen; negative quantity and free items rejected; cashier credit invoice blocked while a manager credit invoice is accepted.
 - Remaining: POS Next PIN dialog and header (E-14b/E-14d), FEFO/expired batches (E-14c), production install and owner PIN rotation.
+
+## 10. China import in EGP (E-08b, dev site)
+
+Owner decision DEC-75: the Chinese supplier is treated like an Egyptian supplier; item prices are EGP and there is no foreign-currency or exchange-rate handling. `scripts/seed_china_import.py` (idempotent) creates:
+
+- Supplier group `China` and supplier `China Supplier 1` with EGP currency.
+- Purchase Order `PUR-ORD-2026-00002` for 10 Dozen at EGP 1,200, fully received through two partial Purchase Receipts (6 + 4 Dozen) and fully billed.
+- Landed Cost Voucher `MAT-LCV-2026-00002` for EGP 1,200 freight/customs, allocated by amount across both receipts.
+- Purchase Invoice `ACC-PINV-2026-00006` for EGP 12,000, paid by two bank payments of EGP 4,800 and EGP 7,200.
+- Verified: stock +120 Nos, stock value +13,200 (12,000 goods + 1,200 landed cost), PO 100% received and billed, invoice outstanding 0, supplier GL balance 0, two payment history rows.
+- The first run created the documents; a second run changed nothing and still reported all checks OK.

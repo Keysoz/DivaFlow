@@ -79,7 +79,7 @@
       <tr class="grand"><td>الإجمالي<span class="en">Total</span></td><td class="value">{{ doc.get_formatted("total_debit") }}</td></tr>
     </table>
   </div>
-  <div class="qr-card">{{ frappe.call("diva_guard.api.qr_svg", text=qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
+  <div class="qr-card">{{ qr_svg(qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
 </div>
 
 {% if doc.user_remark %}<div class="remark"><strong>ملاحظات / Remarks:</strong> {{ doc.user_remark }}</div>{% endif %}

@@ -91,7 +91,7 @@
       {% if doc.unallocated_amount %}<tr><td>غير مخصص<span class="en">Unallocated</span></td><td class="value">{{ doc.get_formatted("unallocated_amount") }}</td></tr>{% endif %}
     </table>
   </div>
-  <div class="qr-card">{{ frappe.call("diva_guard.api.qr_svg", text=qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
+  <div class="qr-card">{{ qr_svg(qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
 </div>
 
 <div class="footer"><div>شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div><div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div></div>

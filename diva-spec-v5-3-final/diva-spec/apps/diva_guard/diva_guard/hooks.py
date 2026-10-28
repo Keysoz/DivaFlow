@@ -278,6 +278,12 @@ app_license = "mit"
 # ignore_translatable_strings_from = []
 
 
+# Jinja
+# -----
+jinja = {
+	"methods": "diva_guard.jinja_methods",
+}
+
 # Document events
 # ---------------
 doc_events = {

@@ -159,7 +159,7 @@
     </div>
     {% endif %}
     <div class="qr-card">
-      {{ frappe.call("diva_guard.api.qr_svg", text=qr_text) }}
+      {{ qr_svg(qr_text) }}
       <div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div>
     </div>
   </div>

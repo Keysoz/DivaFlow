@@ -28,24 +28,29 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 
 def cleanup() -> None:
-    for row in (
+    ledger = (
         http.get(
             "/api/resource/Stock Ledger Entry",
             params={
                 "filters": json.dumps([["item_code", "=", ITEM]]),
-                "fields": json.dumps(["voucher_type", "voucher_no"]),
+                "fields": json.dumps(["name", "voucher_type", "voucher_no"]),
                 "limit_page_length": "0",
             },
         )
         .json()
         .get("data")
         or []
-    ):
-        if row["voucher_type"] == "Stock Reconciliation":
-            http.post(
-                "/api/method/frappe.client.cancel",
-                data={"doctype": "Stock Reconciliation", "name": row["voucher_no"]},
-            )
+    )
+    vouchers = {
+        (row["voucher_type"], row["voucher_no"])
+        for row in ledger
+        if row["voucher_type"] == "Stock Reconciliation"
+    }
+    for row in ledger:
+        http.delete(f"/api/resource/Stock Ledger Entry/{row['name']}")
+    for doctype, name in vouchers:
+        http.post("/api/method/frappe.client.cancel", data={"doctype": doctype, "name": name})
+        http.delete(f"/api/resource/{doctype}/{name}")
     for row in (
         http.get(
             "/api/resource/Item Price",
@@ -60,7 +65,12 @@ def cleanup() -> None:
         or []
     ):
         http.delete(f"/api/resource/Item Price/{row['name']}")
-    http.delete(f"/api/resource/Item/{ITEM}")
+    deleted = http.delete(f"/api/resource/Item/{ITEM}")
+    if deleted.status_code >= 400:
+        print(
+            f"note: test item {ITEM} left on the dev site "
+            "(ERPNext blocks deleting items with valuation history)"
+        )
 
 
 cleanup()

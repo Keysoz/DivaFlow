@@ -63,6 +63,19 @@ permission_mirrors:
   - Territory
   - Warehouse
 
+# E-15: bilingual (Arabic primary, English second line) print formats. The HTML
+# templates live in infra/erpnext-config/print_formats and are applied as data.
+print_formats:
+  - name: Diva Sales Invoice A4
+    doc_type: Sales Invoice
+    template: print_formats/diva_sales_invoice_a4.html
+  - name: Diva Receipt 80mm
+    doc_type: Sales Invoice
+    template: print_formats/diva_receipt_80mm.html
+  - name: Diva Payment Receipt
+    doc_type: Payment Entry
+    template: print_formats/diva_payment_receipt.html
+
 records:
   # E-04: the Dozen UOM is a whole number (DEC-20); item group tree default (OPEN-13).
   - doctype: UOM
@@ -78,3 +91,7 @@ records:
   - doctype: Price List
     match: { price_list_name: Wholesale }
     set: { selling: 1, currency: EGP, enabled: 1 }
+  # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
+  - doctype: Currency
+    match: { name: EGP }
+    set: { symbol: EGP }

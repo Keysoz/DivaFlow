@@ -2,8 +2,11 @@
 
 from apply import (
     Action,
+    ApiError,
     apply_actions,
+    fetch_existing_print_formats,
     plan_permission_mirrors,
+    plan_print_formats,
     plan_property_setters,
     plan_records,
     plan_singles,
@@ -245,3 +248,97 @@ def test_docperm_update_payload_uses_row_name() -> None:
     assert path.endswith("/Custom%20DocPerm/abc123")
     assert payload["write"] == 1
     assert "parent" not in payload
+
+
+def test_plan_print_formats_create_and_noop() -> None:
+    entry = {"name": "Diva Receipt", "doc_type": "Sales Invoice", "html": "<p>hi</p>"}
+    assert plan_print_formats([entry], {})[0].action == "create"
+    existing = {
+        "Diva Receipt": {
+            "name": "Diva Receipt",
+            "doc_type": "Sales Invoice",
+            "print_format_type": "Jinja",
+            "standard": "No",
+            "custom_format": 1,
+            "default_print_language": "ar",
+            "disabled": 0,
+            "html": "<p>hi</p>",
+        }
+    }
+    assert plan_print_formats([entry], existing)[0].action == "noop"
+    existing["Diva Receipt"]["html"] = "<p>old</p>"
+    assert plan_print_formats([entry], existing)[0].action == "update"
+
+
+def test_print_format_create_payload() -> None:
+    client = FakeClient()
+    desired = {
+        "doc_type": "Sales Invoice",
+        "print_format_type": "Jinja",
+        "standard": "No",
+        "custom_format": 1,
+        "default_print_language": "ar",
+        "disabled": 0,
+        "html": "<p>hi</p>",
+    }
+    apply_actions(
+        client, [Action("print_format", "Diva Receipt", "create", None, desired)], {}, {}, {}
+    )
+    method, path, payload = client.calls[0]
+    assert method == "POST"
+    assert path.endswith("/Print%20Format")
+    assert payload["name"] == "Diva Receipt"
+    assert payload["doc_type"] == "Sales Invoice"
+    assert payload["html"] == "<p>hi</p>"
+
+
+def test_print_format_update_payload_quotes_spaced_name() -> None:
+    client = FakeClient()
+    desired = {
+        "doc_type": "Sales Invoice",
+        "print_format_type": "Jinja",
+        "standard": "No",
+        "custom_format": 1,
+        "default_print_language": "ar",
+        "disabled": 0,
+        "html": "<p>new</p>",
+    }
+    apply_actions(
+        client,
+        [
+            Action(
+                "print_format",
+                "Diva Sales Invoice A4",
+                "update",
+                {"name": "Diva Sales Invoice A4"},
+                desired,
+            )
+        ],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[0]
+    assert method == "PUT"
+    assert path.endswith("/Print%20Format/Diva%20Sales%20Invoice%20A4")
+    assert "name" not in payload
+    assert payload["html"] == "<p>new</p>"
+
+
+class FailingClient(FakeClient):
+    def __init__(self, code: int) -> None:
+        super().__init__()
+        self.code = code
+
+    def get(self, path: str) -> dict:
+        raise ApiError("boom", self.code)
+
+
+def test_fetch_print_formats_ignores_404_only() -> None:
+    assert fetch_existing_print_formats(FailingClient(404), ["X"]) == {}
+    try:
+        fetch_existing_print_formats(FailingClient(500), ["X"])
+    except ApiError as exc:
+        assert exc.code == 500
+    else:  # pragma: no cover - explicit failure path
+        raise AssertionError("500 must propagate")

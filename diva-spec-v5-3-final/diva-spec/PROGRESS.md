@@ -16,6 +16,7 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 | E-07 | Partial (dev) | — | DEC-49 warehouses + opening stock (Stock Reconciliation 120 Nos each); FIFO valuation audit pending |
 | E-08 | Partial (dev) | — | Suppliers + Purchase Invoice with Update Stock verified (one stock movement per delivery); supplier payments/payables and the China flow remain |
 | E-09 | Partial (dev) | — | Customers, six modes + accounts, paid POS invoice and a credit invoice with outstanding balance; receivable report reconciliation remains |
+| E-15 | Partial (dev) | — | Bilingual A4 invoice, 80 mm receipt and payment receipt as data-driven Jinja print formats (`infra/erpnext-config/print_formats/`, applied idempotently); EGP symbol set; browser render verified. Pending: statements, saved-filter reports, locally bundled Arabic font and the real 80 mm printer test (hardware deferred) |
 | E-16 | Done (dev, baseline) | — | `scripts/seed_dev_users.py`: manager + cashier accounts and permission checks pass. POS Next `Custom DocPerm` rows shadow ERPNext defaults (DEC-72); `infra/erpnext-config` mirrors the standard rows back (idempotent). Vendor `POSNext Cashier` granted to the cashier; void approval still to be enforced in local-api |
 | P0-10 | Merged | [#1](https://github.com/Keysoz/DivaFlow/pull/1) | `make lint`/`make test` green locally (86 tests); CI green on the pull request |
 | P0-04a | Merged | [#4](https://github.com/Keysoz/DivaFlow/pull/4) | Dev ERPNext 16.52.1 / frappe 16.53.0 on port 8080 recorded; script guards against non-v16 tags |

@@ -12,6 +12,7 @@ Usage (credentials from the environment, never hard-coded):
 """
 
 import argparse
+import hashlib
 import http.cookiejar
 import json
 import os
@@ -20,6 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -154,6 +156,59 @@ def plan_permission_mirrors(
 def _record_key(entry: dict[str, Any]) -> str:
     doctype = str(entry["doctype"])
     return doctype + "::" + json.dumps(entry["match"], sort_keys=True)
+
+
+PRINT_FORMAT_FIELDS = (
+    "doc_type",
+    "print_format_type",
+    "standard",
+    "custom_format",
+    "default_print_language",
+    "disabled",
+)
+
+
+def _html_digest(html: str) -> str:
+    return hashlib.sha256(html.strip().encode("utf-8")).hexdigest()
+
+
+def plan_print_formats(
+    entries: list[dict[str, Any]], existing: dict[str, dict[str, Any]]
+) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        name = str(entry["name"])
+        desired = {
+            "doc_type": entry["doc_type"],
+            "print_format_type": "Jinja",
+            "standard": "No",
+            "custom_format": 1,
+            "default_print_language": "ar",
+            "disabled": 0,
+            "html": entry["html"],
+            "_html_sha": _html_digest(entry["html"]),
+        }
+        if name not in existing:
+            actions.append(Action("print_format", name, "create", None, desired))
+            continue
+        current = existing[name]
+        changed = (
+            any(
+                _normalize(current.get(field_name)) != _normalize(desired[field_name])
+                for field_name in PRINT_FORMAT_FIELDS
+            )
+            or _html_digest(current.get("html") or "") != desired["_html_sha"]
+        )
+        shown = {"name": current.get("name"), **_summary(desired)}
+        if changed:
+            actions.append(Action("print_format", name, "update", shown, desired))
+        else:
+            actions.append(Action("print_format", name, "noop", shown, desired))
+    return actions
+
+
+def _summary(values: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in values.items() if key not in {"_html_sha", "html"}}
 
 
 def plan_records(
@@ -310,6 +365,19 @@ def fetch_custom_permissions(
     return {_perm_key(row): row for row in rows}
 
 
+def fetch_existing_print_formats(client: Client, names: list[str]) -> dict[str, dict[str, Any]]:
+    existing: dict[str, dict[str, Any]] = {}
+    for name in names:
+        try:
+            existing[name] = client.get(
+                "/api/resource/" + _quoted("Print Format") + "/" + _quoted(name)
+            )["data"]
+        except ApiError as exc:
+            if exc.code != 404:
+                raise
+    return existing
+
+
 def apply_actions(
     client: Client,
     actions: list[Action],
@@ -376,6 +444,20 @@ def apply_actions(
                 )
             else:
                 client.post("/api/resource/" + _quoted("Custom DocPerm"), payload)
+        elif action.kind == "print_format":
+            payload = {
+                "name": action.target,
+                **{field_name: action.desired[field_name] for field_name in PRINT_FORMAT_FIELDS},
+                "html": action.desired["html"],
+            }
+            if action.action == "update":
+                payload.pop("name")
+                client.put(
+                    "/api/resource/" + _quoted("Print Format") + "/" + _quoted(action.target),
+                    payload,
+                )
+            else:
+                client.post("/api/resource/" + _quoted("Print Format"), payload)
         elif action.kind.startswith("record:"):
             doctype = action.kind.split(":", 1)[1]
             record_entry = records_by_key.get(action.target)
@@ -400,6 +482,11 @@ def _typed(value: Any) -> Any:
     return value
 
 
+def _short(value: Any, limit: int = 160) -> str:
+    text = repr(value)
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
@@ -417,6 +504,19 @@ def main() -> int:
     singles = config.get("singles", [])
     records = config.get("records", [])
     permission_mirrors = config.get("permission_mirrors", [])
+    base_dir = Path(args.config).resolve().parent
+    print_formats: list[dict[str, Any]] = []
+    for entry in config.get("print_formats", []):
+        template = (base_dir / entry["template"]).resolve()
+        if not template.is_file():
+            sys.exit(f"Print format template not found: {template}")
+        print_formats.append(
+            {
+                "name": entry["name"],
+                "doc_type": entry["doc_type"],
+                "html": template.read_text(encoding="utf-8"),
+            }
+        )
 
     client = Client(base)
     key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
@@ -434,18 +534,22 @@ def main() -> int:
     existing_records = fetch_existing_records(client, records)
     standard_perms = fetch_standard_permissions(client, permission_mirrors)
     custom_perms = fetch_custom_permissions(client, permission_mirrors)
+    existing_print_formats = fetch_existing_print_formats(
+        client, [entry["name"] for entry in print_formats]
+    )
     actions = (
         plan_property_setters(entries, existing_ps)
         + plan_workspaces(workspaces, existing_ws)
         + plan_singles(singles, existing_singles)
         + plan_records(records, existing_records)
         + plan_permission_mirrors(standard_perms, custom_perms)
+        + plan_print_formats(print_formats, existing_print_formats)
     )
 
     for action in actions:
         print(
             f"{action.action:8} {action.kind:15} {action.target}  "
-            f"current={action.current!r} desired={action.desired!r}"
+            f"current={_short(action.current)} desired={_short(action.desired)}"
         )
     changed = [a for a in actions if a.action in {"create", "update"}]
     print(f"\n{len(changed)} change(s), {len(actions) - len(changed)} no-op/missing")

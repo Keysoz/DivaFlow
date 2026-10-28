@@ -59,7 +59,8 @@ Hide by blocking modules and workspaces per user or role. Never uninstall an app
 ## 8. Payments, accounts, expenses
 - Modes of Payment (DEC-48): Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash, WePay, each with its own account (OPEN-10). Rename the legacy E-Wallet mode to Vodafone Cash and add Bank Transfer.
 - Payment Entry for customer receipts and supplier payments, with allocation. Journal Entry restricted to authorized roles.
-- Expenses: simple flow through Payment Entry or Journal Entry with an expense account; expense categories tailored to the shop; optional receipt attachment.
+- Expenses: simple flow through Payment Entry or Journal Entry with an expense account; expense categories tailored to the shop; optional receipt attachment. On the dev site (TASK-E-10) five categories exist under `Indirect Expenses - DD`: Shop Rent, Utilities, Packaging, Marketing and Maintenance; expenses are cash or bank Journal Entries with a cost center.
+- Cash tracking: daily cash closing checklist — (1) record the opening cash, (2) add cash receipts from the ledger, (3) subtract cash expenses, (4) compare the expected closing with the counted drawer, (5) record any difference with a reason, (6) attach the count sheet. Sales totals are not cash received; only the cash ledger lines count. `scripts/seed_dev_expenses.py` seeds synthetic expenses and prints this checklist with the reconciled cash and bank movements.
 - Reports: cash inflows, outflows and net movement. Daily cash closing checklist. Sales totals are not cash received.
 
 ## 9. Taxes

@@ -48,7 +48,7 @@
 | DEC-44 | Deposit rule: **new resellers pay a 30% deposit** of the goods subtotal after discounts (excluding shipping and taxes); stock is reserved only after a reviewer verifies it; trusted resellers follow their policy (COD after 3 completed orders reserves at confirmation); deposit is a customer advance; deadline default 24 h |
 | DEC-45 | Inventory valuation is FIFO, enabled only after a staging audit of existing valuation and stock ledger |
 | DEC-46 | At ready-for-dispatch the Delivery Note and then the Sales Invoice are created, with the deposit advance allocated |
-| DEC-47 | Two purchasing flows: local (Purchase Invoice with Update Stock) and China import (Purchase Order, Purchase Receipts, Landed Cost Voucher, foreign currency, advances, bank only) |
+| DEC-47 (amended by DEC-75 for China currency/advances) | Two purchasing flows: local (Purchase Invoice with Update Stock) and China import (Purchase Order, Purchase Receipts, Landed Cost Voucher, foreign currency, advances, bank only) |
 | DEC-48 | Payment modes: Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash, WePay; China suppliers bank only (guard rule) |
 | DEC-49 | Warehouses: Main Inventory, Shop (counter), Gallery, Returns and Defects, In Transit |
 | DEC-50 | Discount limit applies to the effective discount against the price list, enforced on the server |

@@ -10,6 +10,10 @@ Idempotent: every document carries the marker ``DIVA-CHINA-001`` where the
 doctype has a remarks field, or a matching bill/reference. Re-running creates
 only the missing steps. All data is synthetic; never run against production.
 
+Prerequisites on the dev site: company "Diva Dev", item "BULK-ACC-01" (stock UOM
+Nos, Dozen conversion 12), warehouse "Main Inventory - DD", accounts
+"Diva Bank - DD", "Creditors - DD" and "Freight and Forwarding Charges - DD".
+
 Credentials from the environment:
   ERPNEXT_URL=... ERPNEXT_USER=... ERPNEXT_PASSWORD=... python3 scripts/seed_china_import.py
 """
@@ -177,13 +181,20 @@ def ensure_receipts(order: dict[str, Any]) -> list[str]:
     names = [row["name"] for row in receipts]
     if len(names) >= 2:
         return names
-    fresh = fetch("Purchase Order", order["name"])
-    received_dozen = Decimal(str(fresh["items"][0].get("received_qty") or 0)) / 12
-    if received_dozen < 6:
-        names.append(create_receipt(order, 6 - int(received_dozen)))
-        received_dozen = Decimal("6")
-    if received_dozen < QTY_DOZEN:
-        names.append(create_receipt(order, QTY_DOZEN - int(received_dozen)))
+    # Sum the marked receipts themselves; never assume PO received_qty UOM.
+    received = sum(
+        (
+            Decimal(str(line.get("qty") or 0))
+            for name in names
+            for line in fetch("Purchase Receipt", name).get("items") or []
+        ),
+        Decimal("0"),
+    )
+    if received < 6:
+        names.append(create_receipt(order, int(Decimal("6") - received)))
+        received = Decimal("6")
+    if received < QTY_DOZEN:
+        names.append(create_receipt(order, int(QTY_DOZEN - received)))
     return names
 
 

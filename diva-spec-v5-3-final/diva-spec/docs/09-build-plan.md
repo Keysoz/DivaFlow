@@ -49,7 +49,7 @@ Spec: `05a-erp-configuration.md`, `07` (Ops and POS), `04` rules.
 | E-06 | Barcodes: load dozen and piece barcodes, uniqueness, supplier EAN as extra | E-04 | Duplicate barcode rejected; dozen scan adds 1 dozen |
 | E-07 | Warehouses (Main Inventory, Shop, Gallery, Returns and Defects, In Transit); opening stock count and import; FIFO audit on staging (RULE-COST) | E-04 | Stock reconciliation matches the physical count |
 | E-08 | Purchasing: suppliers, **Purchase Invoice with Update Stock** (DEC-31), supplier payments, payables | E-04 | Purchase test passes with one stock movement per delivery |
-| E-08b | **China import flow:** Purchase Order, partial Purchase Receipts, Landed Cost Voucher, foreign currency, advances, bank-only rule; **Quick local purchase** details (discrepancies, extra charges, payment at purchase) | E-08 | TEST-79 passes: 10 dozen paid 40% then 60% shows correct stock, value, supplier balance and payment history |
+| E-08b | **China import flow (DEC-75 EGP simplification):** Purchase Order, partial Purchase Receipts, Landed Cost Voucher, **EGP prices / no foreign currency or advances**, bank payments; **Quick local purchase** details (discrepancies, extra charges, payment at purchase) | E-08 | TEST-79 passes: 10 dozen paid 40% then 60% shows correct stock, value, supplier balance and payment history |
 | E-09 | Sales, customers, payment modes (six) and account mapping, receivables | E-04, OPEN-10 | Sales, full payment, outstanding invoice and receivable report agree |
 | E-10 | Expenses and cash tracking; daily cash closing checklist | E-09 | Cash report reconciles with ledger |
 | E-11 | Taxes: confirm none (no VAT, no e-invoice); hide tax fields | E-01 | Invoices show no tax lines |

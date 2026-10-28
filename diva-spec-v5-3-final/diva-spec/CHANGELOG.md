@@ -4,6 +4,9 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 
 ## [Unreleased]
 
+### Fixed
+- Selling dashboard crash on ERPNext 16.52.1 (`Item-wise Sales History` received `company=None`): the idempotent config now sets `Global Defaults.default_company` to `Diva Dev`, which the chart's dynamic company filter reads. No standard chart/dashboard or core edit. Verified the dashboard loads in a headless browser.
+
 ### Added
 - E-14c (dev): native FEFO batch selection (`pick_serial_and_batch_based_on=Expiry`, automatic outward bundles) and expired-batch blocking. `scripts/seed_batches.py` seeds two batch-enabled cosmetics items; `scripts/test_fefo.py` verifies the earliest-expiry batch is used and an expired batch cannot be sold.
 - E-08b (dev): China import flow treated as an EGP supplier (DEC-75) — PO for 10 Dozen, two partial Purchase Receipts (6 + 4), Landed Cost Voucher (+1,200 freight/customs), Purchase Invoice 12,000 and 40%/60% instalments. `scripts/seed_china_import.py` is idempotent and verifies stock (+120 Nos), stock value (+13,200), PO 100% received/billed, supplier balance 0 and two payment rows.

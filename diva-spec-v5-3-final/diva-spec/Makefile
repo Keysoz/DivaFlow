@@ -48,6 +48,7 @@ config-dry-run:
 config-apply:
 	uv run python infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml --apply
 
+
 secret-scan:
 	docker run --rm -v "$$(git rev-parse --show-toplevel):/repo" $(GITLEAKS_IMAGE) detect --source=/repo --no-git --verbose --redact --no-banner
 	# Git mode already scans all refs (git log --all). Do not add --log-opts: it would drop --full-history and --diff-filter.

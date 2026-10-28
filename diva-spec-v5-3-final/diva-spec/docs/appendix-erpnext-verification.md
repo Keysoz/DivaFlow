@@ -167,7 +167,7 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 
 - Five expense ledger accounts under `Indirect Expenses - DD`: Shop Rent, Utilities, Packaging, Marketing and Maintenance.
 - `scripts/seed_dev_expenses.py` (idempotent, synthetic) posts five cash/bank expenses through Journal Entries (cash entries for four, a bank entry for Marketing with a reference number and date).
-- Daily cash closing verified against the ledger: cash opening 8,140 + cash receipts 1,624 − cash expenses 1,490.50 = **8,273.50**; bank movement 500 in and 500 out; every expense account has a matching debit and zero credit.
+- Daily cash closing cross-checked against two independent sources on this dataset: cash receipts come from sales-invoice payments and customer receipts (1,624), expenses from the seeded list (1,490.50), and the expected closing is compared with the GL (8,140 + 1,624 − 1,490.50 = **8,273.50**); bank 0 + 500 − 500 = **0**. Every expense account has exactly its expected debit and zero credit, so a double-post or a wrong cash figure fails the script (exit 1).
 - The script also prints the six-step closing checklist (opening, receipts, expenses, expected closing, counted difference, count sheet); sales totals are not treated as cash received.
 - Pending: receipt attachment workflow in Ops, expense categories editing and the Ops expenses screen (E-13).
 

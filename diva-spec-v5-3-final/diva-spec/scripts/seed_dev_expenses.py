@@ -106,12 +106,12 @@ for account_name, amount, paid_from, arabic_note in EXPENSES:
             "accounts": [
                 {
                     "account": expense_account,
-                    "debit_in_account_currency": float(amount),
+                    "debit_in_account_currency": amount,
                     "cost_center": COST_CENTER,
                 },
                 {
                     "account": paid_from,
-                    "credit_in_account_currency": float(amount),
+                    "credit_in_account_currency": amount,
                 },
             ],
         }
@@ -141,22 +141,19 @@ for account_name, amount, paid_from, arabic_note in EXPENSES:
 
 
 def gl_rows(account: str) -> list[dict[str, Any]]:
-    return (
-        http.get(
-            "/api/resource/GL Entry",
-            params={
-                "filters": json.dumps([["account", "=", account], ["is_cancelled", "=", 0]]),
-                "fields": '["posting_date","debit","credit","voucher_type","voucher_no"]',
-                "limit_page_length": "0",
-            },
-        )
-        .json()
-        .get("data")
-        or []
+    response = http.get(
+        "/api/resource/GL Entry",
+        params={
+            "filters": json.dumps([["account", "=", account], ["is_cancelled", "=", 0]]),
+            "fields": '["posting_date","debit","credit","voucher_type","voucher_no"]',
+            "limit_page_length": "0",
+        },
     )
+    response.raise_for_status()
+    return response.json().get("data") or []
 
 
-def movement(account: str) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+def movement(account: str) -> tuple[Decimal, Decimal, Decimal]:
     rows = gl_rows(account)
     opening = sum(
         (
@@ -174,7 +171,55 @@ def movement(account: str) -> tuple[Decimal, Decimal, Decimal, Decimal]:
         (Decimal(str(row["credit"])) for row in rows if row["posting_date"] == DATE),
         Decimal("0"),
     )
-    return opening, debit, credit, opening + debit - credit
+    return opening, debit, credit
+
+
+def document_receipts(account: str) -> Decimal:
+    """Cash in from documents, independent of the GL totals being checked."""
+    total = Decimal("0")
+    invoices = (
+        http.get(
+            "/api/resource/Sales Invoice",
+            params={
+                "filters": json.dumps([["posting_date", "=", DATE], ["docstatus", "=", 1]]),
+                "fields": '["name"]',
+                "limit_page_length": "0",
+            },
+        )
+        .json()
+        .get("data")
+        or []
+    )
+    for invoice in invoices:
+        detail = http.get(f"/api/resource/Sales Invoice/{invoice['name']}")
+        detail.raise_for_status()
+        for payment in detail.json()["data"].get("payments") or []:
+            is_cash = str(payment.get("mode_of_payment")) == "Cash"
+            if (account == CASH and is_cash) or (account == BANK and not is_cash):
+                total += Decimal(str(payment.get("amount") or 0))
+    entries = (
+        http.get(
+            "/api/resource/Payment Entry",
+            params={
+                "filters": json.dumps(
+                    [
+                        ["posting_date", "=", DATE],
+                        ["docstatus", "=", 1],
+                        ["payment_type", "=", "Receive"],
+                    ]
+                ),
+                "fields": '["mode_of_payment","paid_to","paid_amount"]',
+                "limit_page_length": "0",
+            },
+        )
+        .json()
+        .get("data")
+        or []
+    )
+    for entry in entries:
+        if entry.get("paid_to") == account:
+            total += Decimal(str(entry.get("paid_amount") or 0))
+    return total
 
 
 def expense_total(account: str) -> tuple[Decimal, Decimal]:
@@ -184,29 +229,41 @@ def expense_total(account: str) -> tuple[Decimal, Decimal]:
     return debit, credit
 
 
+expected_expenses = {CASH: Decimal("0"), BANK: Decimal("0")}
+for _account_name, _amount, _paid_from, _note in EXPENSES:
+    expected_expenses[_paid_from] += Decimal(_amount)
+
 failed = False
 for account in (CASH, BANK):
-    opening, debit, credit, closing = movement(account)
+    opening, debit, credit = movement(account)
+    receipts = document_receipts(account)
+    expected_closing = opening + receipts - expected_expenses[account]
+    ledger_closing = opening + debit - credit
+    reconciles = expected_closing == ledger_closing
     print(
-        f"{account}: opening={opening} in={debit} out={credit} closing={closing} "
-        f"(reconciles={opening + debit - credit == closing})"
+        f"{account}: opening={opening} receipts={receipts} "
+        f"expenses={expected_expenses[account]} expected_closing={expected_closing} "
+        f"ledger_closing={ledger_closing} (reconciles={reconciles})"
     )
-    failed = failed or opening + debit - credit != closing
+    failed = failed or not reconciles
 
-for account_name, _, _, _ in EXPENSES:
+for account_name, amount, _paid_from, _note in EXPENSES:
     account = f"{account_name} - {ABBR}"
     debit, credit = expense_total(account)
-    print(f"expense account {account}: debit={debit} credit={credit}")
-    failed = failed or debit <= 0 or credit != 0
+    expected = Decimal(amount)
+    print(f"expense account {account}: debit={debit} (expected {expected}) credit={credit}")
+    failed = failed or debit != expected or credit != 0
 
-print("cash closing checklist:")
-print(f"  1. opening cash: {movement(CASH)[0]}")
-print(f"  2. cash receipts (ledger debits): {movement(CASH)[1]}")
-print(f"  3. cash expenses (ledger credits): {movement(CASH)[2]}")
-print(f"  4. expected closing: {movement(CASH)[3]}")
-print("  5. count the drawer, record the difference, and attach the count sheet")
-print("  6. sales totals are not cash received (only the cash GL lines count)")
+cash_opening, _, _ = movement(CASH)
+print("daily cash closing checklist:")
+print(f"  1. opening cash: {cash_opening}")
+print(f"  2. add cash receipts: {document_receipts(CASH)}")
+print(f"  3. subtract cash expenses: {expected_expenses[CASH]}")
+print(f"  4. expected closing: {cash_opening + document_receipts(CASH) - expected_expenses[CASH]}")
+print("  5. compare with the counted drawer and record any difference with a reason")
+print("  6. attach the count sheet; sales totals are not cash received")
 
+http.close()
 if failed:
     print("E-10 cash reconciliation FAILED")
 raise SystemExit(1 if failed else 0)

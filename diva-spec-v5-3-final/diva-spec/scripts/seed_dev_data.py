@@ -5,6 +5,10 @@ Idempotent: existing warehouses/items/modes are skipped. Credentials from env:
   ERPNEXT_URL=... ERPNEXT_USER=... ERPNEXT_PASSWORD=... python3 scripts/seed_dev_data.py
 
 Never run against production. All data is synthetic.
+
+Prerequisites on the dev site: company Diva Dev with accounts Cash - DD, Bank Accounts - DD,
+Temporary Opening - DD and cost center Main - DD; UOM Dozen (whole number); item groups
+Accessories and Cosmetics; price list Standard Selling; POS Profile P003 POS.
 """
 
 import json
@@ -49,9 +53,9 @@ def ensure_item(index: int, group: str) -> str:
     code = f"BULK-{group[:3].upper()}-{index:02d}"
     if http.get(f"/api/resource/Item/{code}").status_code == 200:
         return code
-    group_code = 0 if group == "Accessories" else 1
-    dozen = ean13(f"210{group_code}{index:04d}0001")
-    piece = ean13(f"210{group_code}{index:04d}0002")
+    base = f"210{index:04d}00001" if group == "Accessories" else f"2101{index:04d}0001"
+    dozen = ean13(base)
+    piece = ean13(base[:-1] + "2")
     payload = {
         "item_code": code,
         "item_name": f"Bulk {group} {index:02d}",
@@ -101,10 +105,17 @@ items = [ensure_item(i, "Accessories") for i in range(1, 7)] + [
 print("items ready:", len(items))
 
 # --- Opening stock (Stock Reconciliation, 120 Nos per item in Main Inventory) ---
-first = items[0]
-bin_url = f'/api/resource/Bin?filters=[["item_code","=","{first}"]]&fields=["actual_qty"]'
-bin_rows = http.get(bin_url).json().get("data") or []
-if not bin_rows or float(bin_rows[0]["actual_qty"]) < 120:
+items_without_stock = []
+for code in items:
+    rows = (
+        http.get(f'/api/resource/Bin?filters=[["item_code","=","{code}"]]&fields=["actual_qty"]')
+        .json()
+        .get("data")
+        or []
+    )
+    if not rows or float(rows[0]["actual_qty"]) <= 0:
+        items_without_stock.append(code)
+if items_without_stock:
     submit(
         "Stock Reconciliation",
         {
@@ -160,10 +171,8 @@ for mode, (kind, account) in modes.items():
         "accounts": [{"company": COMPANY, "default_account": account}],
     }
     response = http.post("/api/resource/Mode of Payment", json=payload)
-    if response.status_code >= 400:
-        print("mode failed:", mode, response.status_code, response.text[:160])
-    else:
-        print("mode created:", mode)
+    response.raise_for_status()
+    print("mode created:", mode)
 
 # --- E-08 purchasing: suppliers + a Purchase Invoice with Update Stock ---
 for name in ["Bulk Supplier 1", "Bulk Supplier 2"]:
@@ -307,9 +316,11 @@ barcode_names = (
     or []
 )
 dozen_barcode = ""
-if barcode_names:
-    row = http.get(f"/api/resource/Item Barcode/{barcode_names[0]['name']}").json()["data"]
-    dozen_barcode = str(row["barcode"])
+for barcode_name in barcode_names:
+    row = http.get(f"/api/resource/Item Barcode/{barcode_name['name']}").json()["data"]
+    if row.get("uom") == "Dozen":
+        dozen_barcode = str(row["barcode"])
+        break
 barcode_rows = (
     http.get(
         f'/api/resource/Item Barcode?filters=[["barcode","=","{dozen_barcode}"]]&fields=["name"]'

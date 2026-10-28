@@ -125,6 +125,15 @@ Date 2026-10-27. Source: the disposable dev site — no production site exists y
 - **Repeatable:** `scripts/gen_field_register.py` (credentials from env) regenerates the file.
 - **Provisional:** re-run this register at TASK-E-00a against the production site and diff; only then is it the authoritative baseline.
 
+## 4. Configuration applied (E-03/E-02, dev site)
+
+Date 2026-10-27. `infra/erpnext-config/apply.py` (idempotent, dry-run by default) with `config.yaml`; credentials from the environment.
+
+- **Dry run (first pass):** property setters hiding `tax_id` and `taxes_and_charges` on Sales Invoice and Sales Order (DEC-26: no VAT); hide the `Manufacturing` workspace (E-02); **singles**: `Stock Settings.allow_negative_stock = 0`, `enable_stock_reservation = 1`, `auto_reserve_stock = 1` (E-04); **records**: `UOM Dozen` whole-number, item groups `Accessories` and `Cosmetics`, price list `Wholesale` (E-04/E-05).
+- **E-04/E-05 first pass:** 3 changes — the two item groups and the `Wholesale` price list (the stock singles and the UOM already matched). **Applied**, then the same dry run again: **0 changes** (14 no-op/missing) — idempotency proven. Reapply after every upgrade (E-03 acceptance).
+- `HR` and `Payroll` workspaces do not exist on this site; the config reports them as `missing` and skips them. Per-role refinement lands with the roles/users task (E-16).
+- Workspaces are hidden globally (`is_hidden`); no core code or custom fields were created. Batch/expiry per item (E-14c), per-tier prices and price-edit permissions (E-05/E-16) remain.
+
 ## 5. Bulk synthetic data (E-06/E-07/E-08/E-09, dev site)
 
 Seeded idempotently with `scripts/seed_dev_data.py` (credentials from env; synthetic only):
@@ -136,12 +145,3 @@ Seeded idempotently with `scripts/seed_dev_data.py` (credentials from env; synth
 - **Sales (E-09):** 5 customers; a paid POS invoice (Cash) and a credit Sales Invoice with `outstanding_amount = 2,496`; six payment modes (Cash, Bank Transfer, Vodafone Cash, InstaPay, ECash, WePay) mapped to `Cash - DD` and a new ledger account `Diva Bank - DD`.
 - Bin check after all movements: `BULK-ACC-01` = 168 Nos (120 opening + 60 purchase − 12 sold).
 - Pending for the full tasks: FIFO valuation audit, supplier payments/payables, receivable report reconciliation, China import flow (E-08b), expenses (E-10).
-
-## 4. Configuration applied (E-03/E-02, dev site)
-
-Date 2026-10-27. `infra/erpnext-config/apply.py` (idempotent, dry-run by default) with `config.yaml`; credentials from the environment.
-
-- **Dry run (first pass):** property setters hiding `tax_id` and `taxes_and_charges` on Sales Invoice and Sales Order (DEC-26: no VAT); hide the `Manufacturing` workspace (E-02); **singles**: `Stock Settings.allow_negative_stock = 0`, `enable_stock_reservation = 1`, `auto_reserve_stock = 1` (E-04); **records**: `UOM Dozen` whole-number, item groups `Accessories` and `Cosmetics`, price list `Wholesale` (E-04/E-05).
-- **E-04/E-05 first pass:** 3 changes — the two item groups and the `Wholesale` price list (the stock singles and the UOM already matched). **Applied**, then the same dry run again: **0 changes** (14 no-op/missing) — idempotency proven. Reapply after every upgrade (E-03 acceptance).
-- `HR` and `Payroll` workspaces do not exist on this site; the config reports them as `missing` and skips them. Per-role refinement lands with the roles/users task (E-16).
-- Workspaces are hidden globally (`is_hidden`); no core code or custom fields were created. Batch/expiry per item (E-14c), per-tier prices and price-edit permissions (E-05/E-16) remain.

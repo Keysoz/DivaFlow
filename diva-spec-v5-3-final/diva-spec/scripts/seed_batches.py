@@ -116,7 +116,7 @@ def ensure_batch(batch_id: str, item: str, expiry: str) -> None:
             "batch_id": batch_id,
             "item": item,
             "expiry_date": expiry,
-            "manufacturing_date": "2025-12-01",
+            "manufacturing_date": "2025-11-15" if expiry == "2026-11-15" else "2026-01-15",
         },
     )
 

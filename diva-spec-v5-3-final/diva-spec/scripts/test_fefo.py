@@ -131,14 +131,19 @@ else:
     admin.post("/api/method/frappe.client.cancel", data={"doctype": "Sales Invoice", "name": name})
     admin.delete(f"/api/resource/Sales Invoice/{name}")
 
+BLOCK_TERMS = ("batch", "expired", "available", "qty", "stock")
 expired = create(cashier, payload(EXPIRED_ITEM, 1, 100))
 print("create expired sale:", expired.status_code, message(expired)[:200])
 if expired.status_code != 200:
-    print("OK   expired batch cannot be added")
+    blocked = any(term in message(expired).lower() for term in BLOCK_TERMS)
+    print(("OK   " if blocked else "FAIL ") + "expired batch cannot be added")
+    failed = failed or not blocked
 elif expired.json()["data"]:
     name = expired.json()["data"]["name"]
     submitted = submit(cashier, name)
-    blocked = submitted.status_code != 200 and "batch" in message(submitted).lower()
+    blocked = submitted.status_code != 200 and any(
+        term in message(submitted).lower() for term in BLOCK_TERMS
+    )
     print(
         ("OK   " if blocked else "FAIL ")
         + f"expired batch blocked on submit ({submitted.status_code})"

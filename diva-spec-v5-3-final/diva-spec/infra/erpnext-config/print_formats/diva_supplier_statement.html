@@ -19,6 +19,7 @@
   .box h3 { margin: 0 0 1.5mm; font-size: 9.5pt; color: #0f4c5c; }
   table.lines { width: 100%; border-collapse: collapse; margin-top: 2mm; }
   table.lines th, table.lines td { border-bottom: 1px solid #d9e2ec; padding: 1.8mm 1.5mm; text-align: right !important; vertical-align: top; }
+  table.lines tr { page-break-inside: avoid; }
   table.lines thead th { background: #0f4c5c; color: #fff; font-size: 8.5pt; }
   table.lines thead th .en { color: #d9e2ec; font-size: 7pt; }
   .num { text-align: left !important; direction: ltr; white-space: nowrap; }
@@ -35,19 +36,21 @@
 <body>
 {% set from_date = frappe.form_dict.get("from_date") %}
 {% set to_date = frappe.form_dict.get("to_date") %}
-{% set invoice_filters = {"supplier": doc.name, "docstatus": 1} %}
-{% if from_date %}{% set _ = invoice_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
-{% if to_date %}{% set _ = invoice_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
-{% set invoices = frappe.get_list("Purchase Invoice", filters=invoice_filters, fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"], order_by="posting_date asc", limit_page_length=0) %}
-{% set payment_filters = {"party_type": "Supplier", "party": doc.name, "docstatus": 1} %}
-{% if from_date %}{% set _ = payment_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
-{% if to_date %}{% set _ = payment_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
-{% set payments = frappe.get_list("Payment Entry", filters=payment_filters, fields=["name", "posting_date", "paid_amount", "mode_of_payment"], order_by="posting_date asc", limit_page_length=0) %}
+{% set company = frappe.db.get_default("company") %}
 {% set currency = doc.default_currency or "EGP" %}
+{% set invoice_filters = [["supplier", "=", doc.name], ["docstatus", "=", 1]] %}
+{% if from_date %}{% set _ = invoice_filters.append(["posting_date", ">=", from_date]) %}{% endif %}
+{% if to_date %}{% set _ = invoice_filters.append(["posting_date", "<=", to_date]) %}{% endif %}
+{% set invoices = frappe.get_list("Purchase Invoice", filters=invoice_filters, fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"], order_by="posting_date asc", limit_page_length=0) %}
+{% set payment_filters = [["party_type", "=", "Supplier"], ["party", "=", doc.name], ["docstatus", "=", 1]] %}
+{% if from_date %}{% set _ = payment_filters.append(["posting_date", ">=", from_date]) %}{% endif %}
+{% if to_date %}{% set _ = payment_filters.append(["posting_date", "<=", to_date]) %}{% endif %}
+{% set payments = frappe.get_list("Payment Entry", filters=payment_filters, fields=["name", "posting_date", "paid_amount", "mode_of_payment"], order_by="posting_date asc", limit_page_length=0) %}
+{% set status_map = {"Paid": "مدفوعة", "Unpaid": "غير مدفوعة", "Overdue": "متأخرة", "Return": "مرتجع", "Credit Note Issued": "إشعار دائن", "Draft": "مسودة"} %}
 
 <div class="header">
   <div class="identity">
-    <h1>{{ frappe.db.get_default("company") or "Diva Dev" }}</h1>
+    <h1>{{ company or "" }}</h1>
   </div>
   <div class="title">
     <h2>كشف حساب مورد<span class="en">Supplier Statement</span></h2>
@@ -62,6 +65,7 @@
     <div><strong>{{ doc.supplier_name or doc.name }}</strong></div>
     {% if doc.mobile_no or doc.phone %}<div dir="ltr">{{ doc.mobile_no or doc.phone }}</div>{% endif %}
     {% if doc.country %}<div>{{ doc.country }}</div>{% endif %}
+    {% if frappe.db.get_value("Company", company, "tax_id") %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ frappe.db.get_value("Company", company, "tax_id") }}</span></div>{% endif %}
   </div>
   <div class="box">
     <h3>الملخص<span class="en">Summary</span></h3>
@@ -88,7 +92,7 @@
       <td dir="ltr">{{ invoice.name }}</td>
       <td class="num">{{ frappe.utils.fmt_money(invoice.grand_total, currency=currency) }}</td>
       <td class="num">{{ frappe.utils.fmt_money(invoice.outstanding_amount, currency=currency) }}</td>
-      <td class="center">{{ invoice.status }}</td>
+      <td class="center">{{ status_map.get(invoice.status, invoice.status) }} <span class="en-inline">{{ invoice.status }}</span></td>
     </tr>
     {% endfor %}
     {% for payment in payments %}

@@ -26,6 +26,7 @@
   .box h3 { margin: 0 0 1.5mm; font-size: 9.5pt; color: #0f4c5c; }
   table.lines { width: 100%; border-collapse: collapse; margin-top: 2mm; }
   table.lines th, table.lines td { border-bottom: 1px solid #d9e2ec; padding: 1.8mm 1.5mm; text-align: right !important; vertical-align: top; }
+  table.lines tr { page-break-inside: avoid; }
   table.lines thead th { background: #0f4c5c; color: #fff; font-size: 8.5pt; }
   table.lines thead th .en { color: #d9e2ec; font-size: 7pt; }
   .num { text-align: left !important; direction: ltr; white-space: nowrap; }
@@ -42,19 +43,22 @@
 <body>
 {% set from_date = frappe.form_dict.get("from_date") %}
 {% set to_date = frappe.form_dict.get("to_date") %}
-{% set invoice_filters = {"customer": doc.name, "docstatus": 1} %}
-{% if from_date %}{% set _ = invoice_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
-{% if to_date %}{% set _ = invoice_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
+{% set company = frappe.db.get_default("company") %}
+{% set currency = doc.default_currency or "EGP" %}
+{% set invoice_filters = [["customer", "=", doc.name], ["docstatus", "=", 1]] %}
+{% if from_date %}{% set _ = invoice_filters.append(["posting_date", ">=", from_date]) %}{% endif %}
+{% if to_date %}{% set _ = invoice_filters.append(["posting_date", "<=", to_date]) %}{% endif %}
 {% set invoices = frappe.get_list("Sales Invoice", filters=invoice_filters, fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"], order_by="posting_date asc", limit_page_length=0) %}
-{% set payment_filters = {"party_type": "Customer", "party": doc.name, "docstatus": 1} %}
-{% if from_date %}{% set _ = payment_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
-{% if to_date %}{% set _ = payment_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
+{% set payment_filters = [["party_type", "=", "Customer"], ["party", "=", doc.name], ["docstatus", "=", 1]] %}
+{% if from_date %}{% set _ = payment_filters.append(["posting_date", ">=", from_date]) %}{% endif %}
+{% if to_date %}{% set _ = payment_filters.append(["posting_date", "<=", to_date]) %}{% endif %}
 {% set payments = frappe.get_list("Payment Entry", filters=payment_filters, fields=["name", "posting_date", "paid_amount", "mode_of_payment"], order_by="posting_date asc", limit_page_length=0) %}
+{% set status_map = {"Paid": "مدفوعة", "Unpaid": "غير مدفوعة", "Overdue": "متأخرة", "Return": "مرتجع", "Credit Note Issued": "إشعار دائن", "Draft": "مسودة"} %}
 
 <div class="header">
   <div class="identity">
-    <h1>{{ frappe.db.get_default("company") or "Diva Dev" }}</h1>
-    {% if doc.company_tax_id %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ doc.company_tax_id }}</span></div>{% endif %}
+    <h1>{{ company or "" }}</h1>
+    {% if frappe.db.get_value("Company", company, "tax_id") %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ frappe.db.get_value("Company", company, "tax_id") }}</span></div>{% endif %}
   </div>
   <div class="title">
     <h2>كشف حساب عميل<span class="en">Customer Statement</span></h2>
@@ -68,13 +72,13 @@
     <h3>العميل<span class="en">Customer</span></h3>
     <div><strong>{{ doc.customer_name or doc.name }}</strong></div>
     {% if doc.mobile_no or doc.phone %}<div dir="ltr">{{ doc.mobile_no or doc.phone }}</div>{% endif %}
-    {% if doc.customer_primary_address %}<div>{{ doc.customer_primary_address }}</div>{% endif %}
+    {% if doc.primary_address %}<div>{{ doc.primary_address }}</div>{% endif %}
   </div>
   <div class="box">
     <h3>الملخص<span class="en">Summary</span></h3>
     <div>عدد الفواتير / Invoices · {{ invoices | length }}</div>
     <div>عدد الدفعات / Receipts · {{ payments | length }}</div>
-    <div>الرصيد المستحق / Outstanding · <span dir="ltr">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=doc.default_currency or "EGP") }}</span></div>
+    <div>الرصيد المستحق / Outstanding · <span dir="ltr">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=currency) }}</span></div>
   </div>
 </div>
 
@@ -93,16 +97,16 @@
     <tr>
       <td class="num">{{ frappe.utils.format_date(invoice.posting_date, "dd-MM-yyyy") }}</td>
       <td dir="ltr">{{ invoice.name }}</td>
-      <td class="num">{{ frappe.utils.fmt_money(invoice.grand_total, currency=doc.default_currency or "EGP") }}</td>
-      <td class="num">{{ frappe.utils.fmt_money(invoice.outstanding_amount, currency=doc.default_currency or "EGP") }}</td>
-      <td class="center">{{ invoice.status }}</td>
+      <td class="num">{{ frappe.utils.fmt_money(invoice.grand_total, currency=currency) }}</td>
+      <td class="num">{{ frappe.utils.fmt_money(invoice.outstanding_amount, currency=currency) }}</td>
+      <td class="center">{{ status_map.get(invoice.status, invoice.status) }} <span class="en-inline">{{ invoice.status }}</span></td>
     </tr>
     {% endfor %}
     {% for payment in payments %}
     <tr>
       <td class="num">{{ frappe.utils.format_date(payment.posting_date, "dd-MM-yyyy") }}</td>
       <td dir="ltr">دفعة / Receipt · {{ payment.name }}</td>
-      <td class="num">− {{ frappe.utils.fmt_money(payment.paid_amount, currency=doc.default_currency or "EGP") }}</td>
+      <td class="num">− {{ frappe.utils.fmt_money(payment.paid_amount, currency=currency) }}</td>
       <td class="num">—</td>
       <td class="center">{{ payment.mode_of_payment or "—" }}</td>
     </tr>
@@ -112,9 +116,9 @@
 
 <div class="totals">
   <table>
-    <tr><td>إجمالي الفواتير<span class="en">Total invoiced</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="grand_total"), currency=doc.default_currency or "EGP") }}</td></tr>
-    <tr><td>إجمالي المدفوع<span class="en">Total received</span></td><td class="value">{{ frappe.utils.fmt_money(payments | sum(attribute="paid_amount"), currency=doc.default_currency or "EGP") }}</td></tr>
-    <tr class="grand"><td>الرصيد المستحق<span class="en">Outstanding</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=doc.default_currency or "EGP") }}</td></tr>
+    <tr><td>إجمالي الفواتير<span class="en">Total invoiced</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="grand_total"), currency=currency) }}</td></tr>
+    <tr><td>إجمالي المدفوع<span class="en">Total received</span></td><td class="value">{{ frappe.utils.fmt_money(payments | sum(attribute="paid_amount"), currency=currency) }}</td></tr>
+    <tr class="grand"><td>الرصيد المستحق<span class="en">Outstanding</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=currency) }}</td></tr>
   </table>
 </div>
 

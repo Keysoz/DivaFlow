@@ -21,12 +21,15 @@ services:
     build:
       context: ../../apps/cloud-api
     environment:
-      DATABASE_URL: postgresql+psycopg://diva:${POSTGRES_PASSWORD}@db:5432/diva
-      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in infra/compose/.env}
+      ENVIRONMENT: ${ENVIRONMENT:?set ENVIRONMENT in infra/compose/.env}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in infra/compose/.env}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?set MFA_ENCRYPTION_KEY in infra/compose/.env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-[]}
       BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:?set BOOTSTRAP_TOKEN in infra/compose/.env}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy

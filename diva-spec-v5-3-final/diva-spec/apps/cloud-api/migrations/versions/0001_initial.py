@@ -17,15 +17,25 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("email", sa.String(length=320), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
-        sa.Column("role", sa.String(length=32), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("mfa_enabled", sa.Boolean(), nullable=False),
+        sa.Column("role", sa.String(length=32), nullable=False, server_default="staff"),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column("mfa_enabled", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("totp_secret_encrypted", sa.Text(), nullable=True),
         sa.Column("recovery_codes_hashed", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.Column("last_login_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
+    op.create_index(
+        "uq_users_single_owner",
+        "users",
+        ["role"],
+        unique=True,
+        postgresql_where=sa.text("role = 'owner'"),
+        sqlite_where=sa.text("role = 'owner'"),
+    )
     op.create_index("ix_users_role", "users", ["role"])
     op.create_table(
         "refresh_tokens",
@@ -38,8 +48,10 @@ def upgrade() -> None:
         ),
         sa.Column("token_hash", sa.String(length=64), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("revoked", sa.Boolean(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("revoked", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
     )
     op.create_index("ix_refresh_tokens_user_id", "refresh_tokens", ["user_id"])
     op.create_index("ix_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"], unique=True)
@@ -49,13 +61,16 @@ def upgrade() -> None:
         sa.Column("actor", sa.String(length=320), nullable=True),
         sa.Column("action", sa.String(length=64), nullable=False),
         sa.Column("target", sa.String(length=320), nullable=True),
-        sa.Column("result", sa.String(length=32), nullable=False),
+        sa.Column("result", sa.String(length=32), nullable=False, server_default="ok"),
         sa.Column("detail", sa.Text(), nullable=True),
         sa.Column("ip", sa.String(length=64), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
     )
     op.create_index("ix_audit_log_actor", "audit_log", ["actor"])
     op.create_index("ix_audit_log_action", "audit_log", ["action"])
+    op.create_index("ix_audit_actor_action_time", "audit_log", ["actor", "action", "created_at"])
 
 
 def downgrade() -> None:

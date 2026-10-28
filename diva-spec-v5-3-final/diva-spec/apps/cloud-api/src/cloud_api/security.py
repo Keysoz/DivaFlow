@@ -32,7 +32,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def _fernet() -> Fernet:
-    digest = hashlib.sha256(settings.jwt_secret.get_secret_value().encode()).digest()
+    digest = hashlib.sha256(settings.mfa_encryption_key.get_secret_value().encode()).digest()
     return Fernet(base64.urlsafe_b64encode(digest))
 
 

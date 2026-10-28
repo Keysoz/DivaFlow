@@ -44,8 +44,12 @@ async def security_headers(
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
-    if request.url.path.startswith("/auth"):
+    if request.url.path.startswith(("/auth", "/admin")):
         response.headers.setdefault("Cache-Control", "no-store")
+    if settings.environment == "production":
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
     return response
 
 

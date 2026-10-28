@@ -8,19 +8,23 @@ object storage still need the owner's cloud account).
 `apps/cloud-api` (FastAPI) now has:
 
 - **PostgreSQL** via SQLAlchemy 2 and Alembic (`apps/cloud-api/migrations`).
-- **Auth:** owner bootstrap guarded by `BOOTSTRAP_TOKEN`; passwords hashed with
-  Argon2id; short-lived JWT access tokens (30 min) and rotating refresh tokens
-  stored as SHA-256 hashes (14 days).
-- **MFA:** TOTP (RFC 6238) for every owner login, with encrypted secrets at rest
-  and eight single-use recovery codes (hashed). An owner cannot obtain a token
-  until MFA is enabled; staff MFA is optional and can be enabled with the same
-  setup/enable endpoints.
+- **Auth:** a single owner bootstrap guarded by a one-time `BOOTSTRAP_TOKEN`
+  (constant-time compare; a partial unique index enforces one owner); passwords
+  hashed with Argon2id; short-lived JWT access tokens (30 min) and refresh tokens
+  stored as SHA-256 hashes (14 days). Refresh rotation is an atomic conditional
+  update; replaying a rotated token revokes every session for that user.
+- **MFA:** TOTP (RFC 6238) for every owner login, with secrets encrypted under a
+  dedicated `MFA_ENCRYPTION_KEY` (separate from `JWT_SECRET`) and eight single-use
+  recovery codes (hashed). An owner cannot obtain a token until MFA is enabled;
+  staff MFA is optional and uses the same setup/enable endpoints. The secret can
+  only be initialized once; a reset is an audited manual procedure.
 - **Audit log:** bootstrap, MFA setup/enable/failure, login success/failure,
-  refresh, logout and user creation, with actor, IP and result. `GET /admin/audit`
-  (owner) returns the latest entries.
+  refresh/reuse, logout and user creation, with actor, trusted-proxy-aware IP and
+  result. `GET /admin/audit` (owner) returns the latest entries. Rows are indexed
+  for the rate-limit query.
 - **Health:** `GET /health` (liveness) and `GET /ready` (database check) for the
   reverse proxy and Uptime Kuma.
-- **Login rate limit:** five failed password attempts per email in 15 minutes return 429; attempts are audited.
+- **Rate limit:** five failed password/MFA attempts per email **or IP** in 15 minutes return 429; attempts are audited. The threshold is intentionally low; tune it on staging.
 - Security headers and a CORS allow-list from the environment.
 
 ### Endpoints
@@ -64,12 +68,37 @@ run `uv run alembic upgrade head` from `apps/cloud-api` with `DATABASE_URL` set.
 
 - `JWT_SECRET` (≥32 random bytes), `BOOTSTRAP_TOKEN` (one-time), `POSTGRES_PASSWORD`
   and `DATABASE_URL` come from the secret manager (Bitwarden, `26`), never git.
-- Production must set `ENVIRONMENT=production`; startup refuses the dev JWT secret
-  and bootstrap token.
+- Set `ENVIRONMENT` explicitly (`dev`, `staging`, `production`); outside `dev`,
+  startup refuses the dev JWT secret, MFA key and bootstrap token. `JWT_SECRET`,
+  `MFA_ENCRYPTION_KEY` and `BOOTSTRAP_TOKEN` must each be at least 32 bytes where
+  applicable and come from the secret manager.
 - Deploy to a small VPS first (2 vCPU/4 GB), terminate TLS at the reverse proxy,
-  expose only 443, keep PostgreSQL bound to localhost, and run Uptime Kuma and
-  GlitchTip (or Sentry-compatible DSN) on the same private network.
+  expose only 443, keep the API on `127.0.0.1:8000` and PostgreSQL bound to
+  localhost, set `TRUSTED_PROXIES` to the proxy address, and run Uptime Kuma and
+  GlitchTip (or Sentry-compatible DSN) on the same private network. HSTS is sent
+  when `ENVIRONMENT=production`.
 - Back up PostgreSQL daily and test a restore quarterly; store copies in R2/B2.
+
+## Lost password / lost MFA device
+
+There is no self-service reset (by design). The owner must:
+
+1. Stop the API or use a maintenance shell on the VPS (never edit production data
+   from an agent session).
+2. Record the action in the audit log/runbook.
+3. Clear the affected user's `totp_secret_encrypted`, `mfa_enabled` and
+   `recovery_codes_hashed` with a reviewed SQL statement, force a password reset,
+   then re-run MFA setup/enable. The owner's new secret is scanned immediately.
+4. Rotate `JWT_SECRET` if a token may be compromised (this signs out everyone).
+
+This procedure is pending an audited admin CLI; until then it is a documented
+manual operation for the owner only.
+
+## Known test gap
+
+The suite runs against SQLite; a PostgreSQL integration test (refresh/timestamps)
+still needs a reachable Postgres in CI or staging. The Docker Hub pull was not
+available in this session, so it could not be run locally.
 
 ## Pending owner actions
 

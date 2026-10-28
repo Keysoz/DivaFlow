@@ -1,10 +1,13 @@
 """Authentication, MFA and owner bootstrap (TASK-PUB-01)."""
 
 import json
+import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from cloud_api.audit import record_audit
@@ -43,10 +46,17 @@ from cloud_api.security import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 settings = get_settings()
+FAILURE_ACTIONS = ("auth.login", "auth.mfa_setup", "auth.mfa_enable")
+MAX_FAILURES = 5
+FAILURE_WINDOW_MINUTES = 15
+
+
+def _as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 def _expires_at() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None) + timedelta(days=settings.refresh_token_days)
+    return datetime.now(UTC) + timedelta(days=settings.refresh_token_days)
 
 
 def _issue_tokens(db: Session, user: User) -> TokenPair:
@@ -70,22 +80,26 @@ def _get_user_by_email(db: Session, email: str) -> User | None:
     return db.scalar(select(User).where(func.lower(User.email) == email.lower()))
 
 
-def _check_login_rate(db: Session, email: str) -> None:
-    since = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=15)
-    failures = db.scalar(
-        select(func.count())
-        .select_from(AuditLog)
-        .where(
-            func.lower(AuditLog.actor) == email.lower(),
-            AuditLog.action == "auth.login",
-            AuditLog.result == "failed",
-            AuditLog.created_at >= since,
-        )
-    )
-    if failures and failures >= 5:
+def _check_failure_rate(
+    db: Session,
+    email: str,
+    request: Request,
+    actions: tuple[str, ...] = FAILURE_ACTIONS,
+) -> None:
+    since = datetime.now(UTC) - timedelta(minutes=FAILURE_WINDOW_MINUTES)
+    base = [
+        AuditLog.action.in_(actions),
+        AuditLog.result == "failed",
+        AuditLog.created_at >= since,
+    ]
+    conditions = [and_(func.lower(AuditLog.actor) == email.lower(), *base)]
+    if request.client and request.client.host:
+        conditions.append(and_(AuditLog.ip == request.client.host, *base))
+    failures = db.scalar(select(func.count()).select_from(AuditLog).where(or_(*conditions)))
+    if failures and failures >= MAX_FAILURES:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many failed logins; try again later",
+            detail="Too many failed attempts; try again later",
         )
 
 
@@ -97,7 +111,17 @@ def bootstrap(
     db: Session = Depends(get_db),
 ) -> MfaSetupResponse:
     """Create the single owner account, once, guarded by the bootstrap token."""
-    if x_bootstrap_token != settings.bootstrap_token.get_secret_value():
+    expected = settings.bootstrap_token.get_secret_value()
+    if not secrets.compare_digest(x_bootstrap_token, expected):
+        record_audit(
+            db,
+            actor=str(payload.email),
+            action="auth.bootstrap",
+            result="failed",
+            detail="invalid bootstrap token",
+            request=request,
+        )
+        db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid bootstrap token")
     if db.scalar(select(func.count()).select_from(User)):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Owner already exists")
@@ -110,13 +134,14 @@ def bootstrap(
         mfa_enabled=False,
     )
     db.add(user)
-    record_audit(
-        db,
-        actor=user.email,
-        action="auth.bootstrap",
-        target=user.email,
-        request=request,
-    )
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Owner already exists"
+        ) from exc
+    record_audit(db, actor=user.email, action="auth.bootstrap", target=user.email, request=request)
     db.commit()
     return MfaSetupResponse(secret=secret, otpauth_uri=totp_uri(secret, user.email))
 
@@ -127,11 +152,29 @@ def mfa_setup(
     request: Request,
     db: Session = Depends(get_db),
 ) -> MfaSetupResponse:
-    user = _get_user_by_email(db, str(payload.email))
+    email = str(payload.email)
+    _check_failure_rate(db, email, request, ("auth.mfa_setup", "auth.mfa_enable"))
+    user = _get_user_by_email(db, email)
     if user is None or not verify_password(payload.password, user.password_hash):
+        record_audit(
+            db,
+            actor=email,
+            action="auth.mfa_setup",
+            result="failed",
+            detail="invalid credentials",
+            request=request,
+        )
+        db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     if user.mfa_enabled:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="MFA already enabled")
+    if user.totp_secret_encrypted:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="MFA is already initialized; use the audited reset procedure",
+        )
     secret = new_totp_secret()
     user.totp_secret_encrypted = encrypt_secret(secret)
     record_audit(db, actor=user.email, action="auth.mfa_setup", target=user.email, request=request)
@@ -145,9 +188,22 @@ def mfa_enable(
     request: Request,
     db: Session = Depends(get_db),
 ) -> MfaEnableResponse:
-    user = _get_user_by_email(db, str(payload.email))
+    email = str(payload.email)
+    _check_failure_rate(db, email, request, ("auth.mfa_setup", "auth.mfa_enable"))
+    user = _get_user_by_email(db, email)
     if user is None or not verify_password(payload.password, user.password_hash):
+        record_audit(
+            db,
+            actor=email,
+            action="auth.mfa_enable",
+            result="failed",
+            detail="invalid credentials",
+            request=request,
+        )
+        db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     if user.mfa_enabled:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="MFA already enabled")
     if not user.totp_secret_encrypted:
@@ -158,13 +214,13 @@ def mfa_enable(
             db,
             actor=user.email,
             action="auth.mfa_enable",
-            target=user.email,
             result="failed",
+            detail="invalid mfa code",
             request=request,
         )
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
-    codes = new_recovery_codes()
+    codes = new_recovery_codes(8)
     user.mfa_enabled = True
     user.recovery_codes_hashed = json.dumps([hash_recovery_code(code) for code in codes])
     record_audit(db, actor=user.email, action="auth.mfa_enable", target=user.email, request=request)
@@ -190,12 +246,13 @@ def login(
     request: Request,
     db: Session = Depends(get_db),
 ) -> TokenPair:
-    _check_login_rate(db, str(payload.email))
-    user = _get_user_by_email(db, str(payload.email))
+    email = str(payload.email)
+    _check_failure_rate(db, email, request, ("auth.login",))
+    user = _get_user_by_email(db, email)
     if user is None or not verify_password(payload.password, user.password_hash):
         record_audit(
             db,
-            actor=str(payload.email),
+            actor=email,
             action="auth.login",
             result="failed",
             detail="invalid credentials",
@@ -204,6 +261,15 @@ def login(
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.is_active:
+        record_audit(
+            db,
+            actor=user.email,
+            action="auth.login",
+            result="failed",
+            detail="inactive user",
+            request=request,
+        )
+        db.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     if user.role == "owner" and not user.mfa_enabled:
         raise HTTPException(
@@ -229,10 +295,14 @@ def login(
             db.commit()
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code")
     tokens = _issue_tokens(db, user)
-    user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
+    user.last_login_at = datetime.now(UTC)
     record_audit(db, actor=user.email, action="auth.login", target=user.email, request=request)
     db.commit()
     return tokens
+
+
+def _revoke_all(db: Session, user_id: int) -> None:
+    db.execute(update(RefreshToken).where(RefreshToken.user_id == user_id).values(revoked=True))
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -243,15 +313,51 @@ def refresh(
 ) -> TokenPair:
     token_hash = hash_refresh_token(payload.refresh_token)
     stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
-    now = datetime.now(UTC).replace(tzinfo=None)
-    if stored is None or stored.revoked or stored.expires_at < now:
+    now = datetime.now(UTC)
+    if stored is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+    if _as_utc(stored.expires_at) < now:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Expired refresh token"
         )
     user = db.get(User, stored.user_id)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
-    stored.revoked = True
+    if stored.revoked:
+        _revoke_all(db, stored.user_id)
+        record_audit(
+            db,
+            actor=user.email,
+            action="auth.refresh_reuse",
+            result="failed",
+            detail="replayed refresh token; all sessions revoked",
+            request=request,
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
+    rotated = db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.id == stored.id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
+    if cast(Any, rotated).rowcount != 1:
+        _revoke_all(db, stored.user_id)
+        record_audit(
+            db,
+            actor=user.email,
+            action="auth.refresh_reuse",
+            result="failed",
+            detail="concurrent refresh; all sessions revoked",
+            request=request,
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
     tokens = _issue_tokens(db, user)
     record_audit(db, actor=user.email, action="auth.refresh", target=user.email, request=request)
     db.commit()
@@ -268,7 +374,23 @@ def logout(
     stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     if stored:
         stored.revoked = True
-        record_audit(db, actor=str(stored.user_id), action="auth.logout", request=request)
+        user = db.get(User, stored.user_id)
+        record_audit(
+            db,
+            actor=user.email if user else str(stored.user_id),
+            action="auth.logout",
+            request=request,
+        )
+        db.commit()
+    else:
+        record_audit(
+            db,
+            actor=None,
+            action="auth.logout",
+            result="failed",
+            detail="unknown refresh token",
+            request=request,
+        )
         db.commit()
 
 
@@ -291,7 +413,21 @@ def create_user(
     owner: User = Depends(require_owner),
     db: Session = Depends(get_db),
 ) -> UserOut:
+    if payload.role == "owner":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="A second owner is not allowed"
+        )
     if _get_user_by_email(db, str(payload.email)) is not None:
+        record_audit(
+            db,
+            actor=owner.email,
+            action="admin.user_create",
+            target=str(payload.email),
+            result="failed",
+            detail="email already exists",
+            request=request,
+        )
+        db.commit()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
     user = User(
         email=str(payload.email).lower(),
@@ -299,12 +435,15 @@ def create_user(
         role=payload.role,
     )
     db.add(user)
+    try:
+        db.flush()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already exists"
+        ) from exc
     record_audit(
-        db,
-        actor=owner.email,
-        action="admin.user_create",
-        target=user.email,
-        request=request,
+        db, actor=owner.email, action="admin.user_create", target=user.email, request=request
     )
     db.commit()
     return UserOut(

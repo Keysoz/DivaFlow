@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "creation": "2026-10-28 05:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "token_hash",
+  "user",
+  "voucher_doctype",
+  "voucher_name",
+  "discount_percent",
+  "amount",
+  "reason",
+  "approved_by",
+  "approval_method",
+  "expires_at",
+  "used",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "token_hash",
+   "fieldtype": "Data",
+   "label": "Token hash",
+   "reqd": 1,
+   "unique": 1,
+   "description": "SHA-256 of the single-use token"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Requested by",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "voucher_doctype",
+   "fieldtype": "Data",
+   "label": "Voucher doctype"
+  },
+  {
+   "fieldname": "voucher_name",
+   "fieldtype": "Data",
+   "label": "Voucher name"
+  },
+  {
+   "fieldname": "discount_percent",
+   "fieldtype": "Float",
+   "label": "Discount %"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Discount amount"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved by",
+   "options": "User"
+  },
+  {
+   "fieldname": "approval_method",
+   "fieldtype": "Select",
+   "label": "Approval method",
+   "options": "Manager PIN",
+   "default": "Manager PIN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expires_at",
+   "fieldtype": "Datetime",
+   "label": "Expires at"
+  },
+  {
+   "fieldname": "used",
+   "fieldtype": "Check",
+   "label": "Used",
+   "default": "0"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nUsed\nExpired",
+   "default": "Pending"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-28 05:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Diva Guard",
+ "name": "Diva Override Approval",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "DVA-OVR-.YYYY.-.#####"
+}

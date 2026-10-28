@@ -175,7 +175,7 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 
 ## 9. diva_guard server rules and manager PIN (E-14a, dev site)
 
-- Custom app `apps/diva_guard` (minimal: hooks, settings/approval doctypes, `Diva Product Rule`; no ERPNext core changes, no custom fields). Installed with `scripts/install_diva_guard.sh`, which also installs `packages/rules-engine` into the bench environment.
+- Custom app `apps/diva_guard` (minimal: hooks, settings/approval doctypes, `Diva Product Rule`; no ERPNext core changes; the only custom field is the owner-approved `Item.custom_barcode`, DEC-78). Installed with `scripts/install_diva_guard.sh`, which also installs `packages/rules-engine` into the bench environment.
 - Rules enforced on Sales Invoice validate for every client: MOQ/step in Dozen, authoritative price-list rate, effective discount (5% cashier / 15% manager), manager PIN approval, counter credit/partial payment for non-managers (including `is_pos=0`), available stock (`actual_qty − reserved_qty`).
 - Manager PIN stored only as PBKDF2-HMAC-SHA256 (at least 260,000 iterations, random salt) in `Diva Guard Settings`; the approval API is rate-limited (five attempts per five minutes) and returns a 10-minute, single-use token (only its SHA-256 hash is stored) sent as `X-Diva-Override-Token`. Consumption is serialised with a Redis lock and is idempotent for the same voucher; replay, expiry and another user’s token are rejected.
 - `scripts/test_diva_guard.py` with real cashier/manager logins passes all checks: MOQ rejected; compliant sale created and submitted; cashier 10% discount blocked at submit; manager 10% accepted; PIN-token discount submitted and replay blocked; wrong-user and expired tokens rejected; approval below the actual discount rejected; counter partial payment blocked; rate above the price list blocked; Nos line priced from Dozen; negative quantity and free items rejected; cashier credit invoice blocked while a manager credit invoice is accepted.
@@ -208,3 +208,9 @@ Opening `dashboard-view/Selling` failed with `TypeError: cannot unpack non-itera
 **Fix:** `infra/erpnext-config/config.yaml` sets `Global Defaults.default_company = Diva Dev` through the idempotent config script. That writes the global default used by the chart's dynamic filter; no standard chart or dashboard document is edited and no ERPNext core file is changed. The fix survives migrate/upgrades because it is stored as a default value.
 
 Verified with a headless browser: `/app/dashboard-view/Selling` loads and renders the charts without the TypeError after the config apply; the standard chart fixture remains untouched. Re-running `make config-dry-run` reports 0 changes.
+
+## 13. Item quick-entry barcode (DEC-78, dev site)
+
+- `infra/erpnext-config` creates the owner-approved `Item.custom_barcode` Data field with `allow_in_quick_entry=1`, placed after `item_name`; `asset_category` is removed from quick entry so the quick form stays at seven fields.
+- `diva_guard` on Item validate copies the value into the `Item Barcode` child table, sets the barcode UOM to the item stock UOM, clears `custom_barcode`, and rejects a barcode used by another item.
+- Verified with `scripts/test_quick_barcode.py`: item saves, barcode appears in the Barcodes table, input is cleared, duplicate is rejected; config re-run 0 changes. A headless browser opened the Item quick entry and confirmed the Barcode field is present; the quick form has seven fields.

@@ -2,8 +2,8 @@
 
 `diva_guard` is the minimal custom Frappe app allowed by DEC-29. It contains
 only server-side validation hooks, its own settings/approval doctypes and the
-`Diva Product Rule` master. It adds **no custom fields** to ERPNext doctypes and
-changes no ERPNext core file. The rules themselves live in
+`Diva Product Rule` master. It adds no custom fields except the single owner-approved `custom_barcode`
+quick-entry field (DEC-78); it changes no ERPNext core file. The rules themselves live in
 `packages/rules-engine` (pure Python); this app only maps ERPNext documents onto
 them.
 
@@ -20,6 +20,7 @@ On every Sales Invoice `validate` (POS Next, desk and API clients alike):
 | Effective discount | Discount is measured on the price-list subtotal minus the net subtotal (item and invoice discounts stack). Cashier limit 5%, manager limit 15% (settings). |
 | Manager approval | Above the cashier limit, a manager role or a single-use approval token obtained with the manager PIN is required. Approval is enforced at submit (a draft may wait); each approval is locked while consumed, stored in `Diva Override Approval` (requester, reason, amount, PIN holder, expiry) and marked used exactly once. |
 | Counter credit | A non-manager cannot create an unpaid or partially paid Sales Invoice, with or without `is_pos`; this closes the "just omit is_pos" bypass. |
+| Quick barcode | The Item quick entry has one Barcode field; on Item validate it is appended to the Barcodes table, the input is cleared and duplicates are rejected (DEC-78). Barcode type is left blank (set EAN manually if needed). A concurrent double-create can still race the duplicate check, as ERPNext's own barcode check is read-based too; a DB unique index would need a core schema change, which is out of scope. |
 | Available stock | For stock items with a Bin, available quantity (`actual_qty − reserved_qty`) must cover the line. Negative stock remains disabled in ERPNext settings. |
 
 Returns (`is_return`) skip the MOQ and counter-credit checks.

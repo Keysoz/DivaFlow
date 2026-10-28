@@ -285,4 +285,7 @@ doc_events = {
 		"validate": "diva_guard.events.validate_sales_invoice",
 		"before_submit": "diva_guard.events.validate_sales_invoice",
 	},
+	"Item": {
+		"validate": "diva_guard.events.apply_quick_barcode",
+	},
 }

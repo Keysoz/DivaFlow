@@ -171,3 +171,11 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 - The script also prints the six-step closing checklist (opening, receipts, expenses, expected closing, counted difference, count sheet); sales totals are not treated as cash received.
 - Pending: receipt attachment workflow in Ops, expense categories editing and the Ops expenses screen (E-13).
 
+
+## 9. diva_guard server rules and manager PIN (E-14a, dev site)
+
+- Custom app `apps/diva_guard` (minimal: hooks, settings/approval doctypes, `Diva Product Rule`; no ERPNext core changes, no custom fields). Installed with `scripts/install_diva_guard.sh`, which also installs `packages/rules-engine` into the bench environment.
+- Rules enforced on Sales Invoice validate for every client: MOQ/step in Dozen, authoritative price-list rate, effective discount (5% cashier / 15% manager), manager PIN approval, counter credit/partial payment for non-managers (including `is_pos=0`), available stock (`actual_qty − reserved_qty`).
+- Manager PIN stored only as PBKDF2-HMAC-SHA256 (260,000 iterations, random salt) in `Diva Guard Settings`; the approval API is rate-limited (five attempts per five minutes) and returns a 10-minute, single-use token sent as `X-Diva-Override-Token`.
+- `scripts/test_diva_guard.py` with real cashier/manager logins passes all checks: MOQ rejected; compliant sale accepted; cashier 10% discount blocked; manager 10% accepted; PIN-token discount accepted and replay blocked; counter partial payment blocked; rate above the price list blocked; cashier credit invoice blocked while a manager credit invoice is accepted.
+- Remaining: POS Next PIN dialog and header (E-14b/E-14d), FEFO/expired batches (E-14c), production install and owner PIN rotation.

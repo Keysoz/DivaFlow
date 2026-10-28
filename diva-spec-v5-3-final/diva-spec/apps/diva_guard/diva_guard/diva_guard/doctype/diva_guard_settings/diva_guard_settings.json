@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "creation": "2026-10-28 05:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "manager_pin_hash",
+  "manager_pin_salt",
+  "manager_pin_iterations",
+  "discount_cashier_limit_pct",
+  "discount_manager_limit_pct",
+  "enforce_moq",
+  "enforce_price_list",
+  "block_counter_credit",
+  "enforce_reserved_stock"
+ ],
+ "fields": [
+  {
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled",
+   "default": "1"
+  },
+  {
+   "fieldname": "section_break_pin",
+   "fieldtype": "Section Break",
+   "label": "Manager PIN"
+  },
+  {
+   "fieldname": "manager_pin_hash",
+   "fieldtype": "Data",
+   "label": "Manager PIN hash",
+   "read_only": 1
+  },
+  {
+   "fieldname": "manager_pin_salt",
+   "fieldtype": "Data",
+   "label": "Manager PIN salt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "manager_pin_iterations",
+   "fieldtype": "Int",
+   "label": "PIN hash iterations",
+   "default": "260000",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_limits",
+   "fieldtype": "Section Break",
+   "label": "Limits"
+  },
+  {
+   "fieldname": "discount_cashier_limit_pct",
+   "fieldtype": "Float",
+   "label": "Cashier discount limit %",
+   "default": "5"
+  },
+  {
+   "fieldname": "discount_manager_limit_pct",
+   "fieldtype": "Float",
+   "label": "Manager discount limit %",
+   "default": "15"
+  },
+  {
+   "fieldname": "enforce_moq",
+   "fieldtype": "Check",
+   "label": "Enforce minimum quantity",
+   "default": "1"
+  },
+  {
+   "fieldname": "enforce_price_list",
+   "fieldtype": "Check",
+   "label": "Enforce price-list integrity",
+   "default": "1"
+  },
+  {
+   "fieldname": "block_counter_credit",
+   "fieldtype": "Check",
+   "label": "Block counter credit and partial payment",
+   "default": "1"
+  },
+  {
+   "fieldname": "enforce_reserved_stock",
+   "fieldtype": "Check",
+   "label": "Enforce available stock",
+   "default": "1"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-28 05:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Diva Guard",
+ "name": "Diva Guard Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "issingle": 1
+}

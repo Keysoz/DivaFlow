@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif; color: #1f2933; font-size: 10pt; line-height: 1.45; }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 8pt; color: #52606d; display: block; }
+  .header { display: flex; justify-content: space-between; gap: 12mm; border-bottom: 2px solid #0f4c5c; padding-bottom: 3mm; }
+  .identity h1 { margin: 0 0 1mm; font-size: 16pt; color: #0f4c5c; }
+  .identity .meta { font-size: 8.5pt; color: #52606d; }
+  .title { text-align: left; }
+  .title h2 { margin: 0; font-size: 14pt; color: #0f4c5c; }
+  .title .meta { font-size: 9pt; }
+  .parties { display: flex; gap: 10mm; margin: 4mm 0; }
+  .box { flex: 1; border: 1px solid #cbd2d9; border-radius: 2mm; padding: 3mm 4mm; }
+  .box h3 { margin: 0 0 1.5mm; font-size: 9.5pt; color: #0f4c5c; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  table.lines th, table.lines td { border-bottom: 1px solid #d9e2ec; padding: 1.8mm 1.5mm; text-align: right !important; vertical-align: top; }
+  table.lines thead th { background: #0f4c5c; color: #fff; font-size: 8.5pt; }
+  table.lines thead th .en { color: #d9e2ec; font-size: 7pt; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .center { text-align: center !important; }
+  .totals { width: 78mm; margin-right: auto; margin-top: 3mm; }
+  .totals table { width: 100%; border-collapse: collapse; }
+  .totals td { padding: 1.5mm 2mm; border-bottom: 1px solid #d9e2ec; }
+  .totals td.value { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .totals tr.grand td { border-top: 2px solid #0f4c5c; font-weight: bold; font-size: 11pt; color: #0f4c5c; }
+  .note { margin-top: 4mm; font-size: 8pt; color: #52606d; }
+  .footer { margin-top: 6mm; border-top: 1px solid #cbd2d9; padding-top: 2.5mm; font-size: 8.5pt; color: #52606d; }
+</style>
+</head>
+<body>
+{% set from_date = frappe.form_dict.get("from_date") %}
+{% set to_date = frappe.form_dict.get("to_date") %}
+{% set invoice_filters = {"supplier": doc.name, "docstatus": 1} %}
+{% if from_date %}{% set _ = invoice_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
+{% if to_date %}{% set _ = invoice_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
+{% set invoices = frappe.get_list("Purchase Invoice", filters=invoice_filters, fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"], order_by="posting_date asc", limit_page_length=0) %}
+{% set payment_filters = {"party_type": "Supplier", "party": doc.name, "docstatus": 1} %}
+{% if from_date %}{% set _ = payment_filters.update({"posting_date": [">=", from_date]}) %}{% endif %}
+{% if to_date %}{% set _ = payment_filters.update({"posting_date": ["<=", to_date]}) %}{% endif %}
+{% set payments = frappe.get_list("Payment Entry", filters=payment_filters, fields=["name", "posting_date", "paid_amount", "mode_of_payment"], order_by="posting_date asc", limit_page_length=0) %}
+{% set currency = doc.default_currency or "EGP" %}
+
+<div class="header">
+  <div class="identity">
+    <h1>{{ frappe.db.get_default("company") or "Diva Dev" }}</h1>
+  </div>
+  <div class="title">
+    <h2>كشف حساب مورد<span class="en">Supplier Statement</span></h2>
+    <div class="meta">التاريخ / Date · <span dir="ltr">{{ frappe.utils.format_date(frappe.utils.nowdate(), "dd-MM-yyyy") }}</span></div>
+    {% if from_date or to_date %}<div class="meta">الفترة / Period · <span dir="ltr">{{ from_date or "—" }} → {{ to_date or "—" }}</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="parties">
+  <div class="box">
+    <h3>المورد<span class="en">Supplier</span></h3>
+    <div><strong>{{ doc.supplier_name or doc.name }}</strong></div>
+    {% if doc.mobile_no or doc.phone %}<div dir="ltr">{{ doc.mobile_no or doc.phone }}</div>{% endif %}
+    {% if doc.country %}<div>{{ doc.country }}</div>{% endif %}
+  </div>
+  <div class="box">
+    <h3>الملخص<span class="en">Summary</span></h3>
+    <div>عدد الفواتير / Invoices · {{ invoices | length }}</div>
+    <div>عدد الدفعات / Payments · {{ payments | length }}</div>
+    <div>الرصيد المستحق / Outstanding · <span dir="ltr">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=currency) }}</span></div>
+  </div>
+</div>
+
+<table class="lines">
+  <thead>
+    <tr>
+      <th style="width: 22mm">التاريخ<span class="en">Date</span></th>
+      <th>المستند<span class="en">Document</span></th>
+      <th style="width: 24mm">الإجمالي<span class="en">Total</span></th>
+      <th style="width: 24mm">المتبقي<span class="en">Outstanding</span></th>
+      <th style="width: 22mm">الحالة<span class="en">Status</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for invoice in invoices %}
+    <tr>
+      <td class="num">{{ frappe.utils.format_date(invoice.posting_date, "dd-MM-yyyy") }}</td>
+      <td dir="ltr">{{ invoice.name }}</td>
+      <td class="num">{{ frappe.utils.fmt_money(invoice.grand_total, currency=currency) }}</td>
+      <td class="num">{{ frappe.utils.fmt_money(invoice.outstanding_amount, currency=currency) }}</td>
+      <td class="center">{{ invoice.status }}</td>
+    </tr>
+    {% endfor %}
+    {% for payment in payments %}
+    <tr>
+      <td class="num">{{ frappe.utils.format_date(payment.posting_date, "dd-MM-yyyy") }}</td>
+      <td dir="ltr">دفعة / Payment · {{ payment.name }}</td>
+      <td class="num">− {{ frappe.utils.fmt_money(payment.paid_amount, currency=currency) }}</td>
+      <td class="num">—</td>
+      <td class="center">{{ payment.mode_of_payment or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <table>
+    <tr><td>إجمالي الفواتير<span class="en">Total invoiced</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="grand_total"), currency=currency) }}</td></tr>
+    <tr><td>إجمالي المدفوع<span class="en">Total paid</span></td><td class="value">{{ frappe.utils.fmt_money(payments | sum(attribute="paid_amount"), currency=currency) }}</td></tr>
+    <tr class="grand"><td>الرصيد المستحق<span class="en">Outstanding</span></td><td class="value">{{ frappe.utils.fmt_money(invoices | sum(attribute="outstanding_amount"), currency=currency) }}</td></tr>
+  </table>
+</div>
+
+<div class="note">كشف حساب آلي من Diva؛ يعتمد على الفواتير والدفعات المرحلة.<span class="en">System-generated statement from posted invoices and payments.</span></div>
+<div class="footer">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
+</body>
+</html>

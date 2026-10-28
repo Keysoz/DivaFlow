@@ -5,6 +5,7 @@ from apply import (
     ApiError,
     apply_actions,
     fetch_existing_print_formats,
+    plan_custom_fields,
     plan_permission_mirrors,
     plan_print_formats,
     plan_property_setters,
@@ -342,3 +343,47 @@ def test_fetch_print_formats_ignores_404_only() -> None:
         assert exc.code == 500
     else:  # pragma: no cover - explicit failure path
         raise AssertionError("500 must propagate")
+
+
+def test_plan_custom_fields_create_update_noop() -> None:
+    entry = {
+        "dt": "Item",
+        "fieldname": "custom_barcode",
+        "label": "Barcode",
+        "fieldtype": "Data",
+        "allow_in_quick_entry": 1,
+    }
+    assert plan_custom_fields([entry], {})[0].action == "create"
+    existing = {
+        ("Item", "custom_barcode"): {
+            "name": "Item-custom_barcode",
+            "label": "Barcode",
+            "fieldtype": "Data",
+            "allow_in_quick_entry": 1,
+        }
+    }
+    assert plan_custom_fields([entry], existing)[0].action == "noop"
+    existing[("Item", "custom_barcode")]["label"] = "Old"
+    assert plan_custom_fields([entry], existing)[0].action == "update"
+
+
+def test_custom_field_create_payload() -> None:
+    client = FakeClient()
+    desired = {
+        "label": "Barcode",
+        "fieldtype": "Data",
+        "allow_in_quick_entry": 1,
+    }
+    apply_actions(
+        client,
+        [Action("custom_field", "Item::custom_barcode", "create", None, desired)],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[0]
+    assert method == "POST"
+    assert path.endswith("/Custom%20Field")
+    assert payload["dt"] == "Item"
+    assert payload["fieldname"] == "custom_barcode"
+    assert payload["allow_in_quick_entry"] == 1

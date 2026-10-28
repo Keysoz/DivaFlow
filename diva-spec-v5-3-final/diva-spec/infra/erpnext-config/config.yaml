@@ -19,6 +19,11 @@ property_setters:
     fieldname: taxes_and_charges
     property: hidden
     value: 1
+  # DEC-78: keep the Item quick entry at seven fields after adding Barcode.
+  - doctype: Item
+    fieldname: asset_category
+    property: allow_in_quick_entry
+    value: 0
 
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).
@@ -56,6 +61,18 @@ singles:
   - doctype: Stock Settings
     field: auto_create_serial_and_batch_bundle_for_outward
     value: 1
+
+# DEC-78: one governed custom field so the Item quick entry can take a barcode.
+# diva_guard copies it into the Item Barcode child table on save.
+custom_fields:
+  - dt: Item
+    fieldname: custom_barcode
+    label: Barcode
+    fieldtype: Data
+    insert_after: item_name
+    allow_in_quick_entry: 1
+    no_copy: 1
+    description: Scan or type a barcode; it is added to the Barcodes table when you save.
 
 # E-16 / DEC-72: POS Next ships Custom DocPerm rows. Frappe ignores the
 # standard DocPerm table for any doctype that has custom rows, so roles without

@@ -153,6 +153,49 @@ def plan_permission_mirrors(
     return actions
 
 
+CUSTOM_FIELD_FIELDS = (
+    "label",
+    "fieldtype",
+    "insert_after",
+    "allow_in_quick_entry",
+    "no_copy",
+    "description",
+    "options",
+    "reqd",
+    "read_only",
+    "hidden",
+)
+
+
+def plan_custom_fields(
+    entries: list[dict[str, Any]], existing: dict[tuple[str, str], dict[str, Any]]
+) -> list[Action]:
+    actions: list[Action] = []
+    for entry in entries:
+        key = (str(entry["dt"]), str(entry["fieldname"]))
+        target = f"{key[0]}::{key[1]}"
+        desired = {name: entry[name] for name in CUSTOM_FIELD_FIELDS if name in entry}
+        if key not in existing:
+            actions.append(Action("custom_field", target, "create", None, desired))
+            continue
+        current = existing[key]
+        if any(
+            _normalize(current.get(name)) != _normalize(value) for name, value in desired.items()
+        ):
+            actions.append(
+                Action(
+                    "custom_field",
+                    target,
+                    "update",
+                    {"name": current.get("name"), **_summary(desired)},
+                    desired,
+                )
+            )
+        else:
+            actions.append(Action("custom_field", target, "noop", _summary(desired), desired))
+    return actions
+
+
 def _record_key(entry: dict[str, Any]) -> str:
     doctype = str(entry["doctype"])
     return doctype + "::" + json.dumps(entry["match"], sort_keys=True)
@@ -323,6 +366,23 @@ def fetch_existing_singles(
     return existing
 
 
+def fetch_existing_custom_fields(
+    client: Client, entries: list[dict[str, Any]]
+) -> dict[tuple[str, str], dict[str, Any]]:
+    existing: dict[tuple[str, str], dict[str, Any]] = {}
+    for entry in entries:
+        filters = [["dt", "=", entry["dt"]], ["fieldname", "=", entry["fieldname"]]]
+        rows = client.get(
+            "/api/resource/"
+            + _quoted("Custom Field")
+            + _query(filters, ["name", *CUSTOM_FIELD_FIELDS])
+            + "&limit_page_length=0"
+        )["data"]
+        if rows:
+            existing[(str(entry["dt"]), str(entry["fieldname"]))] = rows[0]
+    return existing
+
+
 def fetch_existing_records(
     client: Client, entries: list[dict[str, Any]]
 ) -> dict[str, dict[str, Any]]:
@@ -426,6 +486,17 @@ def apply_actions(
                 "/api/resource/" + _quoted(doctype) + "/" + _quoted(doctype),
                 {fieldname: _typed(singles_by_target.get(action.target, {}).get("value"))},
             )
+        elif action.kind == "custom_field":
+            dt, fieldname = action.target.split("::")
+            payload = {"dt": dt, "fieldname": fieldname, **action.desired}
+            if action.action == "update":
+                name = action.current.get("name")
+                client.put(
+                    "/api/resource/" + _quoted("Custom Field") + "/" + _quoted(name),
+                    action.desired,
+                )
+            else:
+                client.post("/api/resource/" + _quoted("Custom Field"), payload)
         elif action.kind == "docperm":
             doctype, role, permlevel = action.target.split("::")
             payload = {
@@ -504,6 +575,7 @@ def main() -> int:
     singles = config.get("singles", [])
     records = config.get("records", [])
     permission_mirrors = config.get("permission_mirrors", [])
+    custom_fields = config.get("custom_fields", [])
     base_dir = Path(args.config).resolve().parent
     print_formats: list[dict[str, Any]] = []
     for entry in config.get("print_formats", []):
@@ -537,6 +609,7 @@ def main() -> int:
     existing_print_formats = fetch_existing_print_formats(
         client, [entry["name"] for entry in print_formats]
     )
+    existing_custom_fields = fetch_existing_custom_fields(client, custom_fields)
     actions = (
         plan_property_setters(entries, existing_ps)
         + plan_workspaces(workspaces, existing_ws)
@@ -544,6 +617,7 @@ def main() -> int:
         + plan_records(records, existing_records)
         + plan_permission_mirrors(standard_perms, custom_perms)
         + plan_print_formats(print_formats, existing_print_formats)
+        + plan_custom_fields(custom_fields, existing_custom_fields)
     )
 
     for action in actions:

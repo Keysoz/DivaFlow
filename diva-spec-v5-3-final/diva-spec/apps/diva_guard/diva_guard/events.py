@@ -293,3 +293,27 @@ def validate_sales_invoice(doc, method: str | None = None) -> None:
 		_check_discount(doc, consume=method == "before_submit" or doc.docstatus == 1)
 	if _setting("enforce_reserved_stock", 1):
 		_check_stock(doc)
+
+
+def apply_quick_barcode(doc, method: str | None = None) -> None:
+	"""Copy the one-field quick-entry barcode into the Item Barcodes table (DEC-78)."""
+	if not doc.meta.has_field("custom_barcode"):
+		return
+	value = str(doc.get("custom_barcode") or "").strip()
+	if not value:
+		return
+	owner = frappe.db.get_value("Item Barcode", {"barcode": value}, "parent")
+	if owner and owner != doc.name:
+		frappe.throw(
+			_("Barcode {0} is already used by item {1}.").format(value, owner),
+			frappe.ValidationError,
+		)
+	if not any(str(row.barcode or "").strip() == value for row in doc.get("barcodes") or []):
+		doc.append(
+			"barcodes",
+			{
+				"barcode": value,
+				"uom": doc.get("stock_uom") or "Nos",
+			},
+		)
+	doc.set("custom_barcode", None)

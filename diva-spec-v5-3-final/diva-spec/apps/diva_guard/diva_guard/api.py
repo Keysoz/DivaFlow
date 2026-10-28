@@ -7,6 +7,7 @@ is read from the environment when the site is seeded/rotated.
 
 import hashlib
 import hmac
+import re
 import secrets
 
 import frappe
@@ -102,3 +103,11 @@ def approve_discount(
 	)
 	approval.insert(ignore_permissions=True)
 	return {"token": token, "expires_at": str(expires_at), "name": approval.name}
+
+
+@frappe.whitelist()
+def qr_svg(text: str) -> str:
+	"""Return an inline SVG QR code for API clients (print formats use the Jinja method)."""
+	from diva_guard.jinja_methods import qr_svg as render_qr
+
+	return render_qr(text)

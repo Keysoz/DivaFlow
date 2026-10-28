@@ -28,6 +28,19 @@ property_setters:
     fieldname: is_fixed_asset
     property: allow_in_quick_entry
     value: 0
+  # DEC-80: quantity (opening stock) is available in the normal form and quick entry.
+  - doctype: Item
+    fieldname: opening_stock
+    property: hidden
+    value: 0
+  - doctype: Item
+    fieldname: opening_stock
+    property: allow_in_quick_entry
+    value: 1
+  - doctype: Item
+    fieldname: is_stock_item
+    property: allow_in_quick_entry
+    value: 0
   - doctype: Item
     fieldname: standard_rate
     property: allow_in_quick_entry
@@ -125,6 +138,15 @@ print_formats:
   - name: Diva Payment Receipt
     doc_type: Payment Entry
     template: print_formats/diva_payment_receipt.html
+  - name: Diva Purchase Invoice A4
+    doc_type: Purchase Invoice
+    template: print_formats/diva_purchase_invoice_a4.html
+  - name: Diva Purchase Receipt A4
+    doc_type: Purchase Receipt
+    template: print_formats/diva_purchase_receipt_a4.html
+  - name: Diva Journal Entry A4
+    doc_type: Journal Entry
+    template: print_formats/diva_journal_entry_a4.html
   - name: Diva Customer Statement
     doc_type: Customer
     template: print_formats/diva_customer_statement.html

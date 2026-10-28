@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif; color: #16232b; font-size: 10.5pt; line-height: 1.5; }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 8pt; color: #6b7c86; display: block; }
+  .muted { color: #6b7c86; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; padding-bottom: 5mm; border-bottom: 1px solid #d9e2e6; }
+  .brand { display: flex; gap: 4mm; align-items: center; }
+  .logo, .monogram { width: 18mm; height: 18mm; border-radius: 4mm; object-fit: contain; }
+  .monogram { display: flex; align-items: center; justify-content: center; background: #0f4c5c; color: #fff; font-size: 17pt; font-weight: 700; }
+  .brand h1 { margin: 0; font-size: 16pt; color: #0f4c5c; line-height: 1.2; }
+  .brand .meta { font-size: 8.5pt; color: #6b7c86; }
+  .doc-title { text-align: left; }
+  .doc-title h2 { margin: 0; font-size: 17pt; color: #0f4c5c; }
+  .doc-title .number { font-size: 11pt; font-weight: 700; direction: ltr; }
+  .doc-title .date { font-size: 9pt; color: #6b7c86; }
+  .chip-row { display: flex; gap: 3mm; margin: 5mm 0; flex-wrap: wrap; }
+  .chip { background: #f2f7f8; border: 1px solid #d9e2e6; border-radius: 2mm; padding: 2mm 3mm; font-size: 8.8pt; }
+  .chip strong { color: #0f4c5c; }
+  .parties { display: flex; gap: 6mm; margin: 4mm 0 5mm; }
+  .box { flex: 1; border: 1px solid #d9e2e6; border-radius: 3mm; padding: 3.5mm 4mm; }
+  .box h3 { margin: 0 0 1.5mm; font-size: 10pt; color: #0f4c5c; }
+  .box .line { margin: 0.6mm 0; font-size: 9.2pt; }
+  table.items { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  table.items th, table.items td { border-bottom: 1px solid #e3eaed; padding: 2.2mm 1.5mm; vertical-align: top; }
+  table.items thead th { background: #0f4c5c; color: #fff; font-size: 8.8pt; text-align: right !important; }
+  table.items thead th .en { color: #d9e2e6; font-size: 7pt; }
+  table.items tbody tr:nth-child(even) { background: #f8fafb; }
+  table.items th.num { text-align: left !important; }
+  table.items th.center { text-align: center !important; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .center { text-align: center !important; }
+  .bottom { display: flex; gap: 8mm; align-items: flex-start; margin-top: 5mm; }
+  .totals { flex: 1; max-width: 80mm; }
+  .totals table { width: 100%; border-collapse: collapse; }
+  .totals td { padding: 1.6mm 2mm; border-bottom: 1px solid #e3eaed; }
+  .totals td.value { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .totals tr.grand td { border-top: 2px solid #0f4c5c; border-bottom: none; font-weight: 700; font-size: 12pt; color: #0f4c5c; }
+  .qr-card { width: 34mm; text-align: center; border: 1px solid #d9e2e6; border-radius: 3mm; padding: 2.5mm 2mm; }
+  .qr-card svg { width: 27mm !important; height: 27mm !important; }
+  .qr-card .cap { font-size: 7.5pt; color: #6b7c86; margin-top: 1mm; }
+  .note { margin-top: 4mm; font-size: 8pt; color: #6b7c86; }
+  .footer { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #d9e2e6; display: flex; justify-content: space-between; font-size: 8.5pt; color: #6b7c86; }
+  .thanks { color: #0f4c5c; font-weight: 700; font-size: 10pt; }
+</style>
+</head>
+<body>
+{% set company = doc.company %}
+{% set logo = frappe.db.get_value("Company", company, "company_logo") %}
+{% set tax_id = frappe.db.get_value("Company", company, "tax_id") %}
+{% set phone = frappe.db.get_value("Company", company, "phone_no") %}
+{% set email = frappe.db.get_value("Company", company, "email") %}
+{% set qr_text = "Diva|Purchase Invoice|" ~ doc.name ~ "|" ~ doc.get_formatted("grand_total") ~ "|" ~ doc.get_formatted("posting_date") %}
+<div class="header">
+  <div class="brand">
+    {% if logo %}<img class="logo" src="{{ logo }}" alt="">{% else %}<div class="monogram">{{ company[:2] }}</div>{% endif %}
+    <div>
+      <h1>{{ company }}</h1>
+      {% if tax_id %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ tax_id }}</span></div>{% endif %}
+      {% if phone %}<div class="meta">هاتف / Phone: <span dir="ltr">{{ phone }}</span></div>{% endif %}
+      {% if email %}<div class="meta">بريد / Email: <span dir="ltr">{{ email }}</span></div>{% endif %}
+    </div>
+  </div>
+  <div class="doc-title">
+    <h2>فاتورة مشتريات<span class="en">Purchase Invoice</span></h2>
+    <div class="number">{{ doc.name }}</div>
+    <div class="date">التاريخ / Date · <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+    {% if doc.due_date %}<div class="date">الاستحقاق / Due · <span dir="ltr">{{ doc.get_formatted("due_date") }}</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="chip-row">
+  <div class="chip">العملة / Currency · <strong dir="ltr">{{ doc.currency }}</strong></div>
+  <div class="chip">الحالة / Status · <strong>{{ doc.status }}</strong></div>
+  {% if doc.bill_no %}<div class="chip">فاتورة المورد / Bill · <strong dir="ltr">{{ doc.bill_no }}</strong></div>{% endif %}
+</div>
+
+<div class="parties">
+  <div class="box">
+    <h3>المورد<span class="en">Supplier</span></h3>
+    <div class="line"><strong>{{ doc.supplier_name or doc.supplier }}</strong></div>
+    {% if doc.supplier_address %}<div class="line muted">{{ doc.supplier_address }}</div>{% endif %}
+  </div>
+  <div class="box">
+    <h3>الفاتورة<span class="en">Invoice</span></h3>
+    <div class="line">الرقم / No. <span dir="ltr"><strong>{{ doc.name }}</strong></span></div>
+    {% if doc.bill_no %}<div class="line">مرجع المورد / Supplier ref · <span dir="ltr">{{ doc.bill_no }}</span></div>{% endif %}
+    <div class="line">التاريخ / Date <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+  </div>
+</div>
+
+<table class="items">
+  <thead><tr><th style="width: 8mm">#</th><th>الصنف<span class="en">Item</span></th><th class="num" style="width: 20mm">الكمية<span class="en">Qty</span></th><th class="center" style="width: 16mm">الوحدة<span class="en">UOM</span></th><th class="num" style="width: 24mm">السعر<span class="en">Rate</span></th><th class="num" style="width: 28mm">الإجمالي<span class="en">Amount</span></th></tr></thead>
+  <tbody>
+    {% for item in doc.items %}
+    <tr><td class="center">{{ item.idx }}</td><td>{{ item.item_name or item.item_code }}{% if item.description and item.description != item.item_name %}<div class="en">{{ item.description }}</div>{% endif %}</td><td class="num">{{ item.get_formatted("qty") }}</td><td class="center">{{ item.uom }}</td><td class="num">{{ item.get_formatted("rate") }}</td><td class="num">{{ item.get_formatted("amount") }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="bottom">
+  <div class="totals">
+    <table>
+      {% if doc.discount_amount or doc.total_taxes_and_charges %}<tr><td>المجموع الفرعي<span class="en">Subtotal</span></td><td class="value">{{ doc.get_formatted("total") }}</td></tr>{% endif %}
+      {% if doc.discount_amount %}<tr><td>الخصم<span class="en">Discount</span></td><td class="value">- {{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
+      {% if doc.total_taxes_and_charges %}<tr><td>الضريبة<span class="en">Tax</span></td><td class="value">{{ doc.get_formatted("total_taxes_and_charges") }}</td></tr>{% endif %}
+      <tr class="grand"><td>الإجمالي<span class="en">Grand Total</span></td><td class="value">{{ doc.get_formatted("grand_total") }}</td></tr>
+      {% if doc.outstanding_amount %}<tr><td>المتبقي<span class="en">Outstanding</span></td><td class="value">{{ doc.get_formatted("outstanding_amount") }}</td></tr>{% endif %}
+    </table>
+  </div>
+  <div class="qr-card">
+    {{ qr_svg(qr_text) }}
+    <div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div>
+  </div>
+</div>
+
+<div class="note">الأسعار والكميات حسب وحدة الصنف في كل سطر.<span class="en">Rates and quantities follow the item UOM on each line.</span></div>
+<div class="footer"><div class="thanks">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div><div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div></div>
+</body>
+</html>

@@ -14,6 +14,7 @@ Accessories and Cosmetics; price list Standard Selling; POS Profile P003 POS.
 import json
 import os
 import sys
+from typing import Any, cast
 
 import httpx
 
@@ -46,7 +47,7 @@ def ensure_warehouse(name: str) -> str:
     }
     response = http.post("/api/resource/Warehouse", json=payload)
     response.raise_for_status()
-    return response.json()["data"]["name"]
+    return cast(str, response.json()["data"]["name"])
 
 
 def ensure_item(index: int, group: str) -> str:
@@ -84,13 +85,13 @@ def ensure_item(index: int, group: str) -> str:
     return code
 
 
-def submit(doctype: str, payload: dict) -> dict:
+def submit(doctype: str, payload: dict[str, Any]) -> dict[str, Any]:
     created = http.post(f"/api/resource/{doctype}", json=payload)
     created.raise_for_status()
     doc = created.json()["data"]
     submitted = http.post("/api/method/frappe.client.submit", data={"doc": json.dumps(doc)})
     submitted.raise_for_status()
-    return submitted.json()["message"]
+    return cast(dict[str, Any], submitted.json()["message"])
 
 
 # --- Warehouses (DEC-49) ---

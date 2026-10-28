@@ -193,3 +193,55 @@ def test_permission_mirror_is_idempotent() -> None:
     }
     actions = plan_permission_mirrors(standard, custom)
     assert actions[0].action == "noop"
+
+
+def test_docperm_create_payload() -> None:
+    client = FakeClient()
+    apply_actions(
+        client,
+        [
+            Action(
+                "docperm",
+                "Sales Invoice::Accounts User::0",
+                "create",
+                None,
+                {"read": 1, "create": 1, "submit": 1},
+            )
+        ],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[0]
+    assert method == "POST"
+    assert path.endswith("/Custom%20DocPerm")
+    assert payload["parent"] == "Sales Invoice"
+    assert payload["parenttype"] == "DocType"
+    assert payload["role"] == "Accounts User"
+    assert payload["permlevel"] == 0
+    assert payload["read"] == 1
+    assert payload["create"] == 1
+
+
+def test_docperm_update_payload_uses_row_name() -> None:
+    client = FakeClient()
+    apply_actions(
+        client,
+        [
+            Action(
+                "docperm",
+                "Address::All::0",
+                "update",
+                {"name": "abc123", "read": 1},
+                {"read": 1, "write": 1},
+            )
+        ],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[0]
+    assert method == "PUT"
+    assert path.endswith("/Custom%20DocPerm/abc123")
+    assert payload["write"] == 1
+    assert "parent" not in payload

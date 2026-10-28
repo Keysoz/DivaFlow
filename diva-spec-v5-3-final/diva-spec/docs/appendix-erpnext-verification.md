@@ -152,7 +152,7 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 
 - `manager@diva.test`: Sales Manager, Sales Master Manager, Purchase Manager, Stock Manager, Accounts User.
 - `cashier@diva.test`: Sales User, Stock User, POSNext Cashier (vendor role required by POS Next).
-- **Finding:** POS Next ships `Custom DocPerm` rows for 15 doctypes. Frappe ignores the standard `DocPerm` table for a doctype once custom rows exist, so installing POS Next removed Sales Invoice and Journal Entry access from `Accounts User` (and Item/Customer/Warehouse access from stock/sales roles). `infra/erpnext-config` now mirrors the standard rows into `Custom DocPerm` (17 created, existing vendor rows preserved); a second run reports 0 changes.
+- **Finding:** POS Next ships `Custom DocPerm` rows for 15 doctypes. Frappe ignores the standard `DocPerm` table for a doctype once custom rows exist, so installing POS Next removed Sales Invoice and Journal Entry access from `Accounts User` (and Item/Customer/Warehouse access from stock/sales roles). `infra/erpnext-config` now mirrors the standard rows into `Custom DocPerm`; POS Next-only roles are never touched and a second run reports 0 changes.
 - **Verified with real logins (not Administrator):** manager can edit price lists, list Sales Invoice, Payment Entry, Stock Reconciliation and Journal Entry; cashier can create a draft Sales Invoice and open the POS (POS Profile) but cannot write price lists, list Stock Reconciliation or Journal Entry, or create users.
 - **Known gap:** the vendor `POSNext Cashier` role includes cancel on Sales Invoice (POS void). The rules engine and local-api must keep void approval with a manager (TASK-E-14a); this is not yet enforced at the ERPNext permission layer.
 

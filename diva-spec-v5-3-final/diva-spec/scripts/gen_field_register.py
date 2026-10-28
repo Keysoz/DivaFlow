@@ -20,6 +20,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
+from typing import Any
 
 BASE = os.environ.get("ERPNEXT_URL", "").rstrip("/")
 USER = os.environ.get("ERPNEXT_USER", "")
@@ -68,7 +69,7 @@ login = urllib.request.Request(
 opener.open(login).read()
 
 
-def get_json(path):
+def get_json(path: str) -> Any:
     with opener.open(BASE + path) as response:
         return json.loads(response.read())
 

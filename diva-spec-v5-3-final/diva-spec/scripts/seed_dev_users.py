@@ -15,8 +15,10 @@ item "BULK-ACC-01" with a Dozen price, and the POSNext Cashier role (installed
 with POS Next). All data is synthetic; never run against production.
 """
 
+import json
 import os
-import sys
+import uuid
+from typing import Any
 
 import httpx
 
@@ -24,15 +26,11 @@ BASE = os.environ.get("ERPNEXT_URL", "").rstrip("/")
 ADMIN_USER = os.environ.get("ERPNEXT_USER", "")
 ADMIN_PASSWORD = os.environ.get("ERPNEXT_PASSWORD", "")
 TEST_PASSWORD = os.environ.get("DIVA_TEST_PASSWORD", "")
-if not (BASE and ADMIN_USER and ADMIN_PASSWORD and TEST_PASSWORD):
-    sys.exit("Set ERPNEXT_URL, ERPNEXT_USER, ERPNEXT_PASSWORD and DIVA_TEST_PASSWORD")
 
 COMPANY = "Diva Dev"
 TEST_CUSTOMER = "Bulk Customer 01"
 TEST_ITEM = "BULK-ACC-01"
-
-admin = httpx.Client(base_url=BASE, timeout=30)
-admin.post("/api/method/login", data={"usr": ADMIN_USER, "pwd": ADMIN_PASSWORD}).raise_for_status()
+PROBE_REMARK = "E-16 permission probe"
 
 USERS = {
     "manager@diva.test": {
@@ -52,8 +50,8 @@ USERS = {
 }
 
 
-def ensure_user(email: str, spec: dict[str, object]) -> None:
-    roles = [str(role) for role in spec["roles"]]  # type: ignore[index]
+def ensure_user(admin: httpx.Client, email: str, spec: dict[str, Any]) -> None:
+    roles = [str(role) for role in spec["roles"]]
     existing = admin.get(f"/api/resource/User/{email}")
     if existing.status_code == 200:
         current = {row["role"] for row in existing.json()["data"].get("roles", [])}
@@ -80,10 +78,6 @@ def ensure_user(email: str, spec: dict[str, object]) -> None:
     print("user created:", email)
 
 
-for email, spec in USERS.items():
-    ensure_user(email, dict(spec))
-
-
 def client_for(email: str) -> httpx.Client:
     client = httpx.Client(base_url=BASE, timeout=30)
     response = client.post("/api/method/login", data={"usr": email, "pwd": TEST_PASSWORD})
@@ -104,8 +98,21 @@ def can_write_price_list(client: httpx.Client) -> bool:
     return response.status_code == 200
 
 
+def can_create_user(admin: httpx.Client, client: httpx.Client) -> bool:
+    """Try to create a throwaway user; delete it with the admin if allowed."""
+    probe = f"permission-probe-{uuid.uuid4().hex[:8]}@diva.test"
+    response = client.post(
+        "/api/resource/User",
+        json={"email": probe, "first_name": "Permission Probe"},
+    )
+    if response.status_code != 200:
+        return False
+    admin.delete(f"/api/resource/User/{probe}")
+    return True
+
+
 def can_create_invoice(client: httpx.Client) -> bool:
-    """Create a draft invoice as the user, then let the admin delete it."""
+    """Create a draft invoice as the user; admin cleanup runs in main()."""
     payload = {
         "customer": TEST_CUSTOMER,
         "company": COMPANY,
@@ -114,6 +121,7 @@ def can_create_invoice(client: httpx.Client) -> bool:
         "selling_price_list": "Standard Selling",
         "price_list_currency": "EGP",
         "plc_conversion_rate": 1,
+        "remarks": PROBE_REMARK,
         "items": [
             {
                 "item_code": TEST_ITEM,
@@ -128,65 +136,89 @@ def can_create_invoice(client: httpx.Client) -> bool:
     if response.status_code != 200:
         print("  invoice creation error:", response.status_code, response.text[:160])
         return False
-    name = response.json()["data"]["name"]
-    deleted = admin.delete(f"/api/resource/Sales Invoice/{name}")
-    if deleted.status_code != 202:
-        print("  warning: could not delete draft", name, deleted.status_code)
     return True
 
 
-def can_create_user(client: httpx.Client) -> bool:
-    response = client.post(
-        "/api/resource/User",
-        json={"email": "permission-probe@diva.test", "first_name": "Permission Probe"},
+def cleanup_probe_invoices(admin: httpx.Client) -> None:
+    rows = (
+        admin.get(
+            "/api/resource/Sales Invoice",
+            params={
+                "filters": json.dumps([["remarks", "=", PROBE_REMARK]]),
+                "fields": '["name"]',
+            },
+        )
+        .json()
+        .get("data")
+        or []
     )
-    return response.status_code == 200
+    for row in rows:
+        admin.delete(f"/api/resource/Sales Invoice/{row['name']}")
 
 
-checks = {
-    "Price List write": can_write_price_list,
-    "Sales Invoice list": lambda c: can_list(c, "Sales Invoice"),
-    "Payment Entry list": lambda c: can_list(c, "Payment Entry"),
-    "Stock Reconciliation list": lambda c: can_list(c, "Stock Reconciliation"),
-    "Journal Entry list": lambda c: can_list(c, "Journal Entry"),
-    "POS Profile list": lambda c: can_list(c, "POS Profile"),
-    "User create": can_create_user,
-    "Sales Invoice create (draft)": can_create_invoice,
-}
+def main() -> int:
+    if not (BASE and ADMIN_USER and ADMIN_PASSWORD and TEST_PASSWORD):
+        print("Set ERPNEXT_URL, ERPNEXT_USER, ERPNEXT_PASSWORD and DIVA_TEST_PASSWORD")
+        return 2
 
-results: dict[str, dict[str, bool]] = {}
-for email in USERS:
-    client = client_for(email)
-    print(email)
-    results[email] = {}
-    for label, check in checks.items():
-        allowed = check(client)
-        results[email][label] = allowed
-        print(f"  {label}: {allowed}")
-    client.close()
+    admin = httpx.Client(base_url=BASE, timeout=30)
+    admin.post(
+        "/api/method/login", data={"usr": ADMIN_USER, "pwd": ADMIN_PASSWORD}
+    ).raise_for_status()
 
-manager = results["manager@diva.test"]
-cashier = results["cashier@diva.test"]
-expectations = [
-    ("cashier cannot edit price lists", not cashier["Price List write"]),
-    ("manager can edit price lists", manager["Price List write"]),
-    ("cashier cannot list Stock Reconciliation", not cashier["Stock Reconciliation list"]),
-    ("manager can list Stock Reconciliation", manager["Stock Reconciliation list"]),
-    ("cashier cannot list Journal Entry", not cashier["Journal Entry list"]),
-    ("manager can list Journal Entry", manager["Journal Entry list"]),
-    ("cashier cannot create users", not cashier["User create"]),
-    ("cashier can create invoices", cashier["Sales Invoice create (draft)"]),
-    ("cashier can open the POS (POS Profile)", cashier["POS Profile list"]),
-    ("manager can list invoices", manager["Sales Invoice list"]),
-    ("manager can list payment entries", manager["Payment Entry list"]),
-]
+    for email, spec in USERS.items():
+        ensure_user(admin, email, spec)
 
-failed = False
-for label, ok in expectations:
-    print(("OK   " if ok else "FAIL ") + label)
-    failed = failed or not ok
+    checks: dict[str, Any] = {
+        "Price List write": can_write_price_list,
+        "Sales Invoice list": lambda c: can_list(c, "Sales Invoice"),
+        "Payment Entry list": lambda c: can_list(c, "Payment Entry"),
+        "Stock Reconciliation list": lambda c: can_list(c, "Stock Reconciliation"),
+        "Journal Entry list": lambda c: can_list(c, "Journal Entry"),
+        "POS Profile list": lambda c: can_list(c, "POS Profile"),
+        "User create": lambda c: can_create_user(admin, c),
+        "Sales Invoice create (draft)": can_create_invoice,
+    }
 
-admin.close()
-if failed:
-    print("E-16 permission baseline FAILED")
-raise SystemExit(1 if failed else 0)
+    results: dict[str, dict[str, bool]] = {}
+    for email in USERS:
+        client = client_for(email)
+        print(email)
+        results[email] = {}
+        for label, check in checks.items():
+            allowed = bool(check(client))
+            results[email][label] = allowed
+            print(f"  {label}: {allowed}")
+        client.close()
+
+    cleanup_probe_invoices(admin)
+
+    manager = results["manager@diva.test"]
+    cashier = results["cashier@diva.test"]
+    expectations = [
+        ("cashier cannot edit price lists", not cashier["Price List write"]),
+        ("manager can edit price lists", manager["Price List write"]),
+        ("cashier cannot list Stock Reconciliation", not cashier["Stock Reconciliation list"]),
+        ("manager can list Stock Reconciliation", manager["Stock Reconciliation list"]),
+        ("cashier cannot list Journal Entry", not cashier["Journal Entry list"]),
+        ("manager can list Journal Entry", manager["Journal Entry list"]),
+        ("cashier cannot create users", not cashier["User create"]),
+        ("cashier can create invoices", cashier["Sales Invoice create (draft)"]),
+        ("cashier can open the POS (POS Profile)", cashier["POS Profile list"]),
+        ("manager can list invoices", manager["Sales Invoice list"]),
+        ("manager can list payment entries", manager["Payment Entry list"]),
+    ]
+
+    failed = False
+    for label, ok in expectations:
+        print(("OK   " if ok else "FAIL ") + label)
+        failed = failed or not ok
+
+    admin.close()
+    if failed:
+        print("E-16 permission baseline FAILED")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -105,6 +105,10 @@ PERMISSION_FLAGS = (
     "share",
 )
 
+# Rows owned by the POS Next app; never overwrite them, even if a future
+# vendor release also ships a standard DocPerm row for the same role.
+VENDOR_ONLY_ROLES = frozenset({"POSNext Cashier", "Nexus POS Manager"})
+
 
 def _perm_key(row: dict[str, Any]) -> tuple[str, str, int]:
     return (str(row["parent"]), str(row["role"]), int(row.get("permlevel") or 0))
@@ -124,6 +128,8 @@ def plan_permission_mirrors(
     """
     actions: list[Action] = []
     for key, row in standard.items():
+        if key[1] in VENDOR_ONLY_ROLES:
+            continue
         target = "::".join([key[0], key[1], str(key[2])])
         wanted = {flag: int(row.get(flag) or 0) for flag in PERMISSION_FLAGS}
         if key not in custom:

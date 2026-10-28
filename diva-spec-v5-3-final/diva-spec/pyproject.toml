@@ -25,7 +25,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
+files = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config", "scripts"]
 mypy_path = ["packages/rules-engine/src", "packages/erpnext-adapter/src", "apps/cloud-api/src", "apps/local-api/src", "infra/erpnext-config"]
 
 [tool.pytest.ini_options]

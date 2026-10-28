@@ -41,6 +41,16 @@ singles:
   - doctype: Stock Settings
     field: auto_reserve_stock
     value: 1
+  # E-14c: FEFO for batch items and auto bundles at the counter.
+  - doctype: Stock Settings
+    field: pick_serial_and_batch_based_on
+    value: Expiry
+  - doctype: Stock Settings
+    field: enable_serial_and_batch_no_for_item
+    value: 1
+  - doctype: Stock Settings
+    field: auto_create_serial_and_batch_bundle_for_outward
+    value: 1
 
 # E-16 / DEC-72: POS Next ships Custom DocPerm rows. Frappe ignores the
 # standard DocPerm table for any doctype that has custom rows, so roles without

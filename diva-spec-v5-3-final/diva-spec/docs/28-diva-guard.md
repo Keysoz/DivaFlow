@@ -89,8 +89,8 @@ one.
 
 - The POS Next PIN dialog must call `approve_discount` and send the header
   (TASK-E-14b/E-14d); until then the POS shows only the server error.
-- FEFO batch selection and expired-batch blocking (TASK-E-14c) are not in this
-  version; ERPNext batch/expiry is not enabled on the dev items yet.
+- FEFO batch selection and expired-batch blocking are provided by native ERPNext
+  settings (TASK-E-14c, DEC-76); the POS Next UI still needs staging verification.
 - The owner PIN is held by Administrator (OPEN-02) and rotated through the secret
   store; the seed script is the only writer.
 - `diva_guard` is critical code: changes need a Western-vendor review and an

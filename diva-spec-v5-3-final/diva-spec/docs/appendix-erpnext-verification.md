@@ -191,3 +191,9 @@ Owner decision DEC-75: the Chinese supplier is treated like an Egyptian supplier
 - Purchase Invoice `ACC-PINV-2026-00006` for EGP 12,000, paid by two bank payments of EGP 4,800 and EGP 7,200.
 - Verified: stock +120 Nos, stock value +13,200 (12,000 goods + 1,200 landed cost), PO 100% received and billed, invoice outstanding 0, supplier GL balance 0, two payment history rows.
 - The first run created the documents; a second run changed nothing and still reported all checks OK.
+
+## 11. FEFO and expired batches (E-14c, dev site)
+
+- `Stock Settings.pick_serial_and_batch_based_on = Expiry`, `enable_serial_and_batch_no_for_item = 1`, `auto_create_serial_and_batch_bundle_for_outward = 1`; ERPNext's auto-batch query excludes batches with `expiry_date < today` and orders by expiry.
+- `scripts/seed_batches.py` creates `BULK-COS-BATCH-01` with batches expiring 2026-11-15 (earlier) and 2027-01-15 (later), and `BULK-COS-EXPIRED-01` with an already expired batch, each with opening stock through Stock Reconciliation (batch fields).
+- `scripts/test_fefo.py` with the cashier account submitted a sale without naming a batch: the Serial and Batch Bundle selected `BATCH-COS-2026-00001` (2026-11-15), the earliest available; the expired item could not be submitted (mandatory batch error, no available non-expired batch).

@@ -283,5 +283,6 @@ app_license = "mit"
 doc_events = {
 	"Sales Invoice": {
 		"validate": "diva_guard.events.validate_sales_invoice",
+		"before_submit": "diva_guard.events.validate_sales_invoice",
 	},
 }

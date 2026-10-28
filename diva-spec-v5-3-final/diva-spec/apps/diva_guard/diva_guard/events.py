@@ -6,6 +6,7 @@ validation runs on the server for every Sales Invoice, whether it comes from
 POS Next, the desk or an API client.
 """
 
+import hashlib
 from decimal import Decimal
 
 import frappe
@@ -85,15 +86,17 @@ def _check_stock(doc) -> None:
 	for item in doc.items:
 		if not item.warehouse:
 			continue
+		is_stock_item = frappe.db.get_value("Item", item.item_code, "is_stock_item")
+		if not is_stock_item:
+			continue
 		bin_row = frappe.db.get_value(
 			"Bin",
 			{"item_code": item.item_code, "warehouse": item.warehouse},
 			["actual_qty", "reserved_qty"],
 			as_dict=True,
 		)
-		if not bin_row:
-			continue
-		available = _dec(bin_row.actual_qty) - _dec(bin_row.reserved_qty)
+		# No Bin means nothing was ever received there: zero available, not a skip.
+		available = _dec(bin_row.actual_qty) - _dec(bin_row.reserved_qty) if bin_row else Decimal("0")
 		if available < _dec(item.stock_qty):
 			frappe.throw(
 				_("Not enough available stock for {0} in {1}: available {2}, requested {3}.").format(
@@ -107,19 +110,41 @@ def _check_stock(doc) -> None:
 
 
 def _price_list_rate(doc, item) -> Decimal:
-	"""Authoritative rate from Item Price, never the client-supplied value."""
-	rate = frappe.db.get_value(
+	"""Authoritative rate from Item Price, never the client-supplied rate.
+
+	Item Price rows are usually per Dozen. For a Nos line we convert the Dozen
+	price down (1 Dozen = 12 Nos) so a missing Nos row cannot become an
+	arbitrary client price.
+	"""
+	rows = frappe.get_all(
 		"Item Price",
-		{
-			"item_code": item.item_code,
-			"price_list": doc.selling_price_list,
-			"uom": item.uom,
-		},
-		"price_list_rate",
+		filters={"item_code": item.item_code, "price_list": doc.selling_price_list},
+		fields=["uom", "price_list_rate"],
+		limit=0,
 	)
-	if rate:
-		return _dec(rate)
-	return _dec(item.price_list_rate)
+	if not rows:
+		frappe.throw(
+			_("No selling price is configured for {0} in {1}.").format(
+				item.item_code, doc.selling_price_list
+			),
+			frappe.ValidationError,
+		)
+	exact = next((row for row in rows if row.uom == item.uom), None)
+	if exact:
+		return _dec(exact.price_list_rate)
+	stock_uom = frappe.db.get_value("Item", item.item_code, "stock_uom")
+	source = next((row for row in rows if row.uom == "Dozen"), None)
+	if source is None:
+		source = next((row for row in rows if row.uom == stock_uom), rows[0])
+	source_factor = _dec(
+		frappe.db.get_value(
+			"UOM Conversion Detail",
+			{"parent": item.item_code, "uom": source.uom},
+			"conversion_factor",
+		)
+	) or Decimal("1")
+	line_factor = _dec(item.conversion_factor) or Decimal("1")
+	return _dec(source.price_list_rate) / source_factor * line_factor
 
 
 def _invoice_discount(doc) -> tuple[Decimal, Decimal]:
@@ -132,43 +157,62 @@ def _invoice_discount(doc) -> tuple[Decimal, Decimal]:
 
 
 def _consume_override(doc, discount_percent: Decimal, amount: Decimal) -> bool:
-	request = getattr(frappe.local, "request", None)
-	token = request.headers.get(OVERRIDE_HEADER) if request else None
+	token = frappe.get_request_header(OVERRIDE_HEADER)
 	if not token:
 		return False
-	approval = frappe.db.get_value(
-		"Diva Override Approval",
-		{"token": token, "status": "Pending", "used": 0},
-		["name", "user", "discount_percent", "amount", "expires_at"],
-		as_dict=True,
-	)
-	if not approval:
+	token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+	lock = frappe.cache.lock(f"diva_guard:override:{token_hash}", timeout=10)
+	if not lock.acquire(blocking=False):
 		return False
-	if approval.user != frappe.session.user:
-		return False
-	if get_datetime(approval.expires_at) < now_datetime():
-		frappe.db.set_value("Diva Override Approval", approval.name, "status", "Expired")
-		return False
-	if _dec(approval.discount_percent) + Decimal("0.01") < discount_percent:
-		return False
-	if _dec(approval.amount) + Decimal("0.01") < amount:
-		return False
-	frappe.db.set_value(
-		"Diva Override Approval",
-		approval.name,
-		{
-			"status": "Used",
-			"used": 1,
-			"voucher_doctype": doc.doctype,
-			"voucher_name": doc.name,
-		},
-	)
-	return True
+	try:
+		rows = frappe.db.sql(
+			"""
+            SELECT name, user, voucher_name, discount_percent, amount, expires_at,
+                   status, used
+            FROM `tabDiva Override Approval`
+            WHERE token_hash=%s
+            """,
+			(token_hash,),
+			as_dict=True,
+		)
+		approval = rows[0] if rows else None
+		if not approval:
+			return False
+		if approval.user != frappe.session.user:
+			return False
+		if approval.status == "Used" and approval.voucher_name == doc.name:
+			return True
+		if approval.status != "Pending" or approval.used:
+			return False
+		if approval.voucher_name and approval.voucher_name != doc.name:
+			return False
+		if get_datetime(approval.expires_at) < now_datetime():
+			frappe.db.set_value("Diva Override Approval", approval.name, "status", "Expired")
+			return False
+		if _dec(approval.discount_percent) + Decimal("0.01") < discount_percent:
+			return False
+		if _dec(approval.amount) + Decimal("0.01") < amount:
+			return False
+		frappe.db.set_value(
+			"Diva Override Approval",
+			approval.name,
+			{
+				"status": "Used",
+				"used": 1,
+				"voucher_doctype": doc.doctype,
+				"voucher_name": doc.name,
+			},
+		)
+		return True
+	finally:
+		lock.release()
 
 
 def _check_pos_price_list(doc) -> None:
-	if not doc.get("is_pos") or not doc.get("pos_profile"):
+	if not doc.get("is_pos"):
 		return
+	if not doc.get("pos_profile"):
+		frappe.throw(_("A POS sale must have a POS profile."), frappe.ValidationError)
 	expected = frappe.db.get_value("POS Profile", doc.pos_profile, "selling_price_list")
 	if expected and doc.selling_price_list != expected:
 		frappe.throw(
@@ -177,10 +221,13 @@ def _check_pos_price_list(doc) -> None:
 		)
 
 
-def _check_discount(doc) -> None:
+def _check_discount(doc, consume: bool = True) -> None:
 	cashier_limit = _dec(_setting("discount_cashier_limit_pct", 5))
 	manager_limit = _dec(_setting("discount_manager_limit_pct", 15))
 	for item in doc.items:
+		rule = _product_rule(item.item_code)
+		if rule and rule.max_discount_pct:
+			manager_limit = min(manager_limit, _dec(rule.max_discount_pct))
 		list_rate = _price_list_rate(doc, item)
 		if list_rate > 0 and _dec(item.rate) > list_rate:
 			frappe.throw(
@@ -204,6 +251,9 @@ def _check_discount(doc) -> None:
 		return
 	if _is_manager(frappe.session.user):
 		return
+	if not consume:
+		# Draft saves may wait for a manager; submit enforces the approval.
+		return
 	discount = to_decimal(str(result["discount_percent"]))
 	if _consume_override(doc, discount, price_total - net_total):
 		return
@@ -222,12 +272,24 @@ def validate_sales_invoice(doc, method: str | None = None) -> None:
 		return
 	if doc.get("is_return"):
 		return
-	if _setting("block_counter_credit", 1) and (doc.get("is_pos") or not _is_manager(frappe.session.user)):
+	is_manager = _is_manager(frappe.session.user)
+	for item in doc.items:
+		if _dec(item.qty) <= 0 or _dec(item.stock_qty) <= 0:
+			frappe.throw(
+				_("Line {0} must have a positive quantity.").format(item.idx),
+				frappe.ValidationError,
+			)
+		if (_dec(item.rate) <= 0 or item.get("is_free_item")) and not is_manager:
+			frappe.throw(
+				_("Free items need manager approval (line {0}).").format(item.idx),
+				frappe.PermissionError,
+			)
+	if _setting("block_counter_credit", 1) and (doc.get("is_pos") or not is_manager):
 		_check_counter_payment(doc)
 	if _setting("enforce_moq", 1):
 		_check_moq(doc)
 	if _setting("enforce_price_list", 1):
 		_check_pos_price_list(doc)
-		_check_discount(doc)
+		_check_discount(doc, consume=method == "before_submit" or doc.docstatus == 1)
 	if _setting("enforce_reserved_stock", 1):
 		_check_stock(doc)

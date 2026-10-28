@@ -20,6 +20,8 @@ PASSWORD = os.environ.get("ERPNEXT_PASSWORD", "")
 PIN = os.environ.get("DIVA_MANAGER_PIN", "")
 if not (BASE and USER and PASSWORD and PIN):
     sys.exit("Set ERPNEXT_URL, ERPNEXT_USER, ERPNEXT_PASSWORD and DIVA_MANAGER_PIN")
+if len(PIN) < 6:
+    sys.exit("DIVA_MANAGER_PIN must be at least 6 characters")
 
 ITERATIONS = 260000
 COMPANY = "Diva Dev"

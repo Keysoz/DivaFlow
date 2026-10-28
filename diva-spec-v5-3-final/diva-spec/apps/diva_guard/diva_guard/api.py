@@ -19,7 +19,8 @@ ATTEMPT_WINDOW_SECONDS = 300
 
 
 def hash_pin(pin: str, salt_hex: str, iterations: int = PIN_ITERATIONS) -> str:
-	return hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), iterations).hex()
+	safe_iterations = max(int(iterations or PIN_ITERATIONS), PIN_ITERATIONS)
+	return hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), bytes.fromhex(salt_hex), safe_iterations).hex()
 
 
 def _attempts_key() -> str:
@@ -42,6 +43,13 @@ def _verify_pin(pin: str) -> None:
 	if not settings.manager_pin_hash or not settings.manager_pin_salt:
 		frappe.throw(
 			_("Manager PIN is not configured. Set it with the Diva Guard seed script."),
+			frappe.PermissionError,
+		)
+	try:
+		bytes.fromhex(settings.manager_pin_salt)
+	except ValueError:
+		frappe.throw(
+			_("Manager PIN salt is malformed; re-run the Diva Guard seed script."),
 			frappe.PermissionError,
 		)
 	if _too_many_attempts():
@@ -68,13 +76,18 @@ def approve_discount(
 	voucher_name: str | None = None,
 ) -> dict[str, str]:
 	"""Verify the manager PIN and issue a short-lived, single-use approval token."""
+	if len(str(pin)) < 6:
+		frappe.throw(_("The manager PIN must be at least 6 characters."), frappe.PermissionError)
+	if voucher_doctype != "Sales Invoice":
+		frappe.throw(_("Only Sales Invoice approvals are supported."), frappe.ValidationError)
 	_verify_pin(pin)
 	token = secrets.token_urlsafe(24)
+	token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
 	expires_at = add_to_date(now_datetime(), minutes=10)
 	approval = frappe.get_doc(
 		{
 			"doctype": "Diva Override Approval",
-			"token": token,
+			"token_hash": token_hash,
 			"user": frappe.session.user,
 			"voucher_doctype": voucher_doctype,
 			"voucher_name": voucher_name,
@@ -82,10 +95,10 @@ def approve_discount(
 			"amount": amount,
 			"reason": reason,
 			"approved_by": "Administrator",
+			"approval_method": "Manager PIN",
 			"expires_at": expires_at,
 			"status": "Pending",
 		}
 	)
 	approval.insert(ignore_permissions=True)
-	frappe.db.commit()
-	return {"token": token, "expires_at": str(expires_at)}
+	return {"token": token, "expires_at": str(expires_at), "name": approval.name}

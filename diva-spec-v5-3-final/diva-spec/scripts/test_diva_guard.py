@@ -9,6 +9,7 @@ seeded (scripts/seed_diva_guard.py). The manager PIN comes from the environment:
   DIVA_MANAGER_PIN=... python3 scripts/test_diva_guard.py
 """
 
+import json
 import os
 import sys
 from typing import Any
@@ -85,13 +86,23 @@ def message(response: httpx.Response) -> str:
     return str(payload.get("exception") or payload)[:400]
 
 
+def submit_invoice(client: httpx.Client, name: str, token: str | None = None) -> httpx.Response:
+    doc = client.get(f"/api/resource/Sales Invoice/{name}").json()["data"]
+    headers = {"X-Diva-Override-Token": token} if token else {}
+    return client.post(
+        "/api/method/frappe.client.submit",
+        data={"doc": json.dumps(doc)},
+        headers=headers,
+    )
+
+
 def cleanup() -> None:
     rows = (
         admin.get(
             "/api/resource/Sales Invoice",
             params={
                 "filters": '[["remarks","=","E-14a guard test"]]',
-                "fields": '["name"]',
+                "fields": '["name","docstatus"]',
                 "limit_page_length": "0",
             },
         )
@@ -100,7 +111,13 @@ def cleanup() -> None:
         or []
     )
     for row in rows:
-        admin.delete(f"/api/resource/Sales Invoice/{row['name']}")
+        if row["docstatus"] == 1:
+            admin.post(
+                "/api/method/frappe.client.cancel",
+                data={"doctype": "Sales Invoice", "name": row["name"]},
+            )
+        elif row["docstatus"] == 0:
+            admin.delete(f"/api/resource/Sales Invoice/{row['name']}")
 
 
 cashier = login("cashier@diva.test")
@@ -115,8 +132,10 @@ def expect(label: str, response: httpx.Response, *, ok: bool, contains: str = ""
     text = message(response)
     passed = is_ok == ok and (contains.lower() in text.lower() if contains else True)
     print(("OK   " if passed else "FAIL ") + label + f" [{response.status_code}] {text[:160]}")
-    if is_ok and response.status_code == 200:
-        created.append(response.json()["data"]["name"])
+    payload = response.json() if is_ok else {}
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if isinstance(data, dict) and data.get("name"):
+        created.append(data["name"])
     failed = failed or not passed
 
 
@@ -128,18 +147,20 @@ expect(
     contains="Minimum quantity",
 )
 
-# 2. A compliant cashier sale passes and can be cleaned up.
-expect(
-    "cashier sale at list price passes",
-    create(cashier, invoice_payload(2, PRICE, PRICE * 2)),
-    ok=True,
-)
+# 2. A compliant cashier sale can be created and submitted.
+sale = create(cashier, invoice_payload(2, PRICE, PRICE * 2))
+expect("cashier sale at list price passes", sale, ok=True)
+sale_name = sale.json()["data"]["name"]
+expect("cashier can submit a compliant invoice", submit_invoice(cashier, sale_name), ok=True)
 
-# 3. 10% is above the cashier limit (5%) and needs a manager PIN.
+# 3. 10% is above the cashier limit (5%): a draft may wait, submit must block.
 discounted = invoice_payload(2, PRICE * 0.9, PRICE * 0.9 * 2)
+discount_draft = create(cashier, discounted)
+expect("cashier discount draft can wait for a manager", discount_draft, ok=True)
+discount_name = discount_draft.json()["data"]["name"]
 expect(
-    "cashier discount above 5% needs a manager PIN",
-    create(cashier, discounted),
+    "cashier discount above 5% needs a manager PIN to submit",
+    submit_invoice(cashier, discount_name),
     ok=False,
     contains="manager PIN",
 )
@@ -164,12 +185,20 @@ if approval.status_code != 200:
     token = None
 else:
     token = approval.json()["message"]["token"]
+    approved_sale = create(cashier, discounted, token)
+    expect("cashier discount with manager approval can be drafted", approved_sale, ok=True)
+    approved_name = approved_sale.json()["data"]["name"]
     expect(
-        "cashier discount with manager approval passes", create(cashier, discounted, token), ok=True
+        "cashier discount with manager approval submits",
+        submit_invoice(cashier, approved_name, token),
+        ok=True,
     )
+    replay = create(cashier, discounted, token or "")
+    expect("a replayed approval token can be drafted", replay, ok=True)
+    replay_name = replay.json()["data"]["name"]
     expect(
-        "approval token is single-use",
-        create(cashier, discounted, token or ""),
+        "a replayed approval token cannot submit",
+        submit_invoice(cashier, replay_name, token or ""),
         ok=False,
         contains="manager PIN",
     )
@@ -202,6 +231,104 @@ expect(
     contains="paid in full",
 )
 expect("manager can create a credit invoice", create(manager, credit), ok=True)
+
+# 9. A token minted by one user cannot be used by another user.
+manager_approval = manager.post(
+    "/api/method/diva_guard.api.approve_discount",
+    data={
+        "pin": MANAGER_PIN,
+        "reason": "Wrong-user test",
+        "discount_percent": 10,
+        "amount": PRICE * 2 * 0.1,
+        "voucher_doctype": "Sales Invoice",
+    },
+)
+if manager_approval.status_code == 200:
+    wrong_token = manager_approval.json()["message"]["token"]
+    wrong_sale = create(cashier, discounted, wrong_token)
+    wrong_name = wrong_sale.json()["data"]["name"] if wrong_sale.status_code == 200 else ""
+    expect(
+        "a token minted by another user is rejected",
+        submit_invoice(cashier, wrong_name, wrong_token) if wrong_name else wrong_sale,
+        ok=False,
+        contains="manager PIN",
+    )
+else:
+    print("FAIL manager approval API", manager_approval.status_code, manager_approval.text[:200])
+    failed = True
+
+# 10. The approval ceiling must cover the actual discount.
+ceiling = cashier.post(
+    "/api/method/diva_guard.api.approve_discount",
+    data={
+        "pin": MANAGER_PIN,
+        "reason": "Ceiling test",
+        "discount_percent": 5,
+        "amount": PRICE * 2 * 0.05,
+        "voucher_doctype": "Sales Invoice",
+    },
+)
+if ceiling.status_code == 200:
+    ceiling_token = ceiling.json()["message"]["token"]
+    ceiling_sale = create(cashier, discounted, ceiling_token)
+    ceiling_name = ceiling_sale.json()["data"]["name"] if ceiling_sale.status_code == 200 else ""
+    expect(
+        "an approval below the actual discount is rejected",
+        submit_invoice(cashier, ceiling_name, ceiling_token) if ceiling_name else ceiling_sale,
+        ok=False,
+        contains="manager PIN",
+    )
+else:
+    print("FAIL ceiling approval API", ceiling.status_code, ceiling.text[:200])
+    failed = True
+
+# 10b. An expired approval token is rejected.
+expiring = cashier.post(
+    "/api/method/diva_guard.api.approve_discount",
+    data={
+        "pin": MANAGER_PIN,
+        "reason": "Expiry test",
+        "discount_percent": 10,
+        "amount": PRICE * 2 * 0.1,
+        "voucher_doctype": "Sales Invoice",
+    },
+)
+if expiring.status_code == 200:
+    expiry_payload = expiring.json()["message"]
+    admin.put(
+        f"/api/resource/Diva Override Approval/{expiry_payload['name']}",
+        json={"expires_at": "2020-01-01 00:00:00"},
+    )
+    expiry_sale = create(cashier, discounted, expiry_payload["token"])
+    expiry_name = expiry_sale.json()["data"]["name"] if expiry_sale.status_code == 200 else ""
+    expect(
+        "an expired approval token is rejected",
+        submit_invoice(cashier, expiry_name, expiry_payload["token"])
+        if expiry_name
+        else expiry_sale,
+        ok=False,
+        contains="manager PIN",
+    )
+else:
+    print("FAIL expiry approval API", expiring.status_code, expiring.text[:200])
+    failed = True
+
+# 11. A missing Nos price must not fall back to the client price.
+nos = invoice_payload(24, 1, 24)
+nos["items"][0]["uom"] = "Nos"
+expect(
+    "a Nos line uses the Dozen price, not the client rate",
+    create(cashier, nos),
+    ok=False,
+    contains="discount",
+)
+
+# 12. Negative quantities and free items are rejected for cashiers.
+negative = invoice_payload(-2, PRICE, 0)
+expect("negative quantity is rejected", create(cashier, negative), ok=False, contains="grand total")
+free = invoice_payload(2, 0, PRICE * 2)
+free["items"][0]["is_free_item"] = 1
+expect("free items need a manager", create(cashier, free), ok=False, contains="free items")
 
 cleanup()
 cashier.close()

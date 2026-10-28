@@ -5,7 +5,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "token",
+  "token_hash",
   "user",
   "voucher_doctype",
   "voucher_name",
@@ -13,17 +13,19 @@
   "amount",
   "reason",
   "approved_by",
+  "approval_method",
   "expires_at",
   "used",
   "status"
  ],
  "fields": [
   {
-   "fieldname": "token",
+   "fieldname": "token_hash",
    "fieldtype": "Data",
-   "label": "Token",
+   "label": "Token hash",
    "reqd": 1,
-   "unique": 1
+   "unique": 1,
+   "description": "SHA-256 of the single-use token"
   },
   {
    "fieldname": "user",
@@ -62,6 +64,14 @@
    "fieldtype": "Link",
    "label": "Approved by",
    "options": "User"
+  },
+  {
+   "fieldname": "approval_method",
+   "fieldtype": "Select",
+   "label": "Approval method",
+   "options": "Manager PIN",
+   "default": "Manager PIN",
+   "read_only": 1
   },
   {
    "fieldname": "expires_at",

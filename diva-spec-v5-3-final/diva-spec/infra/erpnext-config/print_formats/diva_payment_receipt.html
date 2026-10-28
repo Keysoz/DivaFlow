@@ -94,7 +94,7 @@
 <div class="amount">
   <table>
     <tr><td>المبلغ<span class="en">Amount</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
-    <tr class="grand"><td>الإجمالي<span class="en">Total</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
+    <tr class="grand"><td>إجمالي المدفوع<span class="en">Total paid</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
     {% if doc.unallocated_amount %}<tr><td>غير مخصص<span class="en">Unallocated</span></td><td class="value">{{ doc.get_formatted("unallocated_amount") }}</td></tr>{% endif %}
   </table>
 </div>

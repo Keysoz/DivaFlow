@@ -6,7 +6,7 @@
 | DEC-01 | One master specification: a repository of Markdown files plus a single-file edition |
 | DEC-02 | **Corrected 2026-10-26:** the owner deleted the legacy `diva_store` app. `TASK-P0-12` is skipped and `E-00` collapses to confirming nothing depends on the deleted app (earlier answers: none, then exists and in daily use) |
 | DEC-03 | Build order: P0, then ERPNext (E), then Publishing (PUB), then chat orders (O), Bosta (B), chat hub (C), AI (A), Mini App (M), growth (G) |
-| DEC-04 | No custom fields. No custom code inside ERPNext except the two governed exceptions in DEC-29. Configuration stored as data is allowed through the idempotent config script |
+| DEC-04 | No custom fields, except the owner-approved `Item.custom_barcode` quick-entry field (DEC-78). No custom code inside ERPNext except the two governed exceptions in DEC-29. Configuration stored as data is allowed through the idempotent config script |
 | DEC-05 | Split deployment: cloud node for chat, AI, publishing, dashboard; store node for ERPNext, POS and Ops |
 | DEC-06 | When the store link is down, pause new chat orders and tell customers |
 | DEC-07 | MOQ applies at the counter and in chat; the 3,000 EGP minimum applies to chat orders only |
@@ -42,7 +42,7 @@
 | DEC-38 | The coding agent works on dev and staging only and never holds production administrator credentials; production deploys through CI approved by the owner after a backup |
 | DEC-39 | Arabic and English everywhere; Arabic is primary with RTL; per-user language; resellers detected per conversation (`19`) |
 | DEC-40 | Western digits (0–9) by default with an optional Arabic-Indic setting; input accepts both; Gregorian dates; week starts Saturday; amounts as ج.م or EGP |
-| DEC-41 | `item_name` is Arabic; English name and bilingual descriptions live in `Diva Product Rule` (no custom fields on Item) |
+| DEC-41 | `item_name` is Arabic; English name and bilingual descriptions live in `Diva Product Rule` (no custom fields for names; the only Item custom field is `custom_barcode`, DEC-78) |
 | DEC-42 | Arabic receipts and labels render as raster images if the printer cannot shape Arabic natively |
 | DEC-43 | **Specification v4.0 is final.** Open items keep their defaults and change only through decision records |
 | DEC-44 | Deposit rule: **new resellers pay a 30% deposit** of the goods subtotal after discounts (excluding shipping and taxes); stock is reserved only after a reviewer verifies it; trusted resellers follow their policy (COD after 3 completed orders reserves at confirmation); deposit is a customer advance; deadline default 24 h |

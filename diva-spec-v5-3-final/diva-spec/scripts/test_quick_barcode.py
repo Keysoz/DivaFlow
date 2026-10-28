@@ -64,8 +64,22 @@ check("item with quick barcode saves", first.status_code == 200, first.text[:160
 item = http.get("/api/resource/Item/BULK-QB-01").json().get("data") or {}
 barcodes = [row.get("barcode") for row in item.get("barcodes") or []]
 check("barcode moved to the Barcodes table", BARCODE in barcodes, str(barcodes))
+rows = [row for row in item.get("barcodes") or [] if row.get("barcode") == BARCODE]
+check("barcode UOM is the stock UOM", bool(rows) and rows[0].get("uom") == "Nos", str(rows))
 check(
     "quick-entry field is cleared", not item.get("custom_barcode"), str(item.get("custom_barcode"))
+)
+
+resave = http.put(
+    "/api/resource/Item/BULK-QB-01",
+    json={"custom_barcode": BARCODE},
+)
+check("re-saving the same barcode is idempotent", resave.status_code == 200, resave.text[:160])
+after = http.get("/api/resource/Item/BULK-QB-01").json().get("data") or {}
+check(
+    "no duplicate child row",
+    len([row for row in after.get("barcodes") or [] if row.get("barcode") == BARCODE]) == 1,
+    str(after.get("barcodes")),
 )
 
 second = create_item("BULK-QB-02")

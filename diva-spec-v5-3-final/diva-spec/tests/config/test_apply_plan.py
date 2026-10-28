@@ -387,3 +387,26 @@ def test_custom_field_create_payload() -> None:
     assert payload["dt"] == "Item"
     assert payload["fieldname"] == "custom_barcode"
     assert payload["allow_in_quick_entry"] == 1
+
+
+def test_custom_field_update_payload() -> None:
+    client = FakeClient()
+    apply_actions(
+        client,
+        [
+            Action(
+                "custom_field",
+                "Item::custom_barcode",
+                "update",
+                {"name": "Item-custom_barcode"},
+                {"label": "Barcode", "allow_in_quick_entry": 1},
+            )
+        ],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[0]
+    assert method == "PUT"
+    assert path.endswith("/Custom%20Field/Item-custom_barcode")
+    assert payload == {"label": "Barcode", "allow_in_quick_entry": 1}

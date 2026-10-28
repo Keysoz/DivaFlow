@@ -35,7 +35,7 @@ Every screen, message, printout and document the system produces exists in **Ara
 - **No text baked into images:** labels and posts use real text layers. AI-generated images contain no text.
 
 ## 4. Product names (DEC-41)
-`item_name` in ERPNext is the **Arabic name** (primary). English name, bilingual descriptions and search keywords live in the `Diva Product Rule` doctype owned by `diva_guard` (fields `name_en`, `description_ar`, `description_en`, `keywords`), so no custom fields are added to ERPNext's Item. Publishing, chat and the AI use these. Suppliers' English or Chinese names can be stored as keywords.
+`item_name` in ERPNext is the **Arabic name** (primary). English name, bilingual descriptions and search keywords live in the `Diva Product Rule` doctype owned by `diva_guard` (fields `name_en`, `description_ar`, `description_en`, `keywords`), so no custom fields are added to ERPNext's Item for names (the only Item custom field is the quick-entry barcode, DEC-78). Publishing, chat and the AI use these. Suppliers' English or Chinese names can be stored as keywords.
 
 ## 5. Thermal and label printing in Arabic (DEC-42)
 Many 80 mm thermal printers do not shape Arabic correctly. In `P0-06` print a test sheet (Arabic text, mixed text, digits, EAN-13) on the real printers. Rule: if the printer cannot do it natively, render the receipt and label as a **raster image** (browser print or QZ Tray raster mode) so shaping and direction are correct. Never ship a receipt that prints reversed or disconnected letters.

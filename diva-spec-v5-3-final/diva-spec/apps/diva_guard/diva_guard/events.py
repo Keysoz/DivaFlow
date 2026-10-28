@@ -297,6 +297,8 @@ def validate_sales_invoice(doc, method: str | None = None) -> None:
 
 def apply_quick_barcode(doc, method: str | None = None) -> None:
 	"""Copy the one-field quick-entry barcode into the Item Barcodes table (DEC-78)."""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
 	if not doc.meta.has_field("custom_barcode"):
 		return
 	value = str(doc.get("custom_barcode") or "").strip()

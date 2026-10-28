@@ -75,6 +75,12 @@ print_formats:
   - name: Diva Payment Receipt
     doc_type: Payment Entry
     template: print_formats/diva_payment_receipt.html
+  - name: Diva Customer Statement
+    doc_type: Customer
+    template: print_formats/diva_customer_statement.html
+  - name: Diva Supplier Statement
+    doc_type: Supplier
+    template: print_formats/diva_supplier_statement.html
 
 records:
   # E-04: the Dozen UOM is a whole number (DEC-20); item group tree default (OPEN-13).

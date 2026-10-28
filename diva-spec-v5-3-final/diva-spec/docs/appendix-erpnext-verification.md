@@ -158,10 +158,11 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 
 ## 7. Print formats (E-15, dev site)
 
-- Three bilingual Jinja print formats are stored as `Print Format` data and applied by `infra/erpnext-config` (idempotent; re-run 0 changes): `Diva Sales Invoice A4`, `Diva Receipt 80mm` (Sales Invoice) and `Diva Payment Receipt` (Payment Entry).
+- Five bilingual Jinja print formats are stored as `Print Format` data and applied by `infra/erpnext-config` (idempotent; re-run 0 changes): `Diva Sales Invoice A4`, `Diva Receipt 80mm` (Sales Invoice), `Diva Payment Receipt` (Payment Entry), `Diva Customer Statement` (Customer) and `Diva Supplier Statement` (Supplier).
 - Templates live in `infra/erpnext-config/print_formats/` and show Arabic primary with English second lines, `EGP` amounts (currency symbol set to `EGP`), the line UOM (Dozen or Nos), totals, paid/outstanding and payment allocations.
 - Verified with synthetic data: A4 and 80 mm browser renders (`ACC-SINV-2026-00007`, 2 Dozen × EGP 1,248 = EGP 2,496, unpaid) show the correct customer, item, UOM, amounts and RTL direction; the payment receipt renders `ACC-PAY-2026-00001`.
-- Pending: customer/supplier statements, saved-filter reports, PDF generation with a locally bundled Arabic font (wkhtmltopdf currently pulls a remote font via Frappe's print CSS and fails without internet) and the real 80 mm printer test (hardware deferred).
+- Statements list posted invoices and payments with totals/outstanding and accept optional `from_date`/`to_date` parameters; verified for `Bulk Customer 02` (EGP 2,496 outstanding) and `Bulk Supplier 1` (purchase invoice `ACC-PINV-2026-00001`).
+- Pending: saved-filter reports, PDF generation with a locally bundled Arabic font (wkhtmltopdf currently pulls a remote font via Frappe's print CSS and fails without internet) and the real 80 mm printer test (hardware deferred).
 
 ## 8. Expenses and cash closing (E-10, dev site)
 

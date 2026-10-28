@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif;
+    color: #1f2933;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+  .invoice { width: 100%; }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 8.5pt; color: #52606d; display: block; }
+  .header { display: flex; justify-content: space-between; gap: 12mm; border-bottom: 2px solid #0f4c5c; padding-bottom: 4mm; }
+  .identity h1 { margin: 0 0 1mm; font-size: 17pt; color: #0f4c5c; }
+  .identity .meta { font-size: 9pt; color: #52606d; }
+  .doc-title { text-align: left; }
+  .doc-title h2 { margin: 0; font-size: 15pt; color: #0f4c5c; }
+  .doc-title .number { font-size: 12pt; font-weight: bold; direction: ltr; }
+  .doc-title .date { font-size: 9.5pt; }
+  .parties { display: flex; justify-content: space-between; gap: 10mm; margin: 5mm 0; }
+  .box { flex: 1; border: 1px solid #cbd2d9; border-radius: 2mm; padding: 3mm 4mm; }
+  .box h3 { margin: 0 0 1.5mm; font-size: 10pt; color: #0f4c5c; }
+  .box .line { margin: 0.5mm 0; }
+  table.items { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  table.items th, table.items td { border-bottom: 1px solid #d9e2ec; padding: 2mm 1.5mm; vertical-align: top; }
+  table.items thead th { background: #0f4c5c; color: #fff; font-size: 9pt; text-align: right !important; }
+  .invoice table.items th.num { text-align: left !important; }
+  .invoice table.items th.center { text-align: center !important; }
+  table.items thead th .en { color: #d9e2ec; font-size: 7.5pt; }
+  table.items tbody tr:nth-child(even) { background: #f5f7fa; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .center { text-align: center !important; }
+  .en-inline { direction: ltr; unicode-bidi: isolate; font-size: 8.5pt; color: #52606d; }
+  .totals { width: 72mm; margin-right: auto; margin-top: 4mm; }
+  .totals table { width: 100%; border-collapse: collapse; }
+  .totals td { padding: 1.5mm 2mm; border-bottom: 1px solid #d9e2ec; }
+  .totals td.value { text-align: left; direction: ltr; white-space: nowrap; }
+  .totals tr.grand td { border-top: 2px solid #0f4c5c; border-bottom: none; font-weight: bold; font-size: 12pt; color: #0f4c5c; }
+  .payments { margin-top: 4mm; }
+  .payments table { width: 100%; border-collapse: collapse; }
+  .payments td, .payments th { border-bottom: 1px solid #d9e2ec; padding: 1.5mm 2mm; text-align: right; }
+  .payments th { background: #e4e7eb; font-size: 9pt; }
+  .note { margin-top: 4mm; font-size: 8.5pt; color: #52606d; }
+  .footer { margin-top: 7mm; border-top: 1px solid #cbd2d9; padding-top: 3mm; display: flex; justify-content: space-between; font-size: 9pt; color: #52606d; }
+  .thanks { font-size: 11pt; color: #0f4c5c; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="invoice">
+  <div class="header">
+    <div class="identity">
+      <h1>{{ doc.company }}</h1>
+      {% if doc.company_tax_id %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ doc.company_tax_id }}</span></div>{% endif %}
+      {% if frappe.db.get_value("Company", doc.company, "phone_no") %}<div class="meta">هاتف / Phone: <span dir="ltr">{{ frappe.db.get_value("Company", doc.company, "phone_no") }}</span></div>{% endif %}
+      {% if frappe.db.get_value("Company", doc.company, "email") %}<div class="meta">بريد / Email: <span dir="ltr">{{ frappe.db.get_value("Company", doc.company, "email") }}</span></div>{% endif %}
+    </div>
+    <div class="doc-title">
+      <h2>فاتورة مبيعات<span class="en">Sales Invoice</span></h2>
+      <div class="number">{{ doc.name }}</div>
+      <div class="date">التاريخ / Date · <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+      {% if doc.due_date %}<div class="date">الاستحقاق / Due · <span dir="ltr">{{ doc.get_formatted("due_date") }}</span></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="box">
+      <h3>العميل<span class="en">Customer</span></h3>
+      <div class="line"><strong>{{ doc.customer_name or doc.customer }}</strong></div>
+      {% if doc.contact_display and doc.contact_display != doc.customer_name %}<div class="line">{{ doc.contact_display }}</div>{% endif %}
+      {% if doc.contact_mobile or doc.contact_phone %}<div class="line" dir="ltr">{{ doc.contact_mobile or doc.contact_phone }}</div>{% endif %}
+      {% if doc.address_display %}<div class="line">{{ doc.address_display }}</div>{% endif %}
+    </div>
+    <div class="box">
+      <h3>بيانات الفاتورة<span class="en">Invoice details</span></h3>
+      {% set status_ar = {"Paid": "مدفوعة", "Unpaid": "غير مدفوعة", "Overdue": "متأخرة", "Return": "مرتجع", "Credit Note Issued": "إشعار دائن", "Draft": "مسودة"}.get(doc.status, doc.status) %}
+      <div class="line">العملة / Currency · <span dir="ltr">{{ doc.currency }}</span></div>
+      <div class="line">الحالة / Status · {{ status_ar }} <span class="en-inline">{{ doc.status }}</span></div>
+      {% if doc.po_no %}<div class="line">أمر الشراء / PO · <span dir="ltr">{{ doc.po_no }}</span></div>{% endif %}
+      {% if doc.project %}<div class="line">المشروع / Project · {{ doc.project }}</div>{% endif %}
+    </div>
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th class="center" style="width: 8mm">#</th>
+        <th>الصنف<span class="en">Item</span></th>
+        <th class="num" style="width: 20mm">الكمية<span class="en">Qty</span></th>
+        <th class="center" style="width: 16mm">الوحدة<span class="en">UOM</span></th>
+        <th class="num" style="width: 24mm">السعر<span class="en">Rate</span></th>
+        <th class="num" style="width: 18mm">الخصم<span class="en">Disc %</span></th>
+        <th class="num" style="width: 28mm">الإجمالي<span class="en">Amount</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in doc.items %}
+      <tr>
+        <td class="center">{{ item.idx }}</td>
+        <td>
+          {{ item.item_name or item.item_code }}
+          {% if item.description and item.description != item.item_name %}<div class="en">{{ item.description }}</div>{% endif %}
+        </td>
+        <td class="num">{{ item.get_formatted("qty") }}</td>
+        <td class="center">{{ item.uom }}</td>
+        <td class="num">{{ item.get_formatted("rate") }}</td>
+        <td class="num">{{ item.get_formatted("discount_percentage") }}</td>
+        <td class="num">{{ item.get_formatted("amount") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <table>
+      {% if doc.discount_amount or doc.total_taxes_and_charges %}
+      <tr><td>المجموع الفرعي<span class="en">Subtotal</span></td><td class="value">{{ doc.get_formatted("total") }}</td></tr>
+      {% endif %}
+      {% if doc.discount_amount %}
+      <tr><td>الخصم<span class="en">Discount</span></td><td class="value">- {{ doc.get_formatted("discount_amount") }}</td></tr>
+      {% endif %}
+      {% if doc.total_taxes_and_charges %}
+      <tr><td>الضريبة<span class="en">Tax</span></td><td class="value">{{ doc.get_formatted("total_taxes_and_charges") }}</td></tr>
+      {% endif %}
+      <tr class="grand"><td>الإجمالي<span class="en">Grand Total</span></td><td class="value">{{ doc.get_formatted("grand_total") }}</td></tr>
+      <tr><td>المدفوع<span class="en">Paid</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
+      <tr><td>المتبقي<span class="en">Outstanding</span></td><td class="value">{{ doc.get_formatted("outstanding_amount") }}</td></tr>
+    </table>
+  </div>
+
+  {% if doc.payments %}
+  <div class="payments">
+    <table>
+      <thead>
+        <tr><th>طريقة الدفع<span class="en">Payment method</span></th><th>المرجع<span class="en">Reference</span></th><th class="num">المبلغ<span class="en">Amount</span></th></tr>
+      </thead>
+      <tbody>
+        {% for payment in doc.payments %}
+        <tr>
+          <td>{{ payment.mode_of_payment }}</td>
+          <td dir="ltr">{{ payment.reference_no or "" }}</td>
+          <td class="num">{{ payment.get_formatted("amount") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="note">الأسعار والكميات حسب وحدة الصنف المذكورة في كل سطر (الدستة = 12 قطعة).<span class="en">Rates and quantities follow the item UOM on each line (1 Dozen = 12 pieces).</span></div>
+
+  <div class="footer">
+    <div class="thanks">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
+    <div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div>
+  </div>
+</div>
+</body>
+</html>

@@ -156,3 +156,10 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 - **Verified with real logins (not Administrator):** manager can edit price lists, list Sales Invoice, Payment Entry, Stock Reconciliation and Journal Entry; cashier can create a draft Sales Invoice and open the POS (POS Profile) but cannot write price lists, list Stock Reconciliation or Journal Entry, or create users.
 - **Known gap:** the vendor `POSNext Cashier` role includes cancel on Sales Invoice (POS void). The rules engine and local-api must keep void approval with a manager (TASK-E-14a); this is not yet enforced at the ERPNext permission layer.
 
+## 7. Print formats (E-15, dev site)
+
+- Three bilingual Jinja print formats are stored as `Print Format` data and applied by `infra/erpnext-config` (idempotent; re-run 0 changes): `Diva Sales Invoice A4`, `Diva Receipt 80mm` (Sales Invoice) and `Diva Payment Receipt` (Payment Entry).
+- Templates live in `infra/erpnext-config/print_formats/` and show Arabic primary with English second lines, `EGP` amounts (currency symbol set to `EGP`), the line UOM (Dozen or Nos), totals, paid/outstanding and payment allocations.
+- Verified with synthetic data: A4 and 80 mm browser renders (`ACC-SINV-2026-00007`, 2 Dozen × EGP 1,248 = EGP 2,496, unpaid) show the correct customer, item, UOM, amounts and RTL direction; the payment receipt renders `ACC-PAY-2026-00001`.
+- Pending: customer/supplier statements, saved-filter reports, PDF generation with a locally bundled Arabic font (wkhtmltopdf currently pulls a remote font via Frappe's print CSS and fails without internet) and the real 80 mm printer test (hardware deferred).
+

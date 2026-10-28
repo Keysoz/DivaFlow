@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: 80mm auto; margin: 3mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif;
+    color: #000;
+    font-size: 9.5pt;
+    line-height: 1.35;
+  }
+  .receipt { width: 74mm; margin: 0 auto; }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 7.5pt; color: #333; display: block; }
+  .center { text-align: center; }
+  .company { font-size: 13pt; font-weight: bold; }
+  .title { font-size: 10.5pt; font-weight: bold; margin-top: 1mm; }
+  .meta { font-size: 8.5pt; }
+  .rule { border-top: 1px dashed #000; margin: 2mm 0; }
+  table.items { width: 100%; border-collapse: collapse; }
+  table.items th { font-size: 7.5pt; border-bottom: 1px solid #000; padding: 0.6mm 0; text-align: right !important; }
+  table.items td { font-size: 8.5pt; padding: 0.8mm 0; vertical-align: top; border-bottom: 1px dotted #999; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .item-name { font-weight: bold; }
+  .item-sub { font-size: 7.5pt; color: #333; }
+  table.totals { width: 100%; border-collapse: collapse; margin-top: 1mm; }
+  table.totals td { padding: 0.5mm 0; font-size: 8.5pt; }
+  table.totals td.value { text-align: left !important; direction: ltr; white-space: nowrap; }
+  table.totals tr.grand td { border-top: 1px solid #000; font-weight: bold; font-size: 10pt; padding-top: 1mm; }
+  .footer { text-align: center; margin-top: 2mm; font-size: 8pt; }
+  .thanks { font-weight: bold; font-size: 9.5pt; }
+</style>
+</head>
+<body>
+<div class="receipt">
+  <div class="center">
+    <div class="company">{{ doc.company }}</div>
+    {% if doc.company_tax_id %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ doc.company_tax_id }}</span></div>{% endif %}
+    <div class="title">فاتورة مبيعات<span class="en">Sales Invoice</span></div>
+    <div class="meta" dir="ltr">{{ doc.name }}</div>
+    <div class="meta">التاريخ / Date · <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="meta">العميل / Customer: <strong>{{ doc.customer_name or doc.customer }}</strong></div>
+  {% if doc.contact_mobile or doc.contact_phone %}<div class="meta" dir="ltr">{{ doc.contact_mobile or doc.contact_phone }}</div>{% endif %}
+
+  <div class="rule"></div>
+
+  <table class="items">
+    <thead>
+      <tr><th>الصنف / Item</th><th class="num" style="width: 22mm">الإجمالي / Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for item in doc.items %}
+      <tr>
+        <td>
+          <div class="item-name">{{ item.item_name or item.item_code }}</div>
+          <div class="item-sub" dir="rtl"><span>{{ item.get_formatted("qty") }} {{ item.uom }}</span> × <span dir="ltr">{{ item.get_formatted("rate") }}</span>{% if item.discount_percentage %} − {{ item.get_formatted("discount_percentage") }}%{% endif %}</div>
+        </td>
+        <td class="num">{{ item.get_formatted("amount") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="rule"></div>
+
+  <table class="totals">
+    {% if doc.discount_amount or doc.total_taxes_and_charges %}
+    <tr><td>المجموع الفرعي / Subtotal</td><td class="value">{{ doc.get_formatted("total") }}</td></tr>
+    {% endif %}
+    {% if doc.discount_amount %}<tr><td>الخصم / Discount</td><td class="value">- {{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
+    {% if doc.total_taxes_and_charges %}<tr><td>الضريبة / Tax</td><td class="value">{{ doc.get_formatted("total_taxes_and_charges") }}</td></tr>{% endif %}
+    <tr class="grand"><td>الإجمالي / Grand Total</td><td class="value">{{ doc.get_formatted("grand_total") }}</td></tr>
+    <tr><td>المدفوع / Paid</td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
+    <tr><td>المتبقي / Outstanding</td><td class="value">{{ doc.get_formatted("outstanding_amount") }}</td></tr>
+    {% if doc.change_amount and doc.change_amount > 0 %}<tr><td>الباقي / Change</td><td class="value">{{ doc.get_formatted("change_amount") }}</td></tr>{% endif %}
+  </table>
+
+  {% if doc.payments %}
+  <div class="rule"></div>
+  <table class="totals">
+    {% for payment in doc.payments %}
+    <tr><td>دفع / Paid by: {{ payment.mode_of_payment }}</td><td class="value">{{ payment.get_formatted("amount") }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <div class="rule"></div>
+  <div class="footer">
+    <div class="thanks">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
+    <div>الدستة = 12 قطعة<span class="en">1 Dozen = 12 pieces</span></div>
+  </div>
+</div>
+</body>
+</html>

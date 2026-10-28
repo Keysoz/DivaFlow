@@ -4,6 +4,7 @@ from apply import (
     Action,
     apply_actions,
     plan_permission_mirrors,
+    plan_print_formats,
     plan_property_setters,
     plan_records,
     plan_singles,
@@ -245,3 +246,45 @@ def test_docperm_update_payload_uses_row_name() -> None:
     assert path.endswith("/Custom%20DocPerm/abc123")
     assert payload["write"] == 1
     assert "parent" not in payload
+
+
+def test_plan_print_formats_create_and_noop() -> None:
+    entry = {"name": "Diva Receipt", "doc_type": "Sales Invoice", "html": "<p>hi</p>"}
+    assert plan_print_formats([entry], {})[0].action == "create"
+    existing = {
+        "Diva Receipt": {
+            "name": "Diva Receipt",
+            "doc_type": "Sales Invoice",
+            "print_format_type": "Jinja",
+            "standard": "No",
+            "custom_format": 1,
+            "default_print_language": "ar",
+            "disabled": 0,
+            "html": "<p>hi</p>",
+        }
+    }
+    assert plan_print_formats([entry], existing)[0].action == "noop"
+    existing["Diva Receipt"]["html"] = "<p>old</p>"
+    assert plan_print_formats([entry], existing)[0].action == "update"
+
+
+def test_print_format_create_payload() -> None:
+    client = FakeClient()
+    desired = {
+        "doc_type": "Sales Invoice",
+        "print_format_type": "Jinja",
+        "standard": "No",
+        "custom_format": 1,
+        "default_print_language": "ar",
+        "disabled": 0,
+        "html": "<p>hi</p>",
+    }
+    apply_actions(
+        client, [Action("print_format", "Diva Receipt", "create", None, desired)], {}, {}, {}
+    )
+    method, path, payload = client.calls[0]
+    assert method == "POST"
+    assert path.endswith("/Print%20Format")
+    assert payload["name"] == "Diva Receipt"
+    assert payload["doc_type"] == "Sales Invoice"
+    assert payload["html"] == "<p>hi</p>"

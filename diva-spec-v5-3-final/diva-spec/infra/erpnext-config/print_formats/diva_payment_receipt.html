@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ doc.name }}</title>
+<style>
+  @page { size: A5 landscape; margin: 8mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Naskh Arabic", "Cairo", "Segoe UI", Tahoma, sans-serif;
+    color: #1f2933;
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+  .en { direction: ltr; unicode-bidi: isolate; text-align: inherit; font-size: 8pt; color: #52606d; display: block; }
+  .header { display: flex; justify-content: space-between; gap: 10mm; border-bottom: 2px solid #0f4c5c; padding-bottom: 3mm; }
+  .identity h1 { margin: 0 0 1mm; font-size: 15pt; color: #0f4c5c; }
+  .identity .meta { font-size: 8.5pt; color: #52606d; }
+  .doc-title { text-align: left; }
+  .doc-title h2 { margin: 0; font-size: 13pt; color: #0f4c5c; }
+  .doc-title .number { font-size: 11pt; font-weight: bold; direction: ltr; }
+  .parties { display: flex; gap: 8mm; margin: 4mm 0; }
+  .box { flex: 1; border: 1px solid #cbd2d9; border-radius: 2mm; padding: 3mm 4mm; }
+  .box h3 { margin: 0 0 1.5mm; font-size: 9.5pt; color: #0f4c5c; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  table.lines th, table.lines td { border-bottom: 1px solid #d9e2ec; padding: 1.8mm 1.5mm; text-align: right !important; }
+  table.lines thead th { background: #0f4c5c; color: #fff; font-size: 8.5pt; }
+  table.lines thead th .en { color: #d9e2ec; font-size: 7pt; }
+  .num { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .amount { margin-top: 4mm; display: flex; justify-content: flex-end; }
+  .amount table { width: 70mm; border-collapse: collapse; }
+  .amount td { padding: 1.5mm 2mm; border-bottom: 1px solid #d9e2ec; }
+  .amount td.value { text-align: left !important; direction: ltr; white-space: nowrap; }
+  .amount tr.grand td { border-top: 2px solid #0f4c5c; font-weight: bold; font-size: 12pt; color: #0f4c5c; }
+  .footer { margin-top: 6mm; border-top: 1px solid #cbd2d9; padding-top: 2.5mm; font-size: 8.5pt; color: #52606d; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="identity">
+    <h1>{{ doc.company }}</h1>
+    {% if doc.company_tax_id %}<div class="meta">الرقم الضريبي / Tax ID: <span dir="ltr">{{ doc.company_tax_id }}</span></div>{% endif %}
+  </div>
+  <div class="doc-title">
+    {% if doc.payment_type == "Receive" %}
+    <h2>سند قبض<span class="en">Payment Receipt</span></h2>
+    {% else %}
+    <h2>سند صرف<span class="en">Payment Voucher</span></h2>
+    {% endif %}
+    <div class="number">{{ doc.name }}</div>
+    <div>التاريخ / Date · <span dir="ltr">{{ doc.get_formatted("posting_date") }}</span></div>
+  </div>
+</div>
+
+<div class="parties">
+  <div class="box">
+    <h3>الطرف<span class="en">Party</span></h3>
+    <div><strong>{{ doc.party_name or doc.party }}</strong></div>
+    <div class="meta">{{ doc.party_type }}</div>
+  </div>
+  <div class="box">
+    <h3>طريقة الدفع<span class="en">Payment method</span></h3>
+    <div>{{ doc.mode_of_payment or "-" }}</div>
+    {% if doc.reference_no %}<div>المرجع / Reference: <span dir="ltr">{{ doc.reference_no }}</span></div>{% endif %}
+    {% if doc.reference_date %}<div>تاريخ المرجع / Reference date: <span dir="ltr">{{ doc.get_formatted("reference_date") }}</span></div>{% endif %}
+  </div>
+  <div class="box">
+    <h3>الحساب<span class="en">Account</span></h3>
+    <div>{{ doc.paid_from }}</div>
+    <div style="text-align:center">←</div>
+    <div>{{ doc.paid_to }}</div>
+  </div>
+</div>
+
+{% if doc.references %}
+<table class="lines">
+  <thead>
+    <tr><th>المستند<span class="en">Document</span></th><th>النوع<span class="en">Type</span></th><th class="num">المخصص<span class="en">Allocated</span></th><th class="num">المتبقي<span class="en">Outstanding</span></th></tr>
+  </thead>
+  <tbody>
+    {% for row in doc.references %}
+    <tr>
+      <td dir="ltr">{{ row.reference_name }}</td>
+      <td>{{ row.reference_doctype }}</td>
+      <td class="num">{{ row.get_formatted("allocated_amount") }}</td>
+      <td class="num">{{ row.get_formatted("outstanding_amount") }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<div class="amount">
+  <table>
+    <tr><td>المبلغ<span class="en">Amount</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
+    <tr class="grand"><td>الإجمالي<span class="en">Total</span></td><td class="value">{{ doc.get_formatted("paid_amount") }}</td></tr>
+    {% if doc.unallocated_amount %}<tr><td>غير مخصص<span class="en">Unallocated</span></td><td class="value">{{ doc.get_formatted("unallocated_amount") }}</td></tr>{% endif %}
+  </table>
+</div>
+
+<div class="footer">
+  <div>شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
+  <div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div>
+</div>
+</body>
+</html>

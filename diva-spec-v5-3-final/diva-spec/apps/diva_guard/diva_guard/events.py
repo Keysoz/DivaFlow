@@ -295,10 +295,67 @@ def validate_sales_invoice(doc, method: str | None = None) -> None:
 		_check_stock(doc)
 
 
+def _sync_standard_selling_price(doc) -> None:
+	"""Keep the Standard Selling prices in step with the quick-entry rate.
+
+	The quick-entry field is per Dozen. ERPNext's Item.after_insert creates a
+	stock-UOM price from standard_rate; convert that one to a per-piece rate and
+	keep an explicit Dozen row.
+	"""
+	rate = _dec(doc.get("standard_rate"))
+	if rate <= 0:
+		return
+	if not any(str(row.uom) == "Dozen" for row in doc.get("uoms") or []):
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": 12})
+	if not frappe.db.exists("Price List", "Standard Selling"):
+		return
+	rows = frappe.get_all(
+		"Item Price",
+		filters={"item_code": doc.name, "price_list": "Standard Selling"},
+		fields=["name", "uom"],
+	)
+	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
+	stock = next((row for row in rows if str(row.uom) == str(doc.stock_uom)), None)
+	if dozen:
+		frappe.db.set_value("Item Price", dozen.name, "price_list_rate", rate, update_modified=False)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"item_code": doc.name,
+				"price_list": "Standard Selling",
+				"uom": "Dozen",
+				"price_list_rate": rate,
+				"selling": 1,
+			}
+		).insert(ignore_permissions=True)
+	if str(doc.stock_uom) != "Dozen":
+		stock_rate = rate / 12
+		if stock:
+			frappe.db.set_value(
+				"Item Price", stock.name, "price_list_rate", stock_rate, update_modified=False
+			)
+		else:
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": doc.name,
+					"price_list": "Standard Selling",
+					"uom": doc.stock_uom,
+					"price_list_rate": stock_rate,
+					"selling": 1,
+				}
+			).insert(ignore_permissions=True)
+
+
 def apply_quick_barcode(doc, method: str | None = None) -> None:
-	"""Copy the one-field quick-entry barcode into the Item Barcodes table (DEC-78)."""
+	"""Copy the one-field quick-entry barcode and price (DEC-78/79)."""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
+	if _dec(doc.get("standard_rate")) > 0 and not any(
+		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
+	):
+		doc.append("uoms", {"uom": "Dozen", "conversion_factor": 12})
 	if not doc.meta.has_field("custom_barcode"):
 		return
 	value = str(doc.get("custom_barcode") or "").strip()
@@ -319,3 +376,10 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 			},
 		)
 	doc.set("custom_barcode", None)
+
+
+def sync_quick_price(doc, method: str | None = None) -> None:
+	"""Sync the quick-entry selling rate after the Item exists (DEC-79)."""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	_sync_standard_selling_price(doc)

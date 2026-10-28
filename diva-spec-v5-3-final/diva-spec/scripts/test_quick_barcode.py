@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify the Item quick-entry barcode field (DEC-78, TASK-E-14a extension)."""
 
+import json
 import os
 import sys
 
@@ -33,6 +34,7 @@ def create_item(code: str) -> httpx.Response:
             "stock_uom": "Nos",
             "is_stock_item": 0,
             "custom_barcode": BARCODE,
+            "standard_rate": 1200,
         },
     )
 
@@ -57,8 +59,22 @@ check(
     str(field.get("allow_in_quick_entry")),
 )
 
-delete_item("BULK-QB-01")
-delete_item("BULK-QB-02")
+for code in ("BULK-QB-01", "BULK-QB-02"):
+    for row in (
+        http.get(
+            "/api/resource/Item Price",
+            params={
+                "filters": json.dumps([["item_code", "=", code]]),
+                "fields": json.dumps(["name"]),
+                "limit_page_length": "0",
+            },
+        )
+        .json()
+        .get("data")
+        or []
+    ):
+        http.delete(f"/api/resource/Item Price/{row['name']}")
+    delete_item(code)
 first = create_item("BULK-QB-01")
 check("item with quick barcode saves", first.status_code == 200, first.text[:160])
 item = http.get("/api/resource/Item/BULK-QB-01").json().get("data") or {}
@@ -69,10 +85,29 @@ check("barcode UOM is the stock UOM", bool(rows) and rows[0].get("uom") == "Nos"
 check(
     "quick-entry field is cleared", not item.get("custom_barcode"), str(item.get("custom_barcode"))
 )
+prices = (
+    http.get(
+        "/api/resource/Item Price",
+        params={
+            "filters": json.dumps([["item_code", "=", "BULK-QB-01"]]),
+            "fields": json.dumps(["uom", "price_list_rate"]),
+            "limit_page_length": "0",
+        },
+    )
+    .json()
+    .get("data")
+    or []
+)
+by_uom = {row["uom"]: float(row["price_list_rate"]) for row in prices}
+check(
+    "quick price saved per Dozen and per Nos",
+    by_uom.get("Dozen") == 1200 and by_uom.get("Nos") == 100,
+    str(by_uom),
+)
 
 resave = http.put(
     "/api/resource/Item/BULK-QB-01",
-    json={"custom_barcode": BARCODE},
+    json={"custom_barcode": BARCODE, "standard_rate": 1320},
 )
 check("re-saving the same barcode is idempotent", resave.status_code == 200, resave.text[:160])
 after = http.get("/api/resource/Item/BULK-QB-01").json().get("data") or {}
@@ -80,6 +115,25 @@ check(
     "no duplicate child row",
     len([row for row in after.get("barcodes") or [] if row.get("barcode") == BARCODE]) == 1,
     str(after.get("barcodes")),
+)
+after_prices = (
+    http.get(
+        "/api/resource/Item Price",
+        params={
+            "filters": json.dumps([["item_code", "=", "BULK-QB-01"]]),
+            "fields": json.dumps(["uom", "price_list_rate"]),
+            "limit_page_length": "0",
+        },
+    )
+    .json()
+    .get("data")
+    or []
+)
+after_by_uom = {row["uom"]: float(row["price_list_rate"]) for row in after_prices}
+check(
+    "re-saving updates both prices",
+    after_by_uom.get("Dozen") == 1320 and after_by_uom.get("Nos") == 110,
+    str(after_by_uom),
 )
 
 second = create_item("BULK-QB-02")
@@ -89,8 +143,22 @@ check(
     second.text[:200],
 )
 
-delete_item("BULK-QB-01")
-delete_item("BULK-QB-02")
+for code in ("BULK-QB-01", "BULK-QB-02"):
+    for row in (
+        http.get(
+            "/api/resource/Item Price",
+            params={
+                "filters": json.dumps([["item_code", "=", code]]),
+                "fields": json.dumps(["name"]),
+                "limit_page_length": "0",
+            },
+        )
+        .json()
+        .get("data")
+        or []
+    ):
+        http.delete(f"/api/resource/Item Price/{row['name']}")
+    delete_item(code)
 http.close()
 if failures:
     print("quick barcode checks FAILED")

@@ -19,11 +19,29 @@ property_setters:
     fieldname: taxes_and_charges
     property: hidden
     value: 1
-  # DEC-78: keep the Item quick entry at seven fields after adding Barcode.
+  # DEC-78/79: keep the Item quick entry at seven fields with Barcode and price.
   - doctype: Item
     fieldname: asset_category
     property: allow_in_quick_entry
     value: 0
+  - doctype: Item
+    fieldname: is_fixed_asset
+    property: allow_in_quick_entry
+    value: 0
+  - doctype: Item
+    fieldname: standard_rate
+    property: allow_in_quick_entry
+    value: 1
+  - doctype: Item
+    fieldname: standard_rate
+    property: label
+    property_type: Data
+    value: Selling Price (EGP/Dozen)
+  - doctype: Item
+    fieldname: standard_rate
+    property: description
+    property_type: Text
+    value: Saved to the Standard Selling price list per Dozen when the item is saved.
 
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).

@@ -5,7 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Fixed
-- Selling dashboard crash on ERPNext 16.52.1 (`Item-wise Sales History` called without the required company): idempotent `scripts/fix_standard_dashboard_chart.sh` / `make fix-dashboard-chart` adds the default company to the standard chart filters without touching core. Verified the dashboard loads in a headless browser.
+- Selling dashboard crash on ERPNext 16.52.1 (`Item-wise Sales History` received `company=None`): the idempotent config now sets `Global Defaults.default_company` to `Diva Dev`, which the chart's dynamic company filter reads. No standard chart/dashboard or core edit. Verified the dashboard loads in a headless browser.
 
 ### Added
 - E-14c (dev): native FEFO batch selection (`pick_serial_and_batch_based_on=Expiry`, automatic outward bundles) and expired-batch blocking. `scripts/seed_batches.py` seeds two batch-enabled cosmetics items; `scripts/test_fefo.py` verifies the earliest-expiry batch is used and an expired batch cannot be sold.

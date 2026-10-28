@@ -201,8 +201,10 @@ Owner decision DEC-75: the Chinese supplier is treated like an Egyptian supplier
 - **POS UI caveat:** the server-side FEFO/expired block is verified; whether POS Next v2.0.0 exposes or auto-picks batches must be confirmed on staging in E-14b/E-14d.
 - Expired exclusion compares batch expiry with today, not the posting date; backdated returns/credits need a manual check.
 
-## 12. Selling dashboard chart error (ERPNext 16.52.1, workaround)
+## 12. Selling dashboard chart error (ERPNext 16.52.1, fixed by data)
 
-Opening `dashboard-view/Selling` failed with `TypeError: cannot unpack non-iterable NoneType object` from `Item-wise Sales History`: the standard `Item-wise Annual Sales` chart sends only date filters, while the report calls `get_descendants_of("Company", filters.company)` and company is required. ERPNext marks the chart and dashboard as standard, so the UI and REST API refuse edits ("Cannot edit Standard charts/dashboards").
+Opening `dashboard-view/Selling` failed with `TypeError: cannot unpack non-iterable NoneType object` from `Item-wise Sales History`. The standard `Item-wise Annual Sales` chart resolves its company through the dynamic filter `frappe.defaults.get_user_default("Company")`; with no default company set, it passed `None` to `get_descendants_of("Company", ...)`.
 
-`scripts/fix_standard_dashboard_chart.sh` (also `make fix-dashboard-chart`) sets the chart's `filters_json` to include the global default company, preserving `from_date`; it is data-only, idempotent and safe to re-run after every migrate/upgrade. Verified with a headless browser: `/app/dashboard-view/Selling` loads and shows the charts without the TypeError; a second run prints `already ok`. No ERPNext core file is modified.
+**Fix:** `infra/erpnext-config/config.yaml` sets `Global Defaults.default_company = Diva Dev` through the idempotent config script. That writes the global default used by the chart's dynamic filter; no standard chart or dashboard document is edited and no ERPNext core file is changed. The fix survives migrate/upgrades because it is stored as a default value.
+
+Verified with a headless browser: `/app/dashboard-view/Selling` loads and renders the charts without the TypeError after the config apply; the standard chart fixture remains untouched. Re-running `make config-dry-run` reports 0 changes.

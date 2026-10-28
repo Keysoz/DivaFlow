@@ -112,7 +112,7 @@ def qr_svg(text: str) -> str:
 
 	import pyqrcode
 
-	code = pyqrcode.create(str(text)[:900], error="M")
+	code = pyqrcode.create(str(text)[:900], error="M", encoding="utf-8")
 	buffer = io.BytesIO()
 	code.svg(buffer, scale=3, quiet_zone=2)
 	svg = buffer.getvalue().decode("utf-8")

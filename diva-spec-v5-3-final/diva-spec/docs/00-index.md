@@ -43,6 +43,7 @@ Date: 2026-10-22. Status: **final and build-ready.** Build order: P0, E (ERPNext
 | `21-ai-tooling-policy.md` | Models and tools, budget, data rules |
 | `26-secrets-and-rotation.md` | Secrets manager (Bitwarden), inventories, rotation schedule, emergency procedure |
 | `28-diva-guard.md` | `diva_guard` server rules, manager PIN approvals, install and tests (TASK-E-14a) |
+| `29-cloud-foundation.md` | Cloud API, auth/MFA, audit, migrations and deployment notes (TASK-PUB-01) |
 | `11-operations-cost.md` | Backups, runbooks, training, running cost |
 
 ## Reference

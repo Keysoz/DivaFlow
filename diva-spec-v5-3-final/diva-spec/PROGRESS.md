@@ -4,6 +4,7 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 
 | Task | Status | Pull request | Notes |
 |---|---|---|---|
+| PUB-01 | Partial — cloud API auth/MFA/audit | — | `apps/cloud-api`: SQLAlchemy/Postgres + Alembic; Argon2 passwords, JWT access + rotating refresh tokens, owner bootstrap, TOTP MFA (owner enforced) and hashed recovery codes, audit log, `/health` and `/ready`. Local tests pass. Pending: VPS/DNS/TLS, Uptime Kuma/GlitchTip, object storage, rate limiting/email verification |
 | P0-12 | Skipped | — | Legacy `diva_store` app deleted by the owner 2026-10-26; `docs/12` DEC-02 |
 | E-00 | Done — nothing to retire | — | The legacy app is deleted; no salvage or cutover remains (DEC-02/DEC-71) |
 | E-01 | Done (provisional on dev) | — | `docs/erp-field-register.csv` (28 doctypes, 2,028 rows) + apps/company/FY snapshot; regenerate at TASK-E-00a |

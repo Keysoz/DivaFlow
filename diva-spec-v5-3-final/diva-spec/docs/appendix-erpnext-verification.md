@@ -200,3 +200,9 @@ Owner decision DEC-75: the Chinese supplier is treated like an Egyptian supplier
 - **Migration SOP before cutover:** freeze the item, count physical stock by batch/expiry, create `Batch` records, enable `has_batch_no`/`has_expiry_date`, post a Stock Reconciliation per batch with `use_serial_batch_fields=1`, reconcile Bin and batch quantities, test a sale (FEFO) and a return. If ERPNext refuses to enable batch tracking while unbatched stock exists, reconcile the item to zero first, enable tracking, then post the batch-wise opening stock. Rollback requires zeroing stock before disabling batch tracking.
 - **POS UI caveat:** the server-side FEFO/expired block is verified; whether POS Next v2.0.0 exposes or auto-picks batches must be confirmed on staging in E-14b/E-14d.
 - Expired exclusion compares batch expiry with today, not the posting date; backdated returns/credits need a manual check.
+
+## 12. Selling dashboard chart error (ERPNext 16.52.1, workaround)
+
+Opening `dashboard-view/Selling` failed with `TypeError: cannot unpack non-iterable NoneType object` from `Item-wise Sales History`: the standard `Item-wise Annual Sales` chart sends only date filters, while the report calls `get_descendants_of("Company", filters.company)` and company is required. ERPNext marks the chart and dashboard as standard, so the UI and REST API refuse edits ("Cannot edit Standard charts/dashboards").
+
+`scripts/fix_standard_dashboard_chart.sh` (also `make fix-dashboard-chart`) sets the chart's `filters_json` to include the global default company, preserving `from_date`; it is data-only, idempotent and safe to re-run after every migrate/upgrade. Verified with a headless browser: `/app/dashboard-view/Selling` loads and shows the charts without the TypeError; a second run prints `already ok`. No ERPNext core file is modified.

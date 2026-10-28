@@ -1,0 +1,451 @@
+<style>
+	.diva-ps {
+		font-family: "Inter", "Cairo", "Segoe UI", Arial, sans-serif;
+		font-size: 10pt;
+		line-height: 1.35;
+		color: #1a1a1a;
+	}
+	.diva-ps .muted { color: #666; font-size: 8.6pt; }
+	.diva-ps .small { font-size: 8.6pt; }
+	.diva-ps .head { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+	.diva-ps .head td { vertical-align: top; padding: 0; }
+	.diva-ps .logo { width: 48mm; }
+	.diva-ps .logo img { max-width: 44mm; max-height: 20mm; }
+	.diva-ps .company-name { font-size: 13pt; font-weight: 700; }
+	.diva-ps .doc-title {
+		font-size: 17pt;
+		font-weight: 700;
+		letter-spacing: 0.4pt;
+		text-transform: uppercase;
+		text-align: right;
+	}
+	.diva-ps .title { text-align: right; }
+	.diva-ps .rule { border-top: 1.2pt solid #1a1a1a; margin: 6px 0 10px; }
+
+	.diva-ps .party {
+		width: 100%;
+		border-collapse: collapse;
+		margin-bottom: 10px;
+		background: #fafafa;
+		border: 0.6pt solid #d0d0d0;
+		margin-bottom: 8px;
+	}
+	.diva-ps .party td { vertical-align: top; padding: 7px 9px; }
+	.diva-ps .party-name { font-size: 14pt; font-weight: 700; }
+	.diva-ps .party-label { font-size: 8.4pt; color: #666; text-transform: uppercase; letter-spacing: 0.3pt; }
+	.diva-ps .address { white-space: pre-line; }
+
+	.diva-ps .section-title {
+		font-size: 11pt;
+		font-weight: 700;
+		margin: 10px 0 4px;
+		padding-bottom: 3px;
+		border-bottom: 0.8pt solid #999;
+	}
+	.diva-ps table.grid {
+		width: 100%;
+		border-collapse: collapse;
+		table-layout: fixed;
+		margin-bottom: 6px;
+	}
+	.diva-ps table.grid th {
+		background: #f2f2f2;
+		border: 0.5pt solid #c9c9c9;
+		padding: 4px 5px;
+		font-size: 8.6pt;
+		font-weight: 600;
+		text-align: left;
+	}
+	.diva-ps table.grid td {
+		border: 0.5pt solid #d9d9d9;
+		padding: 3px 5px;
+		font-size: 9pt;
+		vertical-align: top;
+		word-wrap: break-word;
+	}
+	.diva-ps table.grid tr,
+	.diva-ps table.grid th,
+	.diva-ps table.grid td { page-break-inside: avoid; }
+	.diva-ps table.grid thead { display: table-header-group; }
+	.diva-ps table.grid tfoot { display: table-row-group; }
+	.diva-ps table.grid tr.total td {
+		font-weight: 700;
+		background: #fafafa;
+		border-top: 1pt solid #888;
+	}
+	.diva-ps .num {
+		text-align: right;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+	}
+	.diva-ps .nowrap { white-space: nowrap; }
+
+	.diva-ps table.summary {
+		width: 96mm;
+		margin: 12px 0 0 auto;
+		border-collapse: collapse;
+		border: 1pt solid #444;
+	}
+	.diva-ps table.summary td {
+		padding: 5px 8px;
+		font-size: 9.4pt;
+		border-bottom: 0.5pt solid #ddd;
+	}
+	.diva-ps table.summary tr:last-child td { border-bottom: 0; }
+	.diva-ps table.summary tr.closing td {
+		background: #efefef;
+		font-weight: 700;
+		font-size: 10.5pt;
+		border-top: 1pt solid #444;
+	}
+	.diva-ps table.summary td.num { width: 40mm; }
+
+	.diva-ps .notice { margin-top: 8px; font-size: 8.4pt; color: #555; }
+	.diva-ps .summary-note {
+		width: 96mm;
+		margin: 3px 0 0 auto;
+		text-align: right;
+		font-size: 8.4pt;
+		color: #555;
+	}
+
+	.diva-ps table.signatures {
+		width: 100%;
+		margin-top: 8mm;
+		border-collapse: collapse;
+		page-break-inside: avoid;
+	}
+	.diva-ps table.signatures tr,
+	.diva-ps table.signatures td { page-break-inside: avoid; }
+	.diva-ps table.signatures td {
+		width: 33.33%;
+		padding: 0 8mm 0 0;
+		vertical-align: bottom;
+		font-size: 8.8pt;
+	}
+	.diva-ps .sign-line { border-top: 0.8pt solid #555; margin-bottom: 4px; height: 9mm; }
+
+	.diva-ps .footer {
+		margin-top: 10mm;
+		padding-top: 4px;
+		border-top: 0.5pt solid #bbb;
+		font-size: 8pt;
+		color: #666;
+	}
+	/* The PDF generator extracts #footer-html into the page footer iframe,
+	   which already adds its own top padding. */
+	#footer-html .footer { margin-top: 0; padding-top: 0; border-top: 0; }
+	.diva-ps .footer .page-number { text-align: center; margin-top: 3px; }
+	.diva-ps .visible-pdf { display: none; }
+	.diva-ps .letterhead { margin-bottom: 8px; }
+
+	/* Report PDFs are built client-side and posted back; when the wrapper has
+	   a footer iframe wkhtmltopdf does not apply the page top margin. Reserve
+	   it here so the company header is never clipped. */
+	@media print {
+		.diva-ps { padding-top: 8mm; }
+	}
+</style>
+
+{%
+	var rows = data || [];
+	var meta = rows.length ? rows[0] : {};
+	var invoices = [];
+	var notes = [];
+	var payments = [];
+	var advances = [];
+	for (var i = 0; i < rows.length; i++) {
+		if (rows[i].section === "invoice") invoices.push(rows[i]);
+		else if (rows[i].section === "note") notes.push(rows[i]);
+		else if (rows[i].section === "payment") payments.push(rows[i]);
+		else if (rows[i].section === "advance") advances.push(rows[i]);
+	}
+
+	function money(value, currency) {
+		return format_currency(value || 0, currency || meta.company_currency);
+	}
+	function esc(value) {
+		return frappe.utils.escape_html(value === null || value === undefined ? "" : String(value));
+	}
+	function str(value) {
+		return value ? frappe.datetime.str_to_user(value) : "";
+	}
+	function sumActive(list, key) {
+		var total = 0;
+		for (var j = 0; j < list.length; j++) {
+			if (list[j].docstatus === 1) total += flt(list[j][key] || 0);
+		}
+		return total;
+	}
+	function noteLabel() {
+		return meta.party_type === "Customer" ? __("Credit Notes") : __("Debit Notes");
+	}
+%}
+
+<div class="diva-ps">
+
+	{% if (meta.letter_head_header) { %}
+	<div class="letterhead">{{ meta.letter_head_header }}</div>
+	{% } else { %}
+	<table class="head">
+		<tr>
+			<td class="logo">
+				{% if (meta.company_logo) { %}
+				<img src="{{ meta.company_logo }}" alt="{{ esc(meta.company) }}">
+				{% } %}
+			</td>
+			<td>
+				<div class="company-name" dir="auto">{{ esc(meta.company) }}</div>
+				<div class="muted" dir="auto">
+					{% if (meta.company_phone) { %}{{ __("Phone") }}: {{ esc(meta.company_phone) }} &nbsp;{% } %}
+					{% if (meta.company_email) { %}{{ __("Email") }}: {{ esc(meta.company_email) }} &nbsp;{% } %}
+					{% if (meta.company_tax_id) { %}{{ __("Tax ID") }}: {{ esc(meta.company_tax_id) }}{% } %}
+				</div>
+			</td>
+			<td class="title">
+				<div class="doc-title">{{ __("Account Statement") }}</div>
+				<div class="muted">
+					{{ __("Period") }}: {{ str(meta.from_date) }} — {{ str(meta.to_date) }}
+				</div>
+				<div class="muted">{{ __("Print Date") }}: {{ meta.print_date }}</div>
+			</td>
+		</tr>
+	</table>
+	{% } %}
+
+	<div class="rule"></div>
+
+	<table class="party">
+		<tr>
+			<td style="width: 58%">
+				<div class="party-label">{{ meta.party_type === "Customer" ? __("Customer") : __("Supplier") }}</div>
+				<div class="party-name" dir="auto">{{ esc(meta.party_name) }}</div>
+				<div class="muted" dir="auto">{{ __("Party ID") }}: {{ esc(meta.party_id) }}</div>
+			</td>
+			<td style="width: 42%">
+				{% if (meta.party_address) { %}
+				<div class="address" dir="auto">{{ esc(meta.party_address) }}</div>
+				{% } %}
+				<div class="muted" dir="ltr">
+					{% if (meta.party_phone) { %}{{ __("Phone") }}: <span dir="auto">{{ esc(meta.party_phone) }}</span><br>{% } %}
+					{% if (meta.party_email) { %}{{ __("Email") }}: <span dir="auto">{{ esc(meta.party_email) }}</span><br>{% } %}
+					{% if (meta.party_tax_id) { %}{{ __("Tax ID") }}: <span dir="auto">{{ esc(meta.party_tax_id) }}</span><br>{% } %}
+					{{ __("Currency") }}: {{ esc(meta.company_currency) }}
+				</div>
+			</td>
+		</tr>
+	</table>
+
+	{% if (invoices.length) { %}
+	<div class="section-title">{{ __("Invoices") }}</div>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 24%">{{ __("Invoice No") }}</th>
+				<th style="width: 13%">{{ __("Date") }}</th>
+				<th style="width: 13%">{{ __("Due Date") }}</th>
+				<th class="num" style="width: 17%">{{ __("Total") }}</th>
+				<th class="num" style="width: 16%">{{ __("Paid") }}</th>
+				<th class="num" style="width: 17%">{{ __("Remaining") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for (var i = 0; i < invoices.length; i++) { var row = invoices[i]; %}
+			<tr>
+				<td dir="auto">{{ esc(row.document) }}</td>
+				<td class="nowrap">{{ str(row.posting_date) }}</td>
+				<td class="nowrap">{{ str(row.due_date) }}</td>
+				<td class="num">{{ money(row.total, row.currency) }}</td>
+				<td class="num">{{ money(row.paid, row.currency) }}</td>
+				<td class="num">{{ money(row.outstanding, row.currency) }}</td>
+			</tr>
+			{% } %}
+		</tbody>
+		<tfoot>
+			<tr class="total">
+				<td colspan="3">{{ __("Total") }}</td>
+				<td class="num">{{ money(sumActive(invoices, "base_total"), meta.company_currency) }}</td>
+				<td class="num">{{ money(sumActive(invoices, "base_paid"), meta.company_currency) }}</td>
+				<td class="num">{{ money(sumActive(invoices, "base_outstanding"), meta.company_currency) }}</td>
+			</tr>
+		</tfoot>
+	</table>
+	{% } %}
+
+	{% if (notes.length) { %}
+	<div class="section-title">{{ noteLabel() }}</div>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 24%">{{ __("Note No") }}</th>
+				<th style="width: 13%">{{ __("Date") }}</th>
+				<th style="width: 13%">{{ __("Due Date") }}</th>
+				<th class="num" style="width: 17%">{{ __("Total") }}</th>
+				<th class="num" style="width: 16%">{{ __("Paid") }}</th>
+				<th class="num" style="width: 17%">{{ __("Remaining") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for (var i = 0; i < notes.length; i++) { var row = notes[i]; %}
+			<tr>
+				<td dir="auto">{{ esc(row.document) }}</td>
+				<td class="nowrap">{{ str(row.posting_date) }}</td>
+				<td class="nowrap">{{ str(row.due_date) }}</td>
+				<td class="num">{{ money(row.total, row.currency) }}</td>
+				<td class="num">{{ money(row.paid, row.currency) }}</td>
+				<td class="num">{{ money(row.outstanding, row.currency) }}</td>
+			</tr>
+			{% } %}
+		</tbody>
+		<tfoot>
+			<tr class="total">
+				<td colspan="3">{{ __("Total") }}</td>
+				<td class="num">{{ money(sumActive(notes, "base_total"), meta.company_currency) }}</td>
+				<td class="num">{{ money(sumActive(notes, "base_paid"), meta.company_currency) }}</td>
+				<td class="num">{{ money(sumActive(notes, "base_outstanding"), meta.company_currency) }}</td>
+			</tr>
+		</tfoot>
+	</table>
+	{% } %}
+
+	{% if (payments.length) { %}
+	<div class="section-title">{{ __("Payments") }}</div>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 19%">{{ __("Receipt No") }}</th>
+				<th style="width: 11%">{{ __("Date") }}</th>
+				<th style="width: 11%">{{ __("Method") }}</th>
+				<th style="width: 23%">{{ __("Reference") }}</th>
+				<th style="width: 22%">{{ __("Applied To") }}</th>
+				<th class="num" style="width: 14%">{{ __("Amount") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for (var i = 0; i < payments.length; i++) { var row = payments[i]; %}
+			<tr>
+				<td dir="auto">{{ esc(row.document) }}</td>
+				<td class="nowrap">{{ str(row.posting_date) }}</td>
+				<td dir="auto">{{ esc(row.method) }}</td>
+				<td dir="auto">
+					{{ esc(row.reference_no || row.reference) }}
+					{% if (row.reference_date) { %}<div class="muted">{{ str(row.reference_date) }}</div>{% } %}
+				</td>
+				<td dir="auto">{{ esc(row.applied_to) }}</td>
+				<td class="num">{{ money(row.total, row.currency) }}</td>
+			</tr>
+			{% } %}
+		</tbody>
+		<tfoot>
+			<tr class="total">
+				<td colspan="5">{{ __("Total") }}</td>
+				<td class="num">{{ money(sumActive(payments, "base_total"), meta.company_currency) }}</td>
+			</tr>
+		</tfoot>
+	</table>
+	{% } %}
+
+	{% if (advances.length) { %}
+	<div class="section-title">{{ __("Advance / Unallocated Payments") }}</div>
+	<table class="grid">
+		<thead>
+			<tr>
+				<th style="width: 22%">{{ __("Receipt No") }}</th>
+				<th style="width: 11%">{{ __("Date") }}</th>
+				<th style="width: 14%">{{ __("Method") }}</th>
+				<th style="width: 31%">{{ __("Reference") }}</th>
+				<th class="num" style="width: 22%">{{ __("Unallocated Amount") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for (var i = 0; i < advances.length; i++) { var row = advances[i]; %}
+			<tr>
+				<td dir="auto">{{ esc(row.document) }}</td>
+				<td class="nowrap">{{ str(row.posting_date) }}</td>
+				<td dir="auto">{{ esc(row.method) }}</td>
+				<td dir="auto">
+					{{ esc(row.reference_no || row.reference) }}
+					{% if (row.reference_date) { %}<div class="muted">{{ str(row.reference_date) }}</div>{% } %}
+				</td>
+				<td class="num">{{ money(row.total, row.currency) }}</td>
+			</tr>
+			{% } %}
+		</tbody>
+		<tfoot>
+			<tr class="total">
+				<td colspan="4">{{ __("Total") }}</td>
+				<td class="num">{{ money(sumActive(advances, "base_total"), meta.company_currency) }}</td>
+			</tr>
+		</tfoot>
+	</table>
+	{% } %}
+
+	<table class="summary">
+		<tr>
+			<td>{{ __("Opening Balance") }}</td>
+			<td class="num">{{ money(meta.opening_balance, meta.company_currency) }}</td>
+		</tr>
+		<tr>
+			<td>{{ __("Total Invoiced") }}</td>
+			<td class="num">{{ money(meta.total_invoiced, meta.company_currency) }}</td>
+		</tr>
+		{% if (meta.notes_total) { %}
+		<tr>
+			<td>{{ noteLabel() }}</td>
+			<td class="num">{{ money(meta.notes_total, meta.company_currency) }}</td>
+		</tr>
+		{% } %}
+		<tr>
+			<td>{{ __("Total Paid") }}</td>
+			<td class="num">{{ money(meta.total_paid, meta.company_currency) }}</td>
+		</tr>
+		{% if (meta.counter_paid) { %}
+		<tr>
+			<td class="small">{{ __("of which paid at counter") }}</td>
+			<td class="num small">{{ money(meta.counter_paid, meta.company_currency) }}</td>
+		</tr>
+		{% } %}
+		{% if (meta.advances_total) { %}
+		<tr>
+			<td class="small">{{ __("of which unallocated") }}</td>
+			<td class="num small">{{ money(meta.advances_total, meta.company_currency) }}</td>
+		</tr>
+		{% } %}
+		<tr class="closing">
+			<td>{{ __("Remaining Balance") }}</td>
+			<td class="num">{{ money(meta.closing_balance, meta.company_currency) }}</td>
+		</tr>
+	</table>
+	<div class="summary-note">
+		{{ meta.party_type === "Customer" ? __("Due from the customer") : __("Due to the supplier") }}
+	</div>
+
+	{% if (meta.currency_note) { %}
+	<div class="notice" dir="auto">{{ esc(meta.currency_note) }}</div>
+	{% } %}
+	<div class="notice">{{ __("Totals in {0}.", [meta.company_currency]) }}</div>
+
+	<table class="signatures">
+		<tr>
+			<td><div class="sign-line"></div>{{ __("Prepared by") }}</td>
+			<td><div class="sign-line"></div>{{ __("Authorized by") }}</td>
+			<td><div class="sign-line"></div>{{ __("Party acknowledgment") }}</td>
+		</tr>
+	</table>
+
+	<div id="footer-html" class="visible-pdf">
+		<div class="diva-ps">
+		<div class="footer">
+			<div dir="auto">
+				{{ esc(meta.company) }}
+				{% if (meta.company_phone) { %} &nbsp;|&nbsp; {{ __("Phone") }}: {{ esc(meta.company_phone) }}{% } %}
+				{% if (meta.company_email) { %} &nbsp;|&nbsp; {{ __("Email") }}: {{ esc(meta.company_email) }}{% } %}
+			</div>
+			<div class="page-number visible-pdf">
+				{{ __("Page {0} of {1}", ['<span class="page"></span>', '<span class="topage"></span>']) }}
+			</div>
+		</div>
+		</div>
+	</div>
+
+</div>

@@ -163,3 +163,11 @@ Seeded with `scripts/seed_dev_users.py` (synthetic accounts; password from `DIVA
 - Verified with synthetic data: A4 and 80 mm browser renders (`ACC-SINV-2026-00007`, 2 Dozen × EGP 1,248 = EGP 2,496, unpaid) show the correct customer, item, UOM, amounts and RTL direction; the payment receipt renders `ACC-PAY-2026-00001`.
 - Pending: customer/supplier statements, saved-filter reports, PDF generation with a locally bundled Arabic font (wkhtmltopdf currently pulls a remote font via Frappe's print CSS and fails without internet) and the real 80 mm printer test (hardware deferred).
 
+## 8. Expenses and cash closing (E-10, dev site)
+
+- Five expense ledger accounts under `Indirect Expenses - DD`: Shop Rent, Utilities, Packaging, Marketing and Maintenance.
+- `scripts/seed_dev_expenses.py` (idempotent, synthetic) posts five cash/bank expenses through Journal Entries (cash entries for four, a bank entry for Marketing with a reference number and date).
+- Daily cash closing cross-checked against two independent sources on this dataset: cash receipts come from sales-invoice payments and customer receipts (1,624), expenses from the seeded list (1,490.50), and the expected closing is compared with the GL (8,140 + 1,624 − 1,490.50 = **8,273.50**); bank 0 + 500 − 500 = **0**. Every expense account has exactly its expected debit and zero credit, so a double-post or a wrong cash figure fails the script (exit 1).
+- The script also prints the six-step closing checklist (opening, receipts, expenses, expected closing, counted difference, count sheet); sales totals are not treated as cash received.
+- Pending: receipt attachment workflow in Ops, expense categories editing and the Ops expenses screen (E-13).
+

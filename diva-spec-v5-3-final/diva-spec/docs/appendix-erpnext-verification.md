@@ -248,3 +248,11 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - Covered: POS Settings, Product Management, Promotion Management, Stock Lookup / Warehouse Availability, Invoice Management, Edit Item, Partial Payments. frappe-ui `Dialog` modals (payment, customer, drafts, returns, invoice/shift history, shift opening/closing) already closed on Escape and are unchanged.
 - Built the POS frontend with `yarn build` (54 precache entries) and deployed `public/pos` + `www/pos.html` + `www/pos-sw.js` to the dev site.
 - Headless Chromium verification on the live POS (`P003 POS`, open shift): Settings, Product Management, Promotions, Stock Lookup, Invoice Management and Edit Item all close on Escape and the POS remains usable; Product Management and Edit Item were checked visually before/after.
+
+## 18. EOD shift report print fixed (ENH-E-04, dev site)
+
+- Root cause: the vendor `POS Next EOD Report` print format read `frappe.db.get_value('POS Profile', doc.pos_profile, 'address')`. `POS Profile` has no `address` field in v16 (it has `company_address`), so `frappe.www.printview.get_html_and_style` failed with `(1054, "Unknown column 'address' in 'SELECT'")`; the POS caught that and showed the generic “EOD report did not print” warning.
+- Fix (patch **0014**): use `POS Profile.company_address` and resolve the Address `address_line1`; fall back to no address line when unset. The warning now includes the actual print error (for example, no printer selected) and still offers the Reprint button.
+- Verified server-side: `get_html_and_style(doc='POS Closing Shift', name='POSA-CS-26-0000004', print_format='POS Next EOD Report')` returns 5,439 bytes of HTML and 5,017 bytes of style (previously `PrintFormatError`).
+- Verified print preview: `GET /printview?doctype=POS Closing Shift&name=POSA-CS-26-0000004&format=POS Next EOD Report&no_letterhead=1` returns **HTTP 200** and contains **END-OF-DAY REPORT**; no `Unknown column` or `Error in print format`.
+- `bench --site frontend migrate` synced the corrected print-format JSON into the `POS Next EOD Report` record; rebuilt the POS frontend and deployed the assets. The patch applies cleanly on the post-0013 vendor tree.

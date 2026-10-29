@@ -256,3 +256,15 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - Verified server-side: `get_html_and_style(doc='POS Closing Shift', name='POSA-CS-26-0000004', print_format='POS Next EOD Report')` returns 5,439 bytes of HTML and 5,017 bytes of style (previously `PrintFormatError`).
 - Verified print preview: `GET /printview?doctype=POS Closing Shift&name=POSA-CS-26-0000004&format=POS Next EOD Report&no_letterhead=1` returns **HTTP 200** and contains **END-OF-DAY REPORT**; no `Unknown column` or `Error in print format`.
 - `bench --site frontend migrate` synced the corrected print-format JSON into the `POS Next EOD Report` record; rebuilt the POS frontend and deployed the assets. The patch applies cleanly on the post-0013 vendor tree.
+
+## 19. Ops Items and EAN-13 API slice (E-13 partial, dev site)
+
+- `packages/rules-engine` now owns the internal EAN-13 format (GS1 in-store prefix 20–29): `ean13_check_digit`, `format_ean13`, `is_valid_ean13`, `is_internal_ean13`, `generate_ean13`, `next_internal_ean13`; 7 unit tests include the known `2100001000011` / `2100001000028` codes and sequence exhaustion/next-free behaviour.
+- `packages/erpnext-adapter` adds item list/search, bulk Item Price and Bin reads, Item Barcode reads, and `add_item_barcode` (preserves existing child rows). Frappe child-table listings return only the row name, so barcode rows are fetched by name.
+- `apps/local-api` adds:
+  - `GET /api/items?search=&limit=` — item summary with Dozen/Nos prices and stock.
+  - `GET /api/items/{item_code}` — item detail with barcodes, batch/serial flags, prices and stock.
+  - `POST /api/items/{item_code}/barcodes` — adds a validated EAN-13; generates the next internal code (prefix 20) when the barcode is blank; 409 on duplicate, 422 on invalid.
+  - `GET /api/labels?item_code=&uom=&copies=` — label data for the app-drawn dozen/piece label (EAN-13, name, price, copies).
+- Verified against the dev site: `GET /api/items?search=DS-85` returned the item with 360/Dozen; detail returned its `9506000140444` barcode; the label endpoint returned Dozen data; a disposable item accepted a generated `2000000000039` Nos barcode and was removed. Local API fake-client suite: 19 endpoint tests.
+- Remaining for E-13: the React/TS Ops PWA Items and Labels screens (draw/print EAN-13 labels), product rules/shade variants, then Receive, Transfer, Count and Collect.

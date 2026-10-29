@@ -13,8 +13,113 @@ from local_api.main import app
 class FakeErpNextClient:
     """In-memory stand-in for ErpNextClient used only in tests."""
 
+    def __init__(self) -> None:
+        self.barcodes: dict[str, list[dict[str, object]]] = {
+            "P004-DOZEN": [
+                {"name": "bc1", "barcode": "2100001000011", "uom": "Dozen"},
+                {"name": "bc2", "barcode": "2100001000028", "uom": "Nos"},
+            ],
+            "BULK-ACC-01": [
+                {"name": "bc3", "barcode": "2200000000016", "uom": "Dozen"},
+            ],
+        }
+
+    def get_items(self, search: str | None = None, limit: int = 50) -> list[dict[str, object]]:
+        rows = [
+            {
+                "name": "P004-DOZEN",
+                "item_code": "P004-DOZEN",
+                "item_name": "Diva Test Item",
+                "item_group": "Accessories",
+                "stock_uom": "Nos",
+                "is_stock_item": 1,
+                "has_batch_no": 0,
+                "has_serial_no": 0,
+                "description": "A test item",
+            },
+            {
+                "name": "BULK-ACC-01",
+                "item_code": "BULK-ACC-01",
+                "item_name": "Bulk Accessories 01",
+                "item_group": "Accessories",
+                "stock_uom": "Nos",
+                "is_stock_item": 1,
+                "has_batch_no": 0,
+                "has_serial_no": 0,
+                "description": "Another test item",
+            },
+        ]
+        if search:
+            rows = [
+                row
+                for row in rows
+                if search.lower() in str(row["item_code"]).lower()
+                or search.lower() in str(row["item_name"]).lower()
+            ]
+        return rows[:limit]
+
+    def get_item(self, item_code: str) -> dict[str, object]:
+        if item_code not in ("P004-DOZEN", "BULK-ACC-01"):
+            raise RuntimeError("not found")
+        return {
+            "name": item_code,
+            "item_code": item_code,
+            "item_name": "Diva Test Item" if item_code == "P004-DOZEN" else "Bulk Accessories 01",
+            "item_group": "Accessories",
+            "stock_uom": "Nos",
+            "is_stock_item": 1,
+            "has_batch_no": 0,
+            "has_serial_no": 0,
+            "description": "A test item",
+            "barcodes": self.barcodes.get(item_code, []),
+        }
+
+    def get_item_prices(
+        self, item_codes: list[str], price_list: str = "Standard Selling"
+    ) -> dict[str, dict[str, Decimal]]:
+        prices = {
+            "P004-DOZEN": {"Dozen": Decimal("1440"), "Nos": Decimal("120")},
+            "BULK-ACC-01": {"Dozen": Decimal("1200"), "Nos": Decimal("100")},
+        }
+        return {code: prices[code] for code in item_codes if code in prices}
+
+    def get_bins(
+        self, item_codes: list[str], warehouse: str | None = None
+    ) -> dict[str, dict[str, Decimal]]:
+        bins = {
+            "P004-DOZEN": {"actual_qty": Decimal("60"), "reserved_qty": Decimal("24")},
+            "BULK-ACC-01": {"actual_qty": Decimal("24"), "reserved_qty": Decimal("0")},
+        }
+        return {code: bins[code] for code in item_codes if code in bins}
+
+    def get_barcodes(self, item_code: str) -> list[dict[str, object]]:
+        return self.barcodes.get(item_code, [])
+
+    def get_internal_barcodes(self) -> list[str]:
+        return [
+            *[str(row["barcode"]) for rows in self.barcodes.values() for row in rows],
+            "2000000000015",
+        ]
+
+    def add_item_barcode(self, item_code: str, barcode: str, uom: str) -> None:
+        self.barcodes.setdefault(item_code, []).append(
+            {"name": f"new-{barcode}", "barcode": barcode, "uom": uom}
+        )
+
     def get_item_by_barcode(self, barcode: str) -> dict[str, object] | None:
-        """Return a fake item for barcode 2000000000015, None otherwise."""
+        """Return a fake item for a known barcode, None otherwise."""
+        for item_code, rows in self.barcodes.items():
+            if any(str(row["barcode"]) == barcode for row in rows):
+                return {
+                    "item_code": item_code,
+                    "item_name": "Diva Test Item"
+                    if item_code == "P004-DOZEN"
+                    else "Bulk Accessories 01",
+                    "stock_uom": "Nos",
+                    "barcode_uom": next(
+                        str(row["uom"]) for row in rows if str(row["barcode"]) == barcode
+                    ),
+                }
         if barcode == "2000000000015":
             return {
                 "item_code": "P004-DOZEN",
@@ -184,3 +289,86 @@ class TestEvaluateCounter:
         body = {"role": "cashier", "lines": []}
         response = client.post("/api/rules/counter/evaluate", json=body, headers=AUTH)
         assert response.status_code == 422
+
+
+class TestOpsItems:
+    """Items, barcodes and labels for the E-13 first slice."""
+
+    def test_list_items_with_price_and_stock(self, client: TestClient) -> None:
+        response = client.get("/api/items", headers=AUTH)
+        assert response.status_code == 200
+        rows = response.json()
+        assert len(rows) == 2
+        first = next(row for row in rows if row["item_code"] == "P004-DOZEN")
+        assert first["price_dozen"] == "1440"
+        assert first["price_nos"] == "120"
+        assert first["actual_qty"] == "60"
+        assert first["reserved_qty"] == "24"
+
+    def test_search_items(self, client: TestClient) -> None:
+        response = client.get("/api/items", params={"search": "bulk"}, headers=AUTH)
+        assert response.status_code == 200
+        assert [row["item_code"] for row in response.json()] == ["BULK-ACC-01"]
+
+    def test_item_detail_and_barcodes(self, client: TestClient) -> None:
+        response = client.get("/api/items/P004-DOZEN", headers=AUTH)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["price_dozen"] == "1440"
+        assert [row["uom"] for row in data["barcodes"]] == ["Dozen", "Nos"]
+
+    def test_unknown_item_returns_404(self, client: TestClient) -> None:
+        assert client.get("/api/items/NOPE", headers=AUTH).status_code == 404
+
+    def test_label_for_dozen(self, client: TestClient) -> None:
+        response = client.get(
+            "/api/labels",
+            params={"item_code": "P004-DOZEN", "uom": "Dozen", "copies": 2},
+            headers=AUTH,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["barcode"] == "2100001000011"
+        assert data["price"] == "1440"
+        assert data["copies"] == 2
+        assert data["ean13"] is True
+
+    def test_label_without_uom_barcode_returns_404(self, client: TestClient) -> None:
+        response = client.get(
+            "/api/labels",
+            params={"item_code": "BULK-ACC-01", "uom": "Nos"},
+            headers=AUTH,
+        )
+        assert response.status_code == 404
+
+    def test_generate_internal_barcode(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/items/BULK-ACC-01/barcodes",
+            json={"uom": "Nos"},
+            headers=AUTH,
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["generated"] is True
+        assert data["uom"] == "Nos"
+        assert data["barcode"].startswith("20")
+        assert len(data["barcode"]) == 13
+
+    def test_reject_duplicate_barcode(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/items/BULK-ACC-01/barcodes",
+            json={"barcode": "2100001000011", "uom": "Dozen"},
+            headers=AUTH,
+        )
+        assert response.status_code == 409
+
+    def test_reject_invalid_ean13(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/items/BULK-ACC-01/barcodes",
+            json={"barcode": "2100001000012", "uom": "Dozen"},
+            headers=AUTH,
+        )
+        assert response.status_code == 422
+
+    def test_ops_items_requires_token(self, client: TestClient) -> None:
+        assert client.get("/api/items").status_code == 401

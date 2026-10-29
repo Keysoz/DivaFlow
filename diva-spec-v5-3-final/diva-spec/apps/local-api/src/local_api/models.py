@@ -40,3 +40,48 @@ class CounterResponse(BaseModel):
     requires_manager: bool
     violations: list[dict[str, object]]
     audits: list[dict[str, object]]
+
+
+class BarcodeInfo(BaseModel):
+    barcode: str
+    uom: str
+
+
+class ItemSummary(BaseModel):
+    item_code: str
+    item_name: str
+    item_group: str = ""
+    stock_uom: str = "Nos"
+    is_stock_item: bool = True
+    price_dozen: str | None = None
+    price_nos: str | None = None
+    actual_qty: str = "0"
+    reserved_qty: str = "0"
+
+
+class ItemDetail(ItemSummary):
+    has_batch_no: bool = False
+    has_serial_no: bool = False
+    description: str = ""
+    barcodes: list[BarcodeInfo] = Field(default_factory=list)
+
+
+class BarcodeRequest(BaseModel):
+    barcode: str | None = None
+    uom: str = Field(min_length=1)
+
+
+class BarcodeCreated(BaseModel):
+    barcode: str
+    uom: str
+    generated: bool
+
+
+class LabelResponse(BaseModel):
+    item_code: str
+    item_name: str
+    uom: str
+    barcode: str
+    price: str | None = None
+    copies: int = 1
+    ean13: bool = False

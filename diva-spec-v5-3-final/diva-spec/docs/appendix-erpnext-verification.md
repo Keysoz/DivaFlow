@@ -224,7 +224,7 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - QR also renders without an HTTP request through the `jinja.methods` hook (`frappe.get_print` from a worker returned 14,070 bytes with the SVG), so background PDF/email paths are safe. The Arabic party payload (`PAY-26-10-00003`, “المورد”) renders with UTF-8 encoding.
 - Pending: upload the real company logo (the block currently falls back to a monogram), and validate the QR/print output on the real 80 mm/A4 printers.
 
-## 15. Party Statement report and print format (E-17, dev site)
+## 15. Party Statement report and print format (ENH-E-01, dev site)
 
 - `apps/custom_reports` installed on `frontend` (`bench list-apps` shows `custom_reports 0.1.0`); the standard report `Party Statement` is synced with module `Custom Reports` (DEC-82) and the Print Format `Party Statement Print` (`print_format_for=Report`, `print_format_type=JS`, `custom_format=1`, standard `No`) is created by `after_migrate`.
 - Filters: Company, Party Type (Customer/Supplier), Party (Dynamic Link resolved through `get_options`), From Date (fiscal-year start via `onload`), To Date, Show Cancelled, Letter Head. Verified in a headless browser: `/app/query-report/Party%20Statement` loads with Company `Diva Dev`, Party Type `Customer`, From `2026-07-01`, To `2026-10-29`; the Party selector sets the value and runs the report.
@@ -232,3 +232,12 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - Supplier path verified with a disposable supplier, one Purchase Invoice 1,200 and one payment 500: opening 0, invoiced 1,200, paid 500, remaining 700, GL payable 700, no warning.
 - Print preview (headless Chromium, actual desk): the **Print Statement** button opens Print Settings with `Party Statement Print` and `Portrait` preselected; the preview shows the company header, party block, invoice/payment/advance tables, boxed summary, signatures and the running footer. A4 PDF generated through `frappe.utils.pdf.get_pdf` is one page with `Page 1 of 1`; the footer is extracted as `#footer-html` and repeated. Arabic party data renders RTL via `dir="auto"` (screenshot checked).
 - v16.53 has no `Report.default_print_format` column; the JS sets the PDF dialog default and the button preselects the format (DEC-83). No custom field on Report.
+
+## 16. Desk organization and store analytics (ENH-E-02, dev site)
+
+- The Desk **Apps** screen now shows five tiles: ERPNext, **Diva Reports** (`custom_reports`, green bar-chart icon), **Diva Guard** (blue shield icon), **POS Next** (teal terminal icon, tracked patch 0012) and Framework. Verified in a headless browser at `/apps`; the tiles use embedded SVG data-URI logos, so no asset build is needed for the icons.
+- Workspaces: `/app/diva-store`, `/app/diva-reports` and `/app/diva-guard`. Each renders its number cards, charts, shortcuts and link cards. Diva Store has six cards (today/month sales, receivables, stock value, active customers, payables) and seven charts (sales trend, item group, warehouse, payment modes, top customers, top suppliers, receivables ageing); Diva Reports has three cards and five charts; Diva Guard has three cards and one chart.
+- Amounts use **EGP** (cards and charts); count-only cards/chart show plain numbers. The top customers/suppliers and item-group charts use `number_of_groups` so their legends fit. Ageing charts are custom report charts with `currency=EGP` and use the full width.
+- `infra/erpnext-config/desk.yaml` declares the charts, cards and workspaces; `apply_desk.py` created them. Re-running both config scripts reports **0 changes** (`apply.py` 169 no-op, `apply_desk.py` 21 no-op). Unused standard workspaces (Assets, Quality, Projects, Support, Website, CRM, Build, Manufacturing) are hidden through `config.yaml`.
+- Verified chart data from the server: sales trend last 12 months, item groups (Consumable/Products/Rest), payment modes (Cash/InstaPay), top customers, top suppliers, sales by warehouse, overrides by status (Pending/Used). Cards: today 481, month 26,041, receivables 2,652, stock value 234,301.40, active customers 10, payables 24,000, pending approvals 47, overrides 56, active rules 12.
+- `make lint` clean; `make test` **178 passed, 4 skipped** (5 new planner tests).

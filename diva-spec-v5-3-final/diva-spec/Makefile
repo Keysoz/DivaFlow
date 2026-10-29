@@ -44,9 +44,11 @@ dev-store:
 
 config-dry-run:
 	uv run python infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml
+	uv run python infra/erpnext-config/apply_desk.py --config infra/erpnext-config/desk.yaml
 
 config-apply:
 	uv run python infra/erpnext-config/apply.py --config infra/erpnext-config/config.yaml --apply
+	uv run python infra/erpnext-config/apply_desk.py --config infra/erpnext-config/desk.yaml --apply
 
 
 secret-scan:

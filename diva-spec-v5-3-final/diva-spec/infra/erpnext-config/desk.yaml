@@ -1,0 +1,1093 @@
+# Diva Desk layout (ENH-E-02).
+# Applied through infra/erpnext-config/apply_desk.py; everything is data
+# (Workspace, Dashboard Chart, Number Card), never core code.
+#
+# Charts are deliberately few and readable: one trend, one mix, one ranking
+# per area. Colors follow the Diva palette (green = sales, blue = stock,
+# orange = purchasing, red = money owed).
+dashboard_charts:
+- name: Diva Sales Trend
+  chart_name: Diva Sales Trend
+  chart_type: Sum
+  document_type: Sales Invoice
+  based_on: posting_date
+  value_based_on: base_grand_total
+  timespan: Last Year
+  time_interval: Monthly
+  type: Line
+  color: '#2f9e44'
+  show_values_over_chart: 1
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  currency: EGP
+- name: Diva Sales by Item Group
+  chart_name: Diva Sales by Item Group
+  chart_type: Group By
+  document_type: Sales Invoice Item
+  parent_document_type: Sales Invoice
+  group_by_type: Sum
+  group_by_based_on: item_group
+  aggregate_function_based_on: amount
+  number_of_groups: 3
+  type: Donut
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  currency: EGP
+- name: Diva Sales by Warehouse
+  chart_name: Diva Sales by Warehouse
+  chart_type: Group By
+  document_type: Sales Invoice Item
+  parent_document_type: Sales Invoice
+  group_by_type: Sum
+  group_by_based_on: warehouse
+  aggregate_function_based_on: amount
+  number_of_groups: 4
+  type: Bar
+  color: '#1971c2'
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  currency: EGP
+- name: Diva Payments by Mode
+  chart_name: Diva Payments by Mode
+  chart_type: Group By
+  document_type: Payment Entry
+  group_by_type: Sum
+  group_by_based_on: mode_of_payment
+  aggregate_function_based_on: base_paid_amount
+  number_of_groups: 8
+  type: Donut
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+  - - Payment Entry
+    - docstatus
+    - '='
+    - 1
+  - - Payment Entry
+    - payment_type
+    - '='
+    - Receive
+  - - Payment Entry
+    - mode_of_payment
+    - is
+    - set
+  currency: EGP
+- name: Diva Top Customers
+  chart_name: Diva Top Customers
+  chart_type: Group By
+  document_type: Sales Invoice
+  group_by_type: Sum
+  group_by_based_on: customer
+  aggregate_function_based_on: base_grand_total
+  number_of_groups: 3
+  type: Donut
+  color: '#7048e8'
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  currency: EGP
+- name: Diva Top Suppliers
+  chart_name: Diva Top Suppliers
+  chart_type: Group By
+  document_type: Purchase Invoice
+  group_by_type: Sum
+  group_by_based_on: supplier
+  aggregate_function_based_on: base_grand_total
+  number_of_groups: 2
+  type: Donut
+  color: '#e8590c'
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  currency: EGP
+  filters_json:
+  - - Purchase Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Purchase Invoice
+    - is_return
+    - '='
+    - 0
+- name: Diva Receivables Ageing
+  chart_name: Diva Receivables Ageing
+  chart_type: Report
+  report_name: Accounts Receivable
+  use_report_chart: 1
+  type: Donut
+  currency: EGP
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+    ageing_based_on: Due Date
+    range1: 30
+    range2: 60
+    range3: 90
+    range4: 120
+    group_by_party: 0
+    based_on_payment_terms: 0
+    show_future_payments: 0
+    show_delivery_notes: 0
+    show_sales_person: 0
+- name: Diva Payables Ageing
+  chart_name: Diva Payables Ageing
+  chart_type: Report
+  report_name: Accounts Payable
+  use_report_chart: 1
+  type: Donut
+  currency: EGP
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  filters_json:
+    ageing_based_on: Due Date
+    range1: 30
+    range2: 60
+    range3: 90
+    range4: 120
+    group_by_party: 0
+    based_on_payment_terms: 0
+    show_future_payments: 0
+    show_delivery_notes: 0
+    show_sales_person: 0
+- name: Diva Overrides by Status
+  chart_name: Diva Overrides by Status
+  chart_type: Group By
+  document_type: Diva Override Approval
+  group_by_type: Count
+  group_by_based_on: status
+  number_of_groups: 3
+  type: Donut
+  is_public: 1
+  is_standard: 0
+  module: Diva Guard
+  filters_json: []
+  currency: ''
+number_cards:
+- name: Diva Today Sales
+  label: Today's Sales
+  type: Document Type
+  document_type: Sales Invoice
+  function: Sum
+  aggregate_function_based_on: base_grand_total
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  - - Sales Invoice
+    - posting_date
+    - Timespan
+    - today
+  show_percentage_stats: 1
+  stats_time_interval: Daily
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#2b8a3e'
+  background_color: '#ebfbee'
+  currency: EGP
+- name: Diva Month Sales
+  label: This Month
+  type: Document Type
+  document_type: Sales Invoice
+  function: Sum
+  aggregate_function_based_on: base_grand_total
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  - - Sales Invoice
+    - posting_date
+    - Timespan
+    - this month
+  show_percentage_stats: 1
+  stats_time_interval: Monthly
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#2b8a3e'
+  background_color: '#ebfbee'
+  currency: EGP
+- name: Diva Receivables
+  label: Receivables
+  type: Document Type
+  document_type: Sales Invoice
+  function: Sum
+  aggregate_function_based_on: outstanding_amount
+  filters_json:
+  - - Sales Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Sales Invoice
+    - is_return
+    - '='
+    - 0
+  - - Sales Invoice
+    - outstanding_amount
+    - '>'
+    - 0
+  show_percentage_stats: 0
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#d9480f'
+  background_color: '#fff4e6'
+  currency: EGP
+- name: Diva Stock Value
+  label: Stock Value
+  type: Document Type
+  document_type: Bin
+  function: Sum
+  aggregate_function_based_on: stock_value
+  filters_json: []
+  show_percentage_stats: 1
+  stats_time_interval: Daily
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#1971c2'
+  background_color: '#e7f5ff'
+  currency: EGP
+- name: Diva Active Customers
+  label: Active Customers
+  type: Document Type
+  document_type: Customer
+  function: Count
+  filters_json:
+  - - Customer
+    - disabled
+    - '='
+    - 0
+  show_percentage_stats: 1
+  stats_time_interval: Monthly
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#6741d9'
+  background_color: '#f3f0ff'
+  currency: ''
+- name: Diva Payables
+  label: Payables
+  type: Document Type
+  document_type: Purchase Invoice
+  function: Sum
+  aggregate_function_based_on: outstanding_amount
+  filters_json:
+  - - Purchase Invoice
+    - docstatus
+    - '='
+    - 1
+  - - Purchase Invoice
+    - is_return
+    - '='
+    - 0
+  - - Purchase Invoice
+    - outstanding_amount
+    - '>'
+    - 0
+  show_percentage_stats: 0
+  is_public: 1
+  is_standard: 0
+  module: Custom Reports
+  color: '#c92a2a'
+  background_color: '#fff5f5'
+  currency: EGP
+- name: Diva Pending Approvals
+  label: Pending Approvals
+  type: Document Type
+  document_type: Diva Override Approval
+  function: Count
+  filters_json:
+  - - Diva Override Approval
+    - status
+    - '='
+    - Pending
+  show_percentage_stats: 0
+  is_public: 1
+  is_standard: 0
+  module: Diva Guard
+  color: '#c2255c'
+  background_color: '#fff0f6'
+  currency: ''
+- name: Diva Overrides This Month
+  label: Overrides (Month)
+  type: Document Type
+  document_type: Diva Override Approval
+  function: Count
+  filters_json:
+  - - Diva Override Approval
+    - creation
+    - Timespan
+    - this month
+  show_percentage_stats: 1
+  stats_time_interval: Monthly
+  is_public: 1
+  is_standard: 0
+  module: Diva Guard
+  color: '#a61e4d'
+  background_color: '#fff0f6'
+  currency: ''
+- name: Diva Active Product Rules
+  label: Active Rules
+  type: Document Type
+  document_type: Diva Product Rule
+  function: Count
+  filters_json:
+  - - Diva Product Rule
+    - is_active
+    - '='
+    - 1
+  show_percentage_stats: 0
+  is_public: 1
+  is_standard: 0
+  module: Diva Guard
+  color: '#1971c2'
+  background_color: '#e7f5ff'
+  currency: ''
+workspaces:
+- name: Diva Store
+  label: Diva Store
+  title: Diva Store
+  module: Custom Reports
+  type: Workspace
+  public: 1
+  is_hidden: 0
+  standard: 0
+  sequence_id: 0.5
+  icon: store
+  indicator_color: green
+  content:
+  - type: header
+    text: <span class="h4"><b>Store at a glance</b></span>
+    col: 12
+  - type: number_card
+    number_card_name: Today's Sales
+    col: 4
+  - type: number_card
+    number_card_name: This Month
+    col: 4
+  - type: number_card
+    number_card_name: Receivables
+    col: 4
+  - type: number_card
+    number_card_name: Stock Value
+    col: 4
+  - type: number_card
+    number_card_name: Active Customers
+    col: 4
+  - type: number_card
+    number_card_name: Payables
+    col: 4
+  - type: spacer
+    col: 12
+  - type: header
+    text: <span class="h4"><b>Sales &amp; cash</b></span>
+    col: 12
+  - type: chart
+    chart_name: Sales Trend
+    col: 12
+  - type: chart
+    chart_name: Sales by Item Group
+    col: 6
+  - type: chart
+    chart_name: Payment Modes
+    col: 6
+  - type: chart
+    chart_name: Top Customers
+    col: 6
+  - type: chart
+    chart_name: Top Suppliers
+    col: 6
+  - type: chart
+    chart_name: Receivables Ageing
+    col: 12
+  - type: chart
+    chart_name: Sales by Warehouse
+    col: 12
+  - type: spacer
+    col: 12
+  - type: header
+    text: <span class="h4"><b>Shortcuts</b></span>
+    col: 12
+  - type: shortcut
+    shortcut_name: Open POS
+    col: 3
+  - type: shortcut
+    shortcut_name: Party Statement
+    col: 3
+  - type: shortcut
+    shortcut_name: Items
+    col: 3
+  - type: shortcut
+    shortcut_name: Customers
+    col: 3
+  - type: shortcut
+    shortcut_name: Suppliers
+    col: 3
+  - type: shortcut
+    shortcut_name: New Sales Invoice
+    col: 3
+  - type: shortcut
+    shortcut_name: Purchase Invoice
+    col: 3
+  - type: shortcut
+    shortcut_name: Diva Guard
+    col: 3
+  - type: spacer
+    col: 12
+  - type: card
+    card_name: Reports
+    col: 4
+  - type: card
+    card_name: Store
+    col: 4
+  - type: card
+    card_name: Guard
+    col: 4
+  - type: card
+    card_name: Configuration
+    col: 4
+  shortcuts:
+  - label: Open POS
+    type: URL
+    url: /pos/
+    icon: shopping-cart
+  - label: Party Statement
+    type: Report
+    link_to: Party Statement
+    report_ref_doctype: Sales Invoice
+    icon: file-text
+  - label: Items
+    type: DocType
+    link_to: Item
+    icon: package
+  - label: Customers
+    type: DocType
+    link_to: Customer
+    icon: users
+  - label: Suppliers
+    type: DocType
+    link_to: Supplier
+    icon: truck
+  - label: New Sales Invoice
+    type: DocType
+    link_to: Sales Invoice
+    doc_view: New
+    icon: plus
+  - label: Purchase Invoice
+    type: DocType
+    link_to: Purchase Invoice
+    icon: shopping-bag
+  - label: Diva Guard
+    type: URL
+    url: /app/diva-guard
+    icon: shield-check
+  charts:
+  - chart_name: Diva Sales Trend
+    label: Sales Trend
+  - chart_name: Diva Sales by Item Group
+    label: Sales by Item Group
+  - chart_name: Diva Sales by Warehouse
+    label: Sales by Warehouse
+  - chart_name: Diva Payments by Mode
+    label: Payment Modes
+  - chart_name: Diva Top Customers
+    label: Top Customers
+  - chart_name: Diva Top Suppliers
+    label: Top Suppliers
+  - chart_name: Diva Receivables Ageing
+    label: Receivables Ageing
+  number_cards:
+  - number_card_name: Diva Today Sales
+    label: Today's Sales
+  - number_card_name: Diva Month Sales
+    label: This Month
+  - number_card_name: Diva Receivables
+    label: Receivables
+  - number_card_name: Diva Stock Value
+    label: Stock Value
+  - number_card_name: Diva Active Customers
+    label: Active Customers
+  - number_card_name: Diva Payables
+    label: Payables
+  links:
+  - type: Card Break
+    label: Reports
+    icon: file-text
+  - type: Link
+    label: Party Statement
+    link_type: Report
+    link_to: Party Statement
+    report_ref_doctype: Sales Invoice
+    is_query_report: 1
+    icon: file-text
+  - type: Link
+    label: Accounts Receivable
+    link_type: Report
+    link_to: Accounts Receivable
+    report_ref_doctype: Sales Invoice
+    is_query_report: 1
+    icon: wallet
+  - type: Link
+    label: Accounts Payable
+    link_type: Report
+    link_to: Accounts Payable
+    report_ref_doctype: Purchase Invoice
+    is_query_report: 1
+    icon: receipt-text
+  - type: Link
+    label: General Ledger
+    link_type: Report
+    link_to: General Ledger
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: book-open
+  - type: Link
+    label: Trial Balance
+    link_type: Report
+    link_to: Trial Balance
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: scale
+  - type: Link
+    label: Stock Balance
+    link_type: Report
+    link_to: Stock Balance
+    report_ref_doctype: Stock Ledger Entry
+    is_query_report: 1
+    icon: package-search
+  - type: Link
+    label: Item-wise Sales History
+    link_type: Report
+    link_to: Item-wise Sales History
+    report_ref_doctype: Sales Order
+    is_query_report: 1
+    icon: trending-up
+  - type: Card Break
+    label: Store
+    icon: store
+  - type: Link
+    label: Item
+    link_type: DocType
+    link_to: Item
+    icon: package
+  - type: Link
+    label: Customer
+    link_type: DocType
+    link_to: Customer
+    icon: users
+  - type: Link
+    label: Supplier
+    link_type: DocType
+    link_to: Supplier
+    icon: truck
+  - type: Link
+    label: Sales Invoice
+    link_type: DocType
+    link_to: Sales Invoice
+    icon: file-text
+  - type: Link
+    label: Purchase Invoice
+    link_type: DocType
+    link_to: Purchase Invoice
+    icon: shopping-bag
+  - type: Link
+    label: Payment Entry
+    link_type: DocType
+    link_to: Payment Entry
+    icon: credit-card
+  - type: Card Break
+    label: Guard
+    icon: shield-check
+  - type: Link
+    label: Diva Product Rule
+    link_type: DocType
+    link_to: Diva Product Rule
+    icon: list-checks
+  - type: Link
+    label: Diva Guard Settings
+    link_type: DocType
+    link_to: Diva Guard Settings
+    icon: settings
+  - type: Link
+    label: Diva Override Approval
+    link_type: DocType
+    link_to: Diva Override Approval
+    icon: key-round
+  - type: Card Break
+    label: Configuration
+    icon: sliders-horizontal
+  - type: Link
+    label: Company
+    link_type: DocType
+    link_to: Company
+    icon: building-2
+  - type: Link
+    label: Mode of Payment
+    link_type: DocType
+    link_to: Mode of Payment
+    icon: credit-card
+  - type: Link
+    label: Print Format
+    link_type: DocType
+    link_to: Print Format
+    icon: printer
+  - type: Link
+    label: Accounts Settings
+    link_type: DocType
+    link_to: Accounts Settings
+    icon: settings
+  - type: Link
+    label: Stock Settings
+    link_type: DocType
+    link_to: Stock Settings
+    icon: settings
+- name: Diva Reports
+  label: Diva Reports
+  title: Diva Reports
+  module: Custom Reports
+  type: Workspace
+  public: 1
+  is_hidden: 0
+  standard: 0
+  sequence_id: 1.5
+  icon: file-text
+  indicator_color: blue
+  content:
+  - type: header
+    text: <span class="h4"><b>Reports at a glance</b></span>
+    col: 12
+  - type: number_card
+    number_card_name: This Month
+    col: 4
+  - type: number_card
+    number_card_name: Receivables
+    col: 4
+  - type: number_card
+    number_card_name: Payables
+    col: 4
+  - type: spacer
+    col: 12
+  - type: header
+    text: <span class="h4"><b>Trends</b></span>
+    col: 12
+  - type: chart
+    chart_name: Sales Trend
+    col: 12
+  - type: chart
+    chart_name: Sales by Item Group
+    col: 6
+  - type: chart
+    chart_name: Top Customers
+    col: 6
+  - type: chart
+    chart_name: Receivables Ageing
+    col: 12
+  - type: chart
+    chart_name: Payables Ageing
+    col: 12
+  - type: spacer
+    col: 12
+  - type: header
+    text: <span class="h4"><b>Jump to</b></span>
+    col: 12
+  - type: shortcut
+    shortcut_name: Party Statement
+    col: 3
+  - type: shortcut
+    shortcut_name: Receivables
+    col: 3
+  - type: shortcut
+    shortcut_name: Payables
+    col: 3
+  - type: shortcut
+    shortcut_name: General Ledger
+    col: 3
+  - type: shortcut
+    shortcut_name: Trial Balance
+    col: 3
+  - type: shortcut
+    shortcut_name: Stock Balance
+    col: 3
+  - type: shortcut
+    shortcut_name: Store Home
+    col: 3
+  - type: shortcut
+    shortcut_name: Diva Guard
+    col: 3
+  - type: spacer
+    col: 12
+  - type: card
+    card_name: Statements
+    col: 4
+  - type: card
+    card_name: Financial Reports
+    col: 4
+  - type: card
+    card_name: Stock Reports
+    col: 4
+  - type: card
+    card_name: Setup
+    col: 4
+  shortcuts:
+  - label: Party Statement
+    type: Report
+    link_to: Party Statement
+    report_ref_doctype: Sales Invoice
+    icon: file-text
+  - label: Receivables
+    type: Report
+    link_to: Accounts Receivable
+    report_ref_doctype: Sales Invoice
+    icon: wallet
+  - label: Payables
+    type: Report
+    link_to: Accounts Payable
+    report_ref_doctype: Purchase Invoice
+    icon: receipt-text
+  - label: General Ledger
+    type: Report
+    link_to: General Ledger
+    report_ref_doctype: GL Entry
+    icon: book-open
+  - label: Trial Balance
+    type: Report
+    link_to: Trial Balance
+    report_ref_doctype: GL Entry
+    icon: scale
+  - label: Stock Balance
+    type: Report
+    link_to: Stock Balance
+    report_ref_doctype: Stock Ledger Entry
+    icon: package-search
+  - label: Store Home
+    type: URL
+    url: /app/diva-store
+    icon: store
+  - label: Diva Guard
+    type: URL
+    url: /app/diva-guard
+    icon: shield-check
+  charts:
+  - chart_name: Diva Sales Trend
+    label: Sales Trend
+  - chart_name: Diva Sales by Item Group
+    label: Sales by Item Group
+  - chart_name: Diva Top Customers
+    label: Top Customers
+  - chart_name: Diva Receivables Ageing
+    label: Receivables Ageing
+  - chart_name: Diva Payables Ageing
+    label: Payables Ageing
+  number_cards:
+  - number_card_name: Diva Month Sales
+    label: This Month
+  - number_card_name: Diva Receivables
+    label: Receivables
+  - number_card_name: Diva Payables
+    label: Payables
+  links:
+  - type: Card Break
+    label: Statements
+    icon: file-text
+  - type: Link
+    label: Party Statement
+    link_type: Report
+    link_to: Party Statement
+    report_ref_doctype: Sales Invoice
+    is_query_report: 1
+    icon: file-text
+  - type: Card Break
+    label: Financial Reports
+    icon: landmark
+  - type: Link
+    label: Accounts Receivable
+    link_type: Report
+    link_to: Accounts Receivable
+    report_ref_doctype: Sales Invoice
+    is_query_report: 1
+    icon: wallet
+  - type: Link
+    label: Accounts Payable
+    link_type: Report
+    link_to: Accounts Payable
+    report_ref_doctype: Purchase Invoice
+    is_query_report: 1
+    icon: receipt-text
+  - type: Link
+    label: General Ledger
+    link_type: Report
+    link_to: General Ledger
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: book-open
+  - type: Link
+    label: Trial Balance
+    link_type: Report
+    link_to: Trial Balance
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: scale
+  - type: Link
+    label: Profit and Loss Statement
+    link_type: Report
+    link_to: Profit and Loss Statement
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: trending-up
+  - type: Link
+    label: Balance Sheet
+    link_type: Report
+    link_to: Balance Sheet
+    report_ref_doctype: GL Entry
+    is_query_report: 1
+    icon: scale
+  - type: Card Break
+    label: Stock Reports
+    icon: package
+  - type: Link
+    label: Stock Balance
+    link_type: Report
+    link_to: Stock Balance
+    report_ref_doctype: Stock Ledger Entry
+    is_query_report: 1
+    icon: package-search
+  - type: Link
+    label: Stock Ledger
+    link_type: Report
+    link_to: Stock Ledger
+    report_ref_doctype: Stock Ledger Entry
+    is_query_report: 1
+    icon: book-open
+  - type: Link
+    label: Item-wise Sales History
+    link_type: Report
+    link_to: Item-wise Sales History
+    report_ref_doctype: Sales Order
+    is_query_report: 1
+    icon: trending-up
+  - type: Card Break
+    label: Setup
+    icon: sliders-horizontal
+  - type: Link
+    label: Company
+    link_type: DocType
+    link_to: Company
+    icon: building-2
+  - type: Link
+    label: Accounts Settings
+    link_type: DocType
+    link_to: Accounts Settings
+    icon: settings
+  - type: Link
+    label: Stock Settings
+    link_type: DocType
+    link_to: Stock Settings
+    icon: settings
+- name: Diva Guard
+  label: Diva Guard
+  title: Diva Guard
+  module: Diva Guard
+  type: Workspace
+  public: 1
+  is_hidden: 0
+  standard: 0
+  sequence_id: 2.5
+  icon: shield-check
+  indicator_color: orange
+  content:
+  - type: header
+    text: <span class="h4"><b>Counter controls</b></span>
+    col: 12
+  - type: number_card
+    number_card_name: Pending Approvals
+    col: 4
+  - type: number_card
+    number_card_name: Overrides (Month)
+    col: 4
+  - type: number_card
+    number_card_name: Active Rules
+    col: 4
+  - type: spacer
+    col: 12
+  - type: header
+    text: <span class="h4"><b>Approvals</b></span>
+    col: 12
+  - type: chart
+    chart_name: Overrides by Status
+    col: 12
+  - type: shortcut
+    shortcut_name: Guard Settings
+    col: 3
+  - type: shortcut
+    shortcut_name: Product Rules
+    col: 3
+  - type: shortcut
+    shortcut_name: Approvals
+    col: 3
+  - type: shortcut
+    shortcut_name: Items
+    col: 3
+  - type: shortcut
+    shortcut_name: Sales Invoice
+    col: 3
+  - type: shortcut
+    shortcut_name: POS Profile
+    col: 3
+  - type: shortcut
+    shortcut_name: Store Home
+    col: 3
+  - type: shortcut
+    shortcut_name: Diva Reports
+    col: 3
+  - type: spacer
+    col: 12
+  - type: card
+    card_name: Rules
+    col: 4
+  - type: card
+    card_name: Approvals
+    col: 4
+  - type: card
+    card_name: Operations
+    col: 4
+  shortcuts:
+  - label: Guard Settings
+    type: DocType
+    link_to: Diva Guard Settings
+    icon: settings
+  - label: Product Rules
+    type: DocType
+    link_to: Diva Product Rule
+    icon: list-checks
+  - label: Approvals
+    type: DocType
+    link_to: Diva Override Approval
+    icon: key-round
+  - label: Items
+    type: DocType
+    link_to: Item
+    icon: package
+  - label: Sales Invoice
+    type: DocType
+    link_to: Sales Invoice
+    icon: file-text
+  - label: POS Profile
+    type: DocType
+    link_to: POS Profile
+    icon: monitor
+  - label: Store Home
+    type: URL
+    url: /app/diva-store
+    icon: store
+  - label: Diva Reports
+    type: URL
+    url: /app/diva-reports
+    icon: file-text
+  charts:
+  - chart_name: Diva Overrides by Status
+    label: Overrides by Status
+  number_cards:
+  - number_card_name: Diva Pending Approvals
+    label: Pending Approvals
+  - number_card_name: Diva Overrides This Month
+    label: Overrides (Month)
+  - number_card_name: Diva Active Product Rules
+    label: Active Rules
+  links:
+  - type: Card Break
+    label: Rules
+    icon: list-checks
+  - type: Link
+    label: Diva Product Rule
+    link_type: DocType
+    link_to: Diva Product Rule
+    icon: list-checks
+  - type: Link
+    label: Diva Guard Settings
+    link_type: DocType
+    link_to: Diva Guard Settings
+    icon: settings
+  - type: Card Break
+    label: Approvals
+    icon: key-round
+  - type: Link
+    label: Diva Override Approval
+    link_type: DocType
+    link_to: Diva Override Approval
+    icon: key-round
+  - type: Card Break
+    label: Operations
+    icon: monitor
+  - type: Link
+    label: Item
+    link_type: DocType
+    link_to: Item
+    icon: package
+  - type: Link
+    label: Sales Invoice
+    link_type: DocType
+    link_to: Sales Invoice
+    icon: file-text
+  - type: Link
+    label: POS Profile
+    link_type: DocType
+    link_to: POS Profile
+    icon: monitor
+  - type: Link
+    label: Customer
+    link_type: DocType
+    link_to: Customer
+    icon: users

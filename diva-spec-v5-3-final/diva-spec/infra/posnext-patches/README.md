@@ -54,7 +54,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 7. Every scan shows the scan card (name, code, price per Dozen from the price list, stock in its UOM, quantity added in the scanned UOM) and focus returns to the barcode field.
 8. Shortcuts are ignored while a **registered** dialog is open (payment, drafts, return, clear cart, offers) and while the help overlay is up; Escape closes the help overlay. The edit-item and scan dialogs are not registered yet.
 9. `make secret-scan` stays clean (no secrets in the patches).
-10. The Desk **Apps** screen shows ERPNext, Diva Reports, Diva Guard, POS Next and Framework; the POS Next tile opens the POSNext workspace.
+10. The Desk **Apps** screen shows ERPNext, Diva, Diva Guard, POS Next and Framework; the POS Next tile opens the POSNext workspace.
 
 ## Rebase recipe
 

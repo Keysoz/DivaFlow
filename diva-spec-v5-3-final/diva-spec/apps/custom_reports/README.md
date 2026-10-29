@@ -4,7 +4,7 @@ Diva custom Frappe reports for ERPNext v16. The first report is **Party
 Statement** (`كشف حساب`): a printable statement of account for one Customer or
 one Supplier.
 
-On the Desk the app is titled **Diva Reports**; the module remains **Custom Reports**. It contributes the **Diva Store** and **Diva Reports** workspaces (defined in `infra/erpnext-config/desk.yaml`).
+On the Desk the app is titled **Diva**; the module remains **Custom Reports**. It contributes the **Diva Store** and **Diva Reports** workspaces (defined in `infra/erpnext-config/desk.yaml`).
 
 The report lives in this app, not in ERPNext. `Report.module` decides which app
 Python is imported from: with `module = "Accounts"` Frappe would look for

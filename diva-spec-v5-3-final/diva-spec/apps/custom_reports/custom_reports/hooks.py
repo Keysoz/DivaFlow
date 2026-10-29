@@ -1,5 +1,5 @@
 app_name = "custom_reports"
-app_title = "Diva Reports"
+app_title = "Diva"
 app_publisher = "Diva"
 app_description = "Diva custom Frappe reports"
 app_email = "ops@diva.local"

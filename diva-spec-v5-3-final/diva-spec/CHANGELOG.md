@@ -5,6 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Fixed
+- EOD shift report print fixed: the `POS Next EOD Report` format queried the non-existent `POS Profile.address`, so printview failed with `Unknown column 'address'` and the POS showed the generic “EOD report did not print” warning. The format now uses `company_address` + the Address line, and the warning includes the actual print error. Tracked POS Next patch **0014**; closed-shift print preview verified (HTTP 200, END-OF-DAY REPORT).
 - POS Next custom popups (Settings, Product/Promotion Management, Stock Lookup, Invoice Management, Edit Item, Partial Payments) now close with **Escape**; the POS stays usable. Recorded as tracked POS Next patch **0013**; frappe-ui dialogs already closed on Escape. Verified in the running POS with a headless browser.
 - Selling dashboard crash on ERPNext 16.52.1 (`Item-wise Sales History` received `company=None`): the idempotent config now sets `Global Defaults.default_company` to `Diva Dev`, which the chart's dynamic company filter reads. No standard chart/dashboard or core edit. Verified the dashboard loads in a headless browser.
 

@@ -24,6 +24,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 11 | `feat(pos): owner key map, combined scan info card and Ctrl+Z focus fix` | F1–F10 and Ctrl shortcuts with `preventDefault`; a scan card shows name, code, price per Dozen, stock and the quantity added; Ctrl+Z works while the scan field has focus. F3/F4/F5 open the last-line editor (quantity and discount; a line-note field does not exist yet) |
 | 12 | `feat(apps): show POS Next on the apps screen` | The Desk Apps screen only lists apps that declare `add_to_apps_screen`; the tile opens `/app/posnext` |
 | 13 | `feat(pos): close custom popups with Escape` | Custom modals (settings, product/promotion management, stock lookup, invoice management, edit item, partial payments) close on Esc; frappe-ui dialogs already did |
+| 14 | `fix(eod): use POS Profile company_address and show the real print error` | The EOD print format queried `POS Profile.address`, which does not exist in v16, so printview failed with `Unknown column 'address'`; use `company_address` + Address line 1. The warning now shows the actual print error (e.g. no printer) instead of a generic message. Runs on migrate. |
 
 ## Apply
 
@@ -57,6 +58,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 9. `make secret-scan` stays clean (no secrets in the patches).
 10. The Desk **Apps** screen shows ERPNext, Diva, Diva Guard, POS Next and Framework; the POS Next tile opens the POSNext workspace.
 11. Esc closes the topmost custom popup (Settings, Product Management, Promotions, Stock Lookup, Invoice Management, Edit Item, Partial Payments) and the POS stays usable; frappe-ui dialogs (payment, customer, drafts, returns, history, shift) still close as before.
+12. The EOD print preview renders for a closed POS Closing Shift (`/printview?doctype=POS Closing Shift&name=...&format=POS Next EOD Report`) with **END-OF-DAY REPORT** and no `Unknown column 'address'` error. If QZ Tray/printer is unavailable, closing a shift shows the real reason and keeps the Reprint button.
 
 ## Rebase recipe
 

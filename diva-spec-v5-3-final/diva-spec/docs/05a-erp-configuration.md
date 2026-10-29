@@ -5,7 +5,8 @@ ERPNext is simplified by **configuration, not code**. This file is the specifica
 ## 1. Principles
 - Keep ERPNext's standard stock, accounting, payment and reporting behavior. Simplify the interface around it.
 - Allowed: module and workspace visibility, blocked modules per role, Customize Form and Property Setters (hide, default, read-only, mandatory where safe), Role Permission Manager, User Permissions, Print Format Builder, price lists, payment terms, naming series, Stock, Accounts and Selling settings.
-- Forbidden: custom Frappe app, Server Scripts, Client Scripts, custom fields, editing core, uninstalling apps (DEC-04).
+- Forbidden: Server Scripts, Client Scripts, custom fields, editing core, uninstalling apps (DEC-04). The governed exceptions are `diva_guard` and the POS Next patch set (DEC-29) and `custom_reports` for reports (DEC-82); they never edit core.
+- Desk navigation is data too: `infra/erpnext-config/desk.yaml` defines the Diva Store/Diva Reports/Diva Guard workspaces, number cards and Dashboard Charts, applied by the idempotent `apply_desk.py` (`make config-apply`). Unused standard workspaces are hidden in `config.yaml`.
 - Hiding a field never deletes data or removes a process. A hidden field may still be filled by defaults; test it.
 - **Never hide without a dependency review:** document identity and status; quantities and units; rates and amounts; required accounting dates; company and currency; tax data; warehouse and stock fields; payment and outstanding amounts; fields required by validation; fields used by an installed app.
 - Everything is applied by the idempotent script `infra/erpnext-config/apply.py` through the REST API. Settings live in git as files. The script prints a diff, runs on staging first, and is rerun after every ERPNext upgrade.

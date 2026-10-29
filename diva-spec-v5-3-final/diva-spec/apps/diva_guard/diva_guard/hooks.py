@@ -11,15 +11,26 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "diva_guard",
-# 		"logo": "/assets/diva_guard/logo.png",
-# 		"title": "Diva Guard",
-# 		"route": "/diva_guard",
-# 		"has_permission": "diva_guard.api.permission.has_app_permission",
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": app_name,
+		"logo": (
+			"data:image/svg+xml;base64,"
+			"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0"
+			"PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkRpdmEgR3Vh"
+			"cmQiPgogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMTk3MWMy"
+			"Ii8+CiAgPHBhdGggZD0iTTMyIDEzbDE1IDUuNXYxMC4yYzAgOS40LTYuMiAxNi44LTE1IDIxLjMt"
+			"OC44LTQuNS0xNS0xMS45LTE1LTIxLjNWMTguNUwzMiAxM3oiIGZpbGw9IiNmZmZmZmYiIG9wYWNp"
+			"dHk9IjAuOTYiLz4KICA8cGF0aCBkPSJNMjQuNSAzMS41bDUgNSAxMC0xMC41IiBmaWxsPSJub25l"
+			"IiBzdHJva2U9IiMxOTcxYzIiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91"
+			"bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg=="
+		),
+		"title": app_title,
+		"route": "/app/diva-guard",
+		"has_permission": "frappe.permissions.check_app_permission",
+		"sequence_id": 3,
+	}
+]
 
 # The dock, the rail down the left of the desk, is a document rather than a hook. Author it in
 # Manage Dock on a developer-mode site and press Export to App, and it is written to

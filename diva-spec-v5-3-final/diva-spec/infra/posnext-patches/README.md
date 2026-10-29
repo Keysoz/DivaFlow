@@ -22,6 +22,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 9 | `fix(offline): absolutize the workbox import and precache injected assets` | The root worker imported `./workbox-…` (→ `/workbox-…js`, 404), aborting the install; also stops the injected registrar and prefetches the manifest |
 | 10 | `fix(offline): absolute URL for the injected webmanifest precache entry` | The plugin injects that entry outside the transform; a relative URL aborts the install |
 | 11 | `feat(pos): owner key map, combined scan info card and Ctrl+Z focus fix` | F1–F10 and Ctrl shortcuts with `preventDefault`; a scan card shows name, code, price per Dozen, stock and the quantity added; Ctrl+Z works while the scan field has focus. F3/F4/F5 open the last-line editor (quantity and discount; a line-note field does not exist yet) |
+| 12 | `feat(apps): show POS Next on the apps screen` | The Desk Apps screen only lists apps that declare `add_to_apps_screen`; the tile opens `/app/posnext` |
 
 ## Apply
 
@@ -53,6 +54,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 7. Every scan shows the scan card (name, code, price per Dozen from the price list, stock in its UOM, quantity added in the scanned UOM) and focus returns to the barcode field.
 8. Shortcuts are ignored while a **registered** dialog is open (payment, drafts, return, clear cart, offers) and while the help overlay is up; Escape closes the help overlay. The edit-item and scan dialogs are not registered yet.
 9. `make secret-scan` stays clean (no secrets in the patches).
+10. The Desk **Apps** screen shows ERPNext, Diva Reports, Diva Guard, POS Next and Framework; the POS Next tile opens the POSNext workspace.
 
 ## Rebase recipe
 

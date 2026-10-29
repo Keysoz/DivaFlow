@@ -1,0 +1,42 @@
+From 69819371355036ca2c8ea29e2c77200df817fb9e Mon Sep 17 00:00:00 2001
+From: Diva <ops@diva.local>
+Date: Thu, 29 Oct 2026 02:39:44 +0000
+Subject: [PATCH] feat(apps): show POS Next on the apps screen
+
+---
+ pos_next/hooks.py | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/pos_next/hooks.py b/pos_next/hooks.py
+index 534680d..2eebea3 100644
+--- a/pos_next/hooks.py
++++ b/pos_next/hooks.py
+@@ -13,15 +13,16 @@ app_license = "agpl-3.0"
+ # required_apps = []
+ 
+ # Each item in the list will be shown as an app in the apps page
+-# add_to_apps_screen = [
+-# 	{
+-# 		"name": "pos_next",
+-# 		"logo": "/assets/pos_next/logo.png",
+-# 		"title": "POS Next",
+-# 		"route": "/pos_next",
+-# 		"has_permission": "pos_next.api.permission.has_app_permission"
+-# 	}
+-# ]
++add_to_apps_screen = [
++	{
++		"name": app_name,
++		"logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBPUyBOZXh0Ij4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBiNzI4NSIvPgogIDxyZWN0IHg9IjE0IiB5PSIxOCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjE5IiB5PSIyNCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSIjMGI3Mjg1Ii8+CiAgPHJlY3QgeD0iMTkiIHk9IjMxIiB3aWR0aD0iMTgiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiMwYjcyODUiLz4KICA8cmVjdCB4PSIyMiIgeT0iNDYiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4=",
++		"title": app_title,
++		"route": "/app/posnext",
++		"has_permission": "frappe.permissions.check_app_permission",
++		"sequence_id": 4,
++	}
++]
+ 
+ # Includes in <head>
+ # ------------------
+-- 
+2.47.3
+

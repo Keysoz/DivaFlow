@@ -65,6 +65,21 @@ workspaces:
     hidden: true
   - name: Manufacturing
     hidden: true
+  # ENH-E-02: keep the Desk focused on the shop; these modules are unused.
+  - name: Assets
+    hidden: true
+  - name: Quality
+    hidden: true
+  - name: Projects
+    hidden: true
+  - name: Support
+    hidden: true
+  - name: Website
+    hidden: true
+  - name: CRM
+    hidden: true
+  - name: Build
+    hidden: true
 
 singles:
   # Global defaults: the company is required by reports opened from dashboards

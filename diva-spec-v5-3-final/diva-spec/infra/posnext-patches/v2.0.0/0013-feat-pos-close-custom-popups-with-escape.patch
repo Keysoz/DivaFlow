@@ -1,0 +1,217 @@
+From 44dbf00d532ded187093b4a042ba2ebd16bc8586 Mon Sep 17 00:00:00 2001
+From: Diva <ops@diva.local>
+Date: Thu, 29 Oct 2026 04:53:34 +0000
+Subject: [PATCH] feat(pos): close custom popups with Escape
+
+---
+ .../components/invoices/InvoiceManagement.vue |  2 +
+ .../components/partials/PartialPayments.vue   |  2 +
+ POS/src/components/sale/EditItemDialog.vue    |  3 ++
+ POS/src/components/sale/ProductManagement.vue |  2 +
+ .../components/sale/PromotionManagement.vue   |  2 +
+ .../sale/WarehouseAvailabilityDialog.vue      |  3 ++
+ POS/src/components/settings/POSSettings.vue   |  2 +
+ POS/src/composables/useEscapeToClose.js       | 49 +++++++++++++++++++
+ 8 files changed, 65 insertions(+)
+ create mode 100644 POS/src/composables/useEscapeToClose.js
+
+diff --git a/POS/src/components/invoices/InvoiceManagement.vue b/POS/src/components/invoices/InvoiceManagement.vue
+index 573eaa3..b9182ce 100644
+--- a/POS/src/components/invoices/InvoiceManagement.vue
++++ b/POS/src/components/invoices/InvoiceManagement.vue
+@@ -1034,6 +1034,7 @@ import { useFormatters } from "@/composables/useFormatters";
+ import { useToast } from "@/composables/useToast";
+ import { Button, call, LoadingIndicator } from "frappe-ui";
+ import { computed, onMounted, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import { isOffline } from "@/utils/offline/offlineState";
+ import {
+ 	cacheUnpaidInvoices,
+@@ -1075,6 +1076,7 @@ const emit = defineEmits([
+ ]);
+ 
+ const show = ref(props.modelValue);
++useEscapeToClose(show, handleClose);
+ const loading = ref(false);
+ const activeTab = ref("partial");
+ 
+diff --git a/POS/src/components/partials/PartialPayments.vue b/POS/src/components/partials/PartialPayments.vue
+index 7007312..484b46a 100644
+--- a/POS/src/components/partials/PartialPayments.vue
++++ b/POS/src/components/partials/PartialPayments.vue
+@@ -347,6 +347,7 @@ import { useToast } from "@/composables/useToast";
+ import { useFormatters } from "@/composables/useFormatters";
+ import { Button, call } from "frappe-ui";
+ import { onMounted, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ 
+ const posSettingsStore = usePOSSettingsStore();
+ const { showSuccess, showError } = useToast();
+@@ -364,6 +365,7 @@ const props = defineProps({
+ const emit = defineEmits(["update:modelValue"]);
+ 
+ const show = ref(props.modelValue);
++useEscapeToClose(show, handleClose);
+ const loading = ref(false);
+ const invoices = ref([]);
+ const summary = ref({
+diff --git a/POS/src/components/sale/EditItemDialog.vue b/POS/src/components/sale/EditItemDialog.vue
+index afd762c..2c4c258 100644
+--- a/POS/src/components/sale/EditItemDialog.vue
++++ b/POS/src/components/sale/EditItemDialog.vue
+@@ -484,6 +484,7 @@ import {
+ } from "@/utils/currency";
+ import { Button, FeatherIcon, createResource } from "frappe-ui";
+ import { computed, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import SelectInput from "@/components/common/SelectInput.vue";
+ 
+ const { showSuccess, showError, showWarning } = useToast();
+@@ -948,6 +949,8 @@ function updateItem() {
+ function cancel() {
+ 	show.value = false;
+ }
++
++useEscapeToClose(show, cancel);
+ </script>
+ 
+ <style scoped>
+diff --git a/POS/src/components/sale/ProductManagement.vue b/POS/src/components/sale/ProductManagement.vue
+index 0f8d668..82e0c78 100644
+--- a/POS/src/components/sale/ProductManagement.vue
++++ b/POS/src/components/sale/ProductManagement.vue
+@@ -746,6 +746,7 @@
+ import { Badge, Button, FormControl, LoadingIndicator, FeatherIcon } from "frappe-ui";
+ import SelectInput from "@/components/common/SelectInput.vue";
+ import { computed, onBeforeUnmount, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import { formatCurrency as formatCurrencyUtil } from "@/utils/currency";
+ import { useToast } from "@/composables/useToast";
+ import { call } from "@/utils/apiWrapper";
+@@ -780,6 +781,7 @@ const itemStore = useItemSearchStore();
+ 
+ // State
+ const show = ref(props.modelValue);
++useEscapeToClose(show, handleClose);
+ const loading = ref(false);
+ const loadingMore = ref(false);
+ const saveLoading = ref(false);
+diff --git a/POS/src/components/sale/PromotionManagement.vue b/POS/src/components/sale/PromotionManagement.vue
+index b89eb68..bca3493 100644
+--- a/POS/src/components/sale/PromotionManagement.vue
++++ b/POS/src/components/sale/PromotionManagement.vue
+@@ -1030,6 +1030,7 @@ import SelectInput from "../common/SelectInput.vue";
+ import { Badge, Button, Card, FormControl, LoadingIndicator, createResource } from "frappe-ui";
+ import { FeatherIcon } from "frappe-ui";
+ import { computed, onMounted, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import TranslatedHTML from "../common/TranslatedHTML.vue";
+ 
+ // Use shared toast
+@@ -1059,6 +1060,7 @@ const emit = defineEmits(["update:modelValue", "promotion-saved"]);
+ const itemSearchStore = useItemSearchStore();
+ 
+ const show = ref(props.modelValue);
++useEscapeToClose(show, handleClose);
+ const loading = ref(false);
+ const isCreating = ref(false);
+ const selectedPromotion = ref(null);
+diff --git a/POS/src/components/sale/WarehouseAvailabilityDialog.vue b/POS/src/components/sale/WarehouseAvailabilityDialog.vue
+index 58d10e4..c61632e 100644
+--- a/POS/src/components/sale/WarehouseAvailabilityDialog.vue
++++ b/POS/src/components/sale/WarehouseAvailabilityDialog.vue
+@@ -853,6 +853,7 @@
+  * Translations: All user-facing strings use __() for i18n
+  */
+ import { ref, computed, watch, nextTick } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import { call, Dialog } from "frappe-ui";
+ import { __ } from "@/utils/translation";
+ 
+@@ -893,6 +894,8 @@ function closeDialog() {
+ 	emit("close");
+ }
+ 
++useEscapeToClose(show, closeDialog);
++
+ // Determine if we're in search mode
+ const isSearchMode = computed(() => props.mode === "search");
+ 
+diff --git a/POS/src/components/settings/POSSettings.vue b/POS/src/components/settings/POSSettings.vue
+index c28c2d2..53cb4b3 100644
+--- a/POS/src/components/settings/POSSettings.vue
++++ b/POS/src/components/settings/POSSettings.vue
+@@ -1153,6 +1153,7 @@ import SelectField from "@/components/settings/SelectField.vue";
+ import { useToast } from "@/composables/useToast";
+ import { Button, call, createResource } from "frappe-ui";
+ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
++import { useEscapeToClose } from "@/composables/useEscapeToClose";
+ import { getSectionHeaderClasses, getSubsectionClasses, icons } from "./settingsConfig";
+ import { offlineWorker } from "@/utils/offline/workerClient";
+ import { logger } from "@/utils/logger";
+@@ -1173,6 +1174,7 @@ const props = defineProps({
+ const emit = defineEmits(["update:modelValue"]);
+ 
+ const show = ref(props.modelValue);
++useEscapeToClose(show, handleClose);
+ 
+ // State
+ const activeTab = ref("stock");
+diff --git a/POS/src/composables/useEscapeToClose.js b/POS/src/composables/useEscapeToClose.js
+new file mode 100644
+index 0000000..eda8627
+--- /dev/null
++++ b/POS/src/composables/useEscapeToClose.js
+@@ -0,0 +1,49 @@
++import { onBeforeUnmount, watch } from "vue";
++
++/**
++ * Close the topmost open custom popup on Escape.
++ *
++ * Frappe UI dialogs already handle Escape themselves. The POS app also has
++ * custom full-screen modals (settings, product/promotion management, stock
++ * lookup, invoice management, edit item, partial payments) that did not.
++ * Components register their own close callback here; the stack tracks the
++ * opening order so a nested popup closes before its parent.
++ */
++const openPopups = [];
++let listenerInstalled = false;
++
++function onKeydown(event) {
++	if (event.key !== "Escape" || event.defaultPrevented) return;
++	const top = openPopups[openPopups.length - 1];
++	if (!top) return;
++	event.preventDefault();
++	event.stopImmediatePropagation();
++	top.close();
++}
++
++function ensureListener() {
++	if (listenerInstalled) return;
++	document.addEventListener("keydown", onKeydown, true);
++	listenerInstalled = true;
++}
++
++export function useEscapeToClose(isOpen, close) {
++	const entry = { close };
++	const sync = () => {
++		const index = openPopups.indexOf(entry);
++		if (index !== -1) openPopups.splice(index, 1);
++		const visible = typeof isOpen === "function" ? isOpen() : Boolean(isOpen?.value);
++		if (visible) openPopups.push(entry);
++	};
++
++	watch(
++		() => (typeof isOpen === "function" ? isOpen() : isOpen?.value),
++		sync,
++		{ immediate: true }
++	);
++	onBeforeUnmount(() => {
++		const index = openPopups.indexOf(entry);
++		if (index !== -1) openPopups.splice(index, 1);
++	});
++	ensureListener();
++}
+-- 
+2.47.3
+

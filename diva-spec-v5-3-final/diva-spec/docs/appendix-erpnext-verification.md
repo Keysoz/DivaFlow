@@ -241,3 +241,10 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - `infra/erpnext-config/desk.yaml` declares the charts, cards and workspaces; `apply_desk.py` created them. Re-running both config scripts reports **0 changes** (`apply.py` 169 no-op, `apply_desk.py` 21 no-op). Unused standard workspaces (Assets, Quality, Projects, Support, Website, CRM, Build, Manufacturing) are hidden through `config.yaml`.
 - Verified chart data from the server: sales trend last 12 months, item groups (Consumable/Products/Rest), payment modes (Cash/InstaPay), top customers, top suppliers, sales by warehouse, overrides by status (Pending/Used). Cards: today 481, month 26,041, receivables 2,652, stock value 234,301.40, active customers 10, payables 24,000, pending approvals 47, overrides 56, active rules 12.
 - `make lint` clean; `make test` **178 passed, 4 skipped** (5 new planner tests).
+
+## 17. POS Next Escape closes custom popups (ENH-E-03, dev site)
+
+- Added tracked POS Next patch **0013** (`POS/src/composables/useEscapeToClose.js`). Custom full-screen modals register their close callback in opening order; a single document listener closes the topmost one on Escape.
+- Covered: POS Settings, Product Management, Promotion Management, Stock Lookup / Warehouse Availability, Invoice Management, Edit Item, Partial Payments. frappe-ui `Dialog` modals (payment, customer, drafts, returns, invoice/shift history, shift opening/closing) already closed on Escape and are unchanged.
+- Built the POS frontend with `yarn build` (54 precache entries) and deployed `public/pos` + `www/pos.html` + `www/pos-sw.js` to the dev site.
+- Headless Chromium verification on the live POS (`P003 POS`, open shift): Settings, Product Management, Promotions, Stock Lookup, Invoice Management and Edit Item all close on Escape and the POS remains usable; Product Management and Edit Item were checked visually before/after.

@@ -13,7 +13,7 @@ from typing import Any
 import frappe  # type: ignore[import-not-found]
 from frappe import _
 from frappe.utils import flt, today  # type: ignore[import-not-found]
-from rules_engine import is_valid_ean13, next_internal_ean13
+from rules_engine import is_valid_ean13, next_internal_ean13, to_decimal
 
 TARGET_WAREHOUSE = "Stores - DD"
 DEFAULT_MODE_OF_PAYMENT = "Cash"
@@ -147,8 +147,9 @@ def pay_invoice(
 	"""Create and submit a Payment Entry for a Sales Invoice (user clicked Pay).
 
 	The user chooses the amount (full or partial) and the mode; nothing is
-	created until this endpoint is called. A payment recorded here is still
-	subject to the normal human ``payment_reviewer`` step.
+	created until this endpoint is called. Submitting the Payment Entry posts the
+	ledger entry; it does **not** mark the payment verified. Verification stays
+	with a human holding the ``payment_reviewer`` role.
 	"""
 	if not frappe.has_permission("Payment Entry", "create") or not frappe.has_permission(
 		"Payment Entry", "submit"
@@ -166,9 +167,9 @@ def pay_invoice(
 	if invoice.outstanding_amount <= 0:
 		frappe.throw(_("Invoice {0} is already paid").format(invoice.name))
 
-	outstanding = float(flt(invoice.outstanding_amount))
-	amount_value = float(flt(amount))
-	if amount_value <= 0 or amount_value > outstanding + 0.005:
+	outstanding = to_decimal(str(invoice.outstanding_amount))
+	amount_value = to_decimal(str(amount))
+	if amount_value <= 0 or amount_value > outstanding:
 		frappe.throw(_("Amount must be between 0 and {0}").format(outstanding))
 
 	company_currency = frappe.get_cached_value("Company", invoice.company, "default_currency")
@@ -334,7 +335,7 @@ def global_search(query: str) -> list[dict[str, str]]:
 			"Customer",
 			customer["name"],
 			customer.get("customer_name") or customer["name"],
-			customer.get("mobile_no") or customer["name"],
+			customer["name"],
 		)
 
 	supplier_names = _contact_links(like, "Supplier")
@@ -353,7 +354,7 @@ def global_search(query: str) -> list[dict[str, str]]:
 			"Supplier",
 			supplier["name"],
 			supplier.get("supplier_name") or supplier["name"],
-			supplier.get("mobile_no") or supplier["name"],
+			supplier["name"],
 		)
 
 	for invoice in frappe.get_list(
@@ -398,6 +399,22 @@ def awesomebar_search(txt: str) -> list[dict[str, Any]]:
 			}
 		)
 	return results[:20]
+
+
+def _assert_automation_permission(doctype: str) -> None:
+	"""The follow-up documents are created for the user who submitted the receipt.
+
+	A user without create/submit rights on the follow-up document gets the
+	receipt saved and an actionable warning (the hook catches and shows it);
+	nothing is created behind their back.
+	"""
+	if not frappe.has_permission(doctype, "create") or not frappe.has_permission(doctype, "submit"):
+		frappe.throw(
+			_(
+				"You need create and submit permission on {0} for the automatic Purchase Receipt follow-up."
+			).format(doctype),
+			frappe.PermissionError,
+		)
 
 
 def auto_create_from_purchase_receipt(doc: Any, method: str | None = None) -> None:
@@ -453,14 +470,20 @@ def _create_purchase_invoice(pr: Any) -> str | None:
 		make_purchase_invoice,
 	)
 
+	_assert_automation_permission("Purchase Invoice")
 	existing = frappe.get_all(
 		"Purchase Invoice Item",
 		filters={"purchase_receipt": pr.name, "docstatus": ["<", 2]},
-		pluck="parent",
+		fields=["parent", "docstatus"],
 		limit_page_length=1,
 	)
 	if existing:
-		return str(existing[0])
+		if int(existing[0]["docstatus"]) == 0:
+			# A previous run left a draft: finish it instead of returning a false success.
+			draft = frappe.get_doc("Purchase Invoice", existing[0]["parent"])
+			draft.submit()
+			return str(draft.name)
+		return str(existing[0]["parent"])
 
 	invoice = make_purchase_invoice(pr.name)
 	if invoice is None or not invoice.get("items"):
@@ -479,12 +502,19 @@ def _create_purchase_invoice(pr: Any) -> str | None:
 
 def _create_transfer(pr: Any) -> str | None:
 	"""Move every received line from its accepted warehouse to Stores - DD."""
-	existing = frappe.db.exists(
+	_assert_automation_permission("Stock Entry")
+	existing = frappe.get_all(
 		"Stock Entry",
-		{"purchase_receipt_no": pr.name, "docstatus": ["<", 2]},
+		filters={"purchase_receipt_no": pr.name, "docstatus": ["<", 2]},
+		fields=["name", "docstatus"],
+		limit_page_length=1,
 	)
 	if existing:
-		return str(existing)
+		if int(existing[0]["docstatus"]) == 0:
+			draft = frappe.get_doc("Stock Entry", existing[0]["name"])
+			draft.submit()
+			return str(draft.name)
+		return str(existing[0]["name"])
 
 	rows = []
 	for item in pr.items:
@@ -495,9 +525,10 @@ def _create_transfer(pr: Any) -> str | None:
 			{
 				"item_code": item.item_code,
 				"item_name": item.item_name,
-				"qty": item.qty,
-				"uom": item.stock_uom or item.uom,
-				"stock_uom": item.stock_uom or item.uom,
+				# stock_qty is already in the stock UOM (Dozen lines on a Nos item are x12).
+				"qty": item.stock_qty,
+				"uom": item.stock_uom,
+				"stock_uom": item.stock_uom,
 				"conversion_factor": 1,
 				"s_warehouse": source,
 				"t_warehouse": TARGET_WAREHOUSE,

@@ -179,7 +179,19 @@
 	function add_new_item_dialog(frm) {
 		if (!frm || !is_draft(frm)) return;
 		if (frm._diva_add_item_dialog) {
-			frm._diva_add_item_dialog.show();
+			const existing = frm._diva_add_item_dialog;
+			existing.set_values({
+				item_code: "",
+				item_name: "",
+				barcode: "",
+				buying_price: 0,
+				selling_price: 0,
+				selling_price_nos: 0,
+				accepted_qty: 1,
+				warehouse: frm.doc.set_warehouse || DEFAULT_WAREHOUSE,
+				print_label: 1,
+			});
+			existing.show();
 			return;
 		}
 
@@ -486,6 +498,14 @@
 		return window.cur_frm && window.cur_frm.doc ? window.cur_frm : null;
 	}
 
+	// app_include_js loads this on every Desk page; only the two owner documents
+	// get the Tab order and the save/submit keys.
+	function is_desk_form(frm) {
+		return Boolean(
+			frm && (frm.doctype === "Purchase Receipt" || frm.doctype === "Sales Invoice")
+		);
+	}
+
 	function dialog_is_open() {
 		return $(".modal:visible").length > 0;
 	}
@@ -496,8 +516,10 @@
 			const input = event.target;
 			if (event.key === "Tab" && input && input.tagName === "INPUT") {
 				const frm = active_form();
+				const desk_form = is_desk_form(frm);
+				if (!desk_form || dialog_is_open()) return;
 				const fieldname = fieldname_of(input);
-				const jump = frm && !dialog_is_open() ? tab_target(frm, fieldname) : null;
+				const jump = tab_target(frm, fieldname);
 				// Supplier -> warehouse -> items and Customer -> items always jump.
 				// Any other Link field accepts the first suggestion when it has text.
 				if (jump) {
@@ -517,7 +539,7 @@
 			}
 
 			const frm = active_form();
-			if (!frm || dialog_is_open()) return;
+			if (!frm || dialog_is_open() || !is_desk_form(frm)) return;
 			const isSalesInvoice = frm.doctype === "Sales Invoice";
 			const isPurchaseReceipt = frm.doctype === "Purchase Receipt";
 
@@ -538,11 +560,13 @@
 					open_print("Purchase Receipt", frm.doc.name, RECEIPT_PRINT_FORMAT);
 				}
 			} else if (event.key.toLowerCase() === "s" && (event.ctrlKey || event.metaKey)) {
+				if (!is_draft(frm)) return;
 				event.preventDefault();
 				frm.save();
 			} else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+				if (!is_draft(frm)) return;
 				event.preventDefault();
-				if (frm.doc.docstatus === 0) frm.save("Submit");
+				frm.save("Submit");
 			}
 		},
 		true

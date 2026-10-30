@@ -265,11 +265,14 @@ def test_global_search(item_code: str) -> None:
 # ---------------------------------------------------------------------------
 # 3. Purchase Receipt automation
 # ---------------------------------------------------------------------------
-def test_purchase_receipt() -> None:
+def test_purchase_receipt(item_code: str) -> None:
     print("\n3. Purchase Receipt -> Purchase Invoice + transfer to Stores - DD")
+    # The quick item has stock UOM Nos and is bought in Dozen, so 1 Dozen must
+    # move 12 Nos to Stores - DD (the Dozen/Nos regression guard).
+    item_code = item_code or ITEM
     before = list_rows(
         "Bin",
-        filters=json.dumps([["item_code", "=", ITEM], ["warehouse", "=", TARGET_WAREHOUSE]]),
+        filters=json.dumps([["item_code", "=", item_code], ["warehouse", "=", TARGET_WAREHOUSE]]),
         fields='["actual_qty"]',
     )
     before_qty = float(before[0]["actual_qty"]) if before else 0.0
@@ -286,7 +289,7 @@ def test_purchase_receipt() -> None:
             "remarks": f"desk test {STAMP}",
             "items": [
                 {
-                    "item_code": ITEM,
+                    "item_code": item_code,
                     "qty": 1,
                     "uom": "Dozen",
                     "conversion_factor": 12,
@@ -342,10 +345,15 @@ def test_purchase_receipt() -> None:
             abs(moved - expected_stock) < 0.001,
             (moved, expected_stock),
         )
+        expect(
+            "a Dozen received on a Nos item moves 12 Nos",
+            abs(expected_stock - 12.0) < 0.001 and abs(moved - 12.0) < 0.001,
+            (expected_stock, moved),
+        )
 
     after = list_rows(
         "Bin",
-        filters=json.dumps([["item_code", "=", ITEM], ["warehouse", "=", TARGET_WAREHOUSE]]),
+        filters=json.dumps([["item_code", "=", item_code], ["warehouse", "=", TARGET_WAREHOUSE]]),
         fields='["actual_qty"]',
     )
     after_qty = float(after[0]["actual_qty"]) if after else 0.0
@@ -499,7 +507,7 @@ if __name__ == "__main__":
     try:
         quick_item = test_quick_item()
         test_global_search(quick_item)
-        test_purchase_receipt()
+        test_purchase_receipt(quick_item)
         test_pay_invoice()
     finally:
         cleanup()

@@ -67,11 +67,6 @@ property_setters:
     property_type: Data
     value: Stores - DD
   - doctype: Purchase Receipt
-    fieldname: set_warehouse
-    property: label
-    property_type: Data
-    value: Accepted Warehouse
-  - doctype: Purchase Receipt
     fieldname: apply_putaway_rule
     property: hidden
     value: 1
@@ -248,6 +243,98 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Saved to the Standard Selling price list per Dozen when the item is saved." }
     set: { translated_text: "يُحفظ في قائمة أسعار البيع القياسية لكل دستة عند حفظ الصنف." }
+
+  # DEC-85/DEC-87: Arabic for the new Desk strings. Native review is requested in the pull request.
+  - doctype: Translation
+    match: { language: ar, source_text: "Buying Price (EGP/Dozen)" }
+    set: { translated_text: "سعر الشراء (جنيه/دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Selling Price (EGP/Nos)" }
+    set: { translated_text: "سعر البيع (جنيه/قطعة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Selling Price (EGP/Dozen)" }
+    set: { translated_text: "سعر البيع (جنيه/دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Accepted Quantity (Dozen)" }
+    set: { translated_text: "الكمية المقبولة (دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Barcode (EAN-13)" }
+    set: { translated_text: "الباركود (EAN-13)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print the label after saving" }
+    set: { translated_text: "طباعة الملصق بعد الحفظ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Save Item & Add" }
+    set: { translated_text: "حفظ الصنف وإضافة صنف جديد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Add New Item" }
+    set: { translated_text: "إضافة صنف جديد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Could not create the item" }
+    set: { translated_text: "تعذّر إنشاء الصنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Creating the item..." }
+    set: { translated_text: "جارٍ إنشاء الصنف..." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Creating the payment..." }
+    set: { translated_text: "جارٍ إنشاء الدفعة..." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment failed" }
+    set: { translated_text: "فشل إنشاء الدفعة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Pay Invoice {0}" }
+    set: { translated_text: "سداد الفاتورة {0}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Pay the full outstanding amount" }
+    set: { translated_text: "سداد كامل المبلغ المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Amount to pay" }
+    set: { translated_text: "المبلغ المراد سداده" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Full outstanding amount" }
+    set: { translated_text: "كامل المبلغ المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Partial payment" }
+    set: { translated_text: "دفعة جزئية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Nothing is posted until you press Pay. The payment is then reviewed by a human, as always." }
+    set: { translated_text: "لن يُرحَّل أي شيء حتى تضغط على «سداد». ثم تُراجَع الدفعة بواسطة شخص، كالعادة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment {0} submitted. Use Print for the invoice." }
+    set: { translated_text: "تم إرسال الدفعة {0}. استخدم «طباعة» للفاتورة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "This invoice has nothing left to pay." }
+    set: { translated_text: "هذه الفاتورة ليس عليها أي مبلغ متبقي." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Diva shortcuts" }
+    set: { translated_text: "اختصارات ديفا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Show these shortcuts" }
+    set: { translated_text: "عرض هذه الاختصارات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Focus customer / supplier" }
+    set: { translated_text: "التركيز على العميل / المورّد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Add or focus the item row" }
+    set: { translated_text: "إضافة أو التركيز على صف الصنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Pay the Sales Invoice" }
+    set: { translated_text: "سداد فاتورة المبيعات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print the current document" }
+    set: { translated_text: "طباعة المستند الحالي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Accept the first suggestion, then jump on" }
+    set: { translated_text: "قبول الاقتراح الأول ثم الانتقال للتالي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Please allow pop-ups to print the label." }
+    set: { translated_text: "يُرجى السماح بالنوافذ المنبثقة لطباعة الملصق." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Pay" }
+    set: { translated_text: "سداد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print" }
+    set: { translated_text: "طباعة" }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

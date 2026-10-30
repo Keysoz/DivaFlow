@@ -49,6 +49,7 @@ def _upsert_print_format(name: str, values: dict) -> None:
             "Print Format",
             name,
             [
+                "module",
                 "print_format_for",
                 "report",
                 "custom_format",
@@ -59,7 +60,19 @@ def _upsert_print_format(name: str, values: dict) -> None:
             ],
             as_dict=True,
         )
-        if current and all(current.get(key) == values[key] for key in current):
+        if not current:
+            return
+        if current.get("module") != values["module"]:
+            # Never replace a format this app does not own (DEC-89).
+            frappe.log_error(
+                title="Diva: report print format not overwritten",
+                message=(
+                    f"Print Format {name!r} belongs to module {current.get('module')!r}; "
+                    "the Diva template was not applied."
+                ),
+            )
+            return
+        if all(current.get(key) == values[key] for key in current):
             return
         doc = frappe.get_doc("Print Format", name)
         doc.update(values)

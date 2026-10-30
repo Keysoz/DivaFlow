@@ -9,6 +9,7 @@ be used for text; the matching test enforces that it stays below AA.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -83,6 +84,12 @@ def test_css_contains_every_palette_value() -> None:
     for theme in ("light", "dark"):
         for token, value in TOKENS[theme].items():
             assert value.lower() in CSS, f"{theme}.{token} ({value}) is missing from tokens.css"
+
+
+def test_css_has_no_unknown_palette_colors() -> None:
+    allowed = {value.lower() for theme in ("light", "dark") for value in TOKENS[theme].values()}
+    found = set(re.findall(r"--diva-color-[a-z-]+:\s*(#[0-9a-f]{6})", CSS))
+    assert found <= allowed, f"colors in tokens.css but not in tokens.json: {found - allowed}"
 
 
 def test_css_declares_typography_and_radius() -> None:

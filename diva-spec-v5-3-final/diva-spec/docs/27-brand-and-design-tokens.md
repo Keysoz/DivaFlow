@@ -40,11 +40,12 @@ All colors below are **design tokens**. Nothing in any app hard-codes a color va
 | `text-secondary` | #A9B6C9 | Secondary text |
 | `primary` | #D6B25E | Primary button (gold) |
 | `on-primary` | #0F1B2D | Text on the gold primary button |
+| `on-gold` | #0F1B2D | Text on a gold button |
 | `gold` | #D6B25E | Gold accent |
 | `success` | #6FD0BB | Success states |
 | `warning` | #E6B45A | Warning states |
 | `error` | #F09A92 | Error states |
-| `border` | #2A3B55 | Proposed, decorative only |
+| `border` | #2A3B55 | Decorative lines only |
 
 ### Measured contrast (WCAG)
 
@@ -79,7 +80,7 @@ Dark mode:
 
 - **IBM Plex Sans Arabic** for both Arabic and Latin in the interface, **bundled locally** with no external CDN, so screens and printing keep working offline at the counter. Do not use a CDN or Google Fonts.
 - A **thin serif** only for brand headings and the wordmark (propose **Cormorant Garamond** or a similar thin serif, also bundled locally). It is never used for dense UI text.
-- Proposed scale (values are proposals to confirm in BRAND-01):
+- Scale (committed in BRAND-01; the exact font files are BRAND-02):
 
 | Group | Values |
 |---|---|
@@ -88,7 +89,7 @@ Dark mode:
 | Spacing | 4, 8, 12, 16, 24, 32, 48, 64 px |
 | Radius | 4, 8, 12 px, pill 999 px |
 
-- The exact font files will be added in **BRAND-02**/**BRAND-01** and must be checked for complete **Arabic glyphs** (all letters, diacritics where used, and correct shaping) before they are accepted.
+- The exact font files are added in **BRAND-02** and must be checked for complete **Arabic glyphs** (all letters, diacritics where used, and correct shaping) before they are accepted.
 
 ## 4. Where it applies
 
@@ -119,7 +120,7 @@ Dark mode:
 | Task | Scope | Depends on |
 |---|---|---|
 | BRAND-01 | Tokens package (`packages/ui/tokens.css`, `tokens.json`) + contrast test | after P0-10 |
-| BRAND-02 | Brand assets: original logo, transparent/gold/white versions, favicon and Telegram avatar, receipt and invoice headers (A4 + 80 mm), Arabic and English | independent |
+| BRAND-02 | Brand assets: original logo, transparent/gold/white versions, bundled font files, favicon and Telegram avatar, receipt and invoice headers (A4 + 80 mm), Arabic and English | none |
 | BRAND-03 | Ops and Control Room shell (light/dark, RTL/LTR) | after E-13 |
 | BRAND-04 | POS Next theming via CSS-variable overrides | after E-14 |
 | BRAND-05 | ERPNext logo and app name via config (`infra/erpnext-config`) | after E-03 |

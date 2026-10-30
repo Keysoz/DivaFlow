@@ -314,3 +314,11 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 
 **Checks**
 - `scripts/test_desk_workflows.py` all pass; headless Chromium checks all pass (Item dialog fields, standard quick entry, inline Tab, simplified row editor, no SI Print button); `make lint` clean; `make test` 195 passed, 4 skipped; `apply.py` re-run 0 changes.
+
+## 22. Combined Customer/Supplier Party Statement (DEC-91, dev site)
+
+- Convention: create the Customer and the Supplier with the **same name** (no custom field). The report detects the counterpart and adds the new **Combine same-name Customer / Supplier** filter (default on).
+- Test data (`scripts/test_party_statement_combined.py`): same-name pair, Sales Invoice 96, Purchase Invoice 160, Payment Entry Receive 500 (96 allocated), Payment Entry Pay 600 (160 allocated).
+- Combined report: rows show both sides (`party_side` Customer/Supplier), invoice rows for Sale and Purchase, payment rows for Payment In/Out. Sales 96, Purchases 160, Paid In 500, Paid Out 600, **net 36 receivable**, GL net **36** (matches). With the merge off, only the customer side shows and its balance is the 404 advance.
+- Print format: renders with the Type column and the combined summary in Arabic (Net Opening 0, Total Sales 96, Total Purchases 160, Paid In 500, Paid Out 600, Net Balance 36, "Net receivable from this party"); screenshot `/tmp/opencode/desk-verify/20-combined-statement.png`.
+- The existing Party Statement permissions are checked for both party doctypes; no custom field and no core edit.

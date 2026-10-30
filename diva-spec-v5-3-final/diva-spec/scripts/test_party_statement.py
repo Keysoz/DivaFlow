@@ -331,7 +331,8 @@ try:
 
     message = run_report(company_name, from_date)
     rows = cast(list[dict[str, Any]], message.get("result") or [])
-    summary = {row["label"]: float(row["value"]) for row in message.get("report_summary") or []}
+    # Labels are translated per request language; assert by position instead.
+    summary = [float(row["value"]) for row in message.get("report_summary") or []]
 
     sections: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -369,10 +370,10 @@ try:
         f"paid={second['paid']} outstanding={second['outstanding']}",
     )
 
-    check("summary opening is 0", summary.get("Opening Balance") == 0, str(summary))
-    check("summary invoiced is 2400", summary.get("Total Invoiced") == 2400, str(summary))
-    check("summary paid is 1000", summary.get("Total Paid") == 1000, str(summary))
-    check("summary closing is 1400", summary.get("Remaining Balance") == 1400, str(summary))
+    check("summary opening is 0", len(summary) > 0 and summary[0] == 0, str(summary))
+    check("summary invoiced is 2400", len(summary) > 1 and summary[1] == 2400, str(summary))
+    check("summary paid is 1000", len(summary) > 2 and summary[2] == 1000, str(summary))
+    check("summary closing is 1400", len(summary) > 3 and summary[3] == 1400, str(summary))
     check(
         "advance total is 100",
         float(rows[0].get("advances_total") or 0) == 100,

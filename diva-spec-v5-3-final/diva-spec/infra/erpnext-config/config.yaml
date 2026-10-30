@@ -1233,6 +1233,175 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted." }
     set: { translated_text: "تم إرسال الدفعة {0}." }
+
+  # DEC-91: Arabic for the combined Customer/Supplier statement.
+  - doctype: Translation
+    match: { language: ar, source_text: "Customer & Supplier" }
+    set: { translated_text: "عميل ومورّد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Sale" }
+    set: { translated_text: "بيع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Purchase" }
+    set: { translated_text: "شراء" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Credit Note" }
+    set: { translated_text: "إشعار دائن" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Debit Note" }
+    set: { translated_text: "إشعار مدين" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment In" }
+    set: { translated_text: "دفعة واردة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment Out" }
+    set: { translated_text: "دفعة صادرة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Paid In" }
+    set: { translated_text: "إجمالي المدفوع الوارد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Paid Out" }
+    set: { translated_text: "إجمالي المدفوع الصادر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net Opening" }
+    set: { translated_text: "صافي الرصيد الافتتاحي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net Balance" }
+    set: { translated_text: "صافي الرصيد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net receivable from this party" }
+    set: { translated_text: "صافي مستحق لنا على هذا الطرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net payable to this party" }
+    set: { translated_text: "صافي مستحق لهذا الطرف علينا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Credit / Debit Notes" }
+    set: { translated_text: "إشعارات دائنة / مدينة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Combine same-name Customer / Supplier" }
+    set: { translated_text: "دمج العميل والمورّد بنفس الاسم" }
+  - doctype: Translation
+    match: { language: ar, source_text: "When a Customer and a Supplier share this name, show both ledgers as one net statement." }
+    set: { translated_text: "عندما يتشارك عميل ومورّد نفس الاسم، يُعرض دفتراهما ككشف واحد بالصافي." }
+
+  # DEC-91: Arabic for the Party Statement labels (combined + document).
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Purchases" }
+    set: { translated_text: "إجمالي المشتريات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Advance / Unallocated Payments" }
+    set: { translated_text: "الدفعات المقدمة / غير المخصصة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Prepared by" }
+    set: { translated_text: "أعدّه" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Authorized by" }
+    set: { translated_text: "اعتمده" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Party acknowledgment" }
+    set: { translated_text: "إقرار الطرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print Date" }
+    set: { translated_text: "تاريخ الطباعة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Period" }
+    set: { translated_text: "الفترة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Currency" }
+    set: { translated_text: "العملة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Party ID" }
+    set: { translated_text: "معرّف الطرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Invoices" }
+    set: { translated_text: "الفواتير" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payments" }
+    set: { translated_text: "المدفوعات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total" }
+    set: { translated_text: "الإجمالي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Date" }
+    set: { translated_text: "التاريخ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Due Date" }
+    set: { translated_text: "تاريخ الاستحقاق" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Invoice No" }
+    set: { translated_text: "رقم الفاتورة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Note No" }
+    set: { translated_text: "رقم الإشعار" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Receipt No" }
+    set: { translated_text: "رقم الإيصال" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Method" }
+    set: { translated_text: "طريقة الدفع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Reference" }
+    set: { translated_text: "المرجع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Applied To" }
+    set: { translated_text: "مُخصص لـ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Amount" }
+    set: { translated_text: "المبلغ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Paid" }
+    set: { translated_text: "المدفوع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Remaining" }
+    set: { translated_text: "المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Status" }
+    set: { translated_text: "الحالة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Type" }
+    set: { translated_text: "النوع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Opening Balance" }
+    set: { translated_text: "الرصيد الافتتاحي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Invoiced" }
+    set: { translated_text: "إجمالي الفواتير" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Paid" }
+    set: { translated_text: "إجمالي المدفوع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Remaining Balance" }
+    set: { translated_text: "الرصيد المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net Opening" }
+    set: { translated_text: "صافي الرصيد الافتتاحي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net Balance" }
+    set: { translated_text: "صافي الرصيد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Sales" }
+    set: { translated_text: "إجمالي المبيعات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Paid In" }
+    set: { translated_text: "إجمالي المدفوع الوارد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total Paid Out" }
+    set: { translated_text: "إجمالي المدفوع الصادر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net receivable from this party" }
+    set: { translated_text: "صافي مستحق لنا على هذا الطرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net payable to this party" }
+    set: { translated_text: "صافي مستحق لهذا الطرف علينا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Credit / Debit Notes" }
+    set: { translated_text: "إشعارات دائنة / مدينة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Due from the customer" }
+    set: { translated_text: "مستحق على العميل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Due to the supplier" }
+    set: { translated_text: "مستحق للمورّد" }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

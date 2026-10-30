@@ -77,6 +77,15 @@ frappe.query_reports["Party Statement"] = {
 			default: 0,
 		},
 		{
+			fieldname: "combine",
+			label: __("Combine same-name Customer / Supplier"),
+			fieldtype: "Check",
+			default: 1,
+			description: __(
+				"When a Customer and a Supplier share this name, show both ledgers as one net statement."
+			),
+		},
+		{
 			fieldname: "letter_head",
 			label: __("Letter Head"),
 			fieldtype: "Link",

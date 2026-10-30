@@ -414,8 +414,17 @@ def _payment_rows(
         base_paid = _dec(entry.base_paid_amount) * sign
         base_rate = (base_paid / paid) if paid else Decimal("1")
 
+        if party_type == "Customer":
+            direction = _("Payment Out") if opposite else _("Payment In")
+            direction_code = "out" if opposite else "in"
+        else:
+            direction = _("Payment In") if opposite else _("Payment Out")
+            direction_code = "in" if opposite else "out"
+
         row = {
             "document": entry.name,
+            "direction": direction,
+            "direction_code": direction_code,
             "posting_date": entry.posting_date,
             "method": entry.mode_of_payment or "",
             "reference": " ".join(
@@ -514,6 +523,79 @@ def get_fiscal_year_start(company: str | None = None) -> str:
     return str(fiscal_year[1]) if fiscal_year else str(add_months(today(), -12))
 
 
+def _side_data(
+    party_type: str,
+    party: str,
+    company: str,
+    from_date: str,
+    to_date: str,
+    show_cancelled: bool,
+) -> dict:
+    """Build one party's statement data (Customer or Supplier)."""
+    invoice_doctype, party_field, account_type = _party_config(party_type)
+    accounts = _party_accounts(company, account_type)
+    opening = _gl_balance(company, party_type, party, accounts, before=from_date)
+    closing_gl = _gl_balance(company, party_type, party, accounts, through=to_date)
+
+    invoice_rows = _invoice_rows(
+        invoice_doctype, party_field, party, company, from_date, to_date, show_cancelled, 0
+    )
+    note_rows = _invoice_rows(
+        invoice_doctype, party_field, party, company, from_date, to_date, show_cancelled, 1
+    )
+    payment_rows, advance_rows = _payment_rows(
+        party_type, party, company, from_date, to_date, show_cancelled
+    )
+
+    invoiced = _sum([row for row in invoice_rows if row["docstatus"] == 1], "base_total")
+    notes = _sum([row for row in note_rows if row["docstatus"] == 1], "base_total")
+    payment_total = _sum([row for row in payment_rows if row["docstatus"] == 1], "base_paid")
+    counter_paid = _sum(
+        [row for row in invoice_rows + note_rows if row["docstatus"] == 1], "base_self_paid"
+    )
+    paid = payment_total + counter_paid
+    advances = _sum(advance_rows, "base_total")
+    closing = opening + invoiced + notes - paid
+    return {
+        "party_type": party_type,
+        "party": party,
+        "rows": invoice_rows + note_rows + payment_rows + advance_rows,
+        "invoice_rows": invoice_rows,
+        "note_rows": note_rows,
+        "payment_rows": payment_rows,
+        "advance_rows": advance_rows,
+        "opening": opening,
+        "invoiced": invoiced,
+        "notes": notes,
+        "paid": paid,
+        "payment_total": payment_total,
+        "counter_paid": counter_paid,
+        "advances": advances,
+        "closing": closing,
+        "closing_gl": closing_gl,
+    }
+
+
+def _combined_rows(customer: dict, supplier: dict) -> list[dict]:
+    """Merge a customer and supplier statement, labelling every row by side."""
+    rows: list[dict] = []
+    for side, side_type in ((customer, "Customer"), (supplier, "Supplier")):
+        for source in side["rows"]:
+            row = {**source, "party_side": side_type}
+            section = row.get("section")
+            if section == SECTION_INVOICE:
+                row["type_label"] = _("Sale") if side_type == "Customer" else _("Purchase")
+            elif section == SECTION_NOTE:
+                row["type_label"] = _("Credit Note") if side_type == "Customer" else _("Debit Note")
+            elif section == SECTION_PAYMENT:
+                row["type_label"] = row.get("direction") or _("Payment")
+            elif section == SECTION_ADVANCE:
+                row["type_label"] = _("Advance")
+            rows.append(row)
+    rows.sort(key=lambda row: (str(row.get("posting_date") or ""), str(row.get("document") or "")))
+    return rows
+
+
 def execute(filters=None):
     filters = frappe._dict(filters or {})
     if not filters.get("company") or not filters.get("party_type") or not filters.get("party"):
@@ -522,7 +604,7 @@ def execute(filters=None):
     party_type = filters.party_type
     party = filters.party
     company = filters.company
-    invoice_doctype, party_field, account_type = _party_config(party_type)
+    invoice_doctype, _party_field, _account_type = _party_config(party_type)
     _check_permissions(party_type, party, invoice_doctype)
 
     # --- Period ------------------------------------------------------------
@@ -536,38 +618,53 @@ def execute(filters=None):
         frappe.throw(_("From Date cannot be after To Date"))
     from_date, to_date = str(from_date), str(to_date)
     show_cancelled = bool(filters.get("show_cancelled"))
+    combine = bool(filters.get("combine", 1))
 
     # --- Header data -------------------------------------------------------
     company_meta = _company_meta(company)
     party_meta = _party_meta(party_type, party)
     company_currency = company_meta["company_currency"]
 
-    # --- Balances ----------------------------------------------------------
-    accounts = _party_accounts(company, account_type)
-    opening = _gl_balance(company, party_type, party, accounts, before=from_date)
-    closing_gl = _gl_balance(company, party_type, party, accounts, through=to_date)
+    # --- Both sides of a customer-supplier ---------------------------------
+    primary = _side_data(party_type, party, company, from_date, to_date, show_cancelled)
+    other_type = "Supplier" if party_type == "Customer" else "Customer"
+    counterpart = None
+    if (
+        combine
+        and frappe.db.exists(other_type, party)
+        and frappe.has_permission(other_type, "read", party)
+    ):
+        counterpart = _side_data(other_type, party, company, from_date, to_date, show_cancelled)
 
-    # --- Documents ---------------------------------------------------------
-    invoice_rows = _invoice_rows(
-        invoice_doctype, party_field, party, company, from_date, to_date, show_cancelled, 0
-    )
-    note_rows = _invoice_rows(
-        invoice_doctype, party_field, party, company, from_date, to_date, show_cancelled, 1
-    )
-    payment_rows, advance_rows = _payment_rows(
-        party_type, party, company, from_date, to_date, show_cancelled
-    )
+    if counterpart:
+        customer = primary if party_type == "Customer" else counterpart
+        supplier = counterpart if party_type == "Customer" else primary
+        rows = _combined_rows(customer, supplier)
+        opening = customer["opening"] - supplier["opening"]
+        closing = customer["closing"] - supplier["closing"]
+        closing_gl = customer["closing_gl"] - supplier["closing_gl"]
+        sales_total = customer["invoiced"] + customer["notes"]
+        purchases_total = supplier["invoiced"] + supplier["notes"]
+        paid_in = customer["paid"]
+        paid_out = supplier["paid"]
+        invoiced = sales_total
+        paid = paid_in
+        notes = customer["notes"]
+        advances = customer["advances"] + supplier["advances"]
+        currency_note = ""
+    else:
+        rows = primary["rows"]
+        opening = primary["opening"]
+        closing = primary["closing"]
+        closing_gl = primary["closing_gl"]
+        sales_total = purchases_total = Decimal("0")
+        paid_in = paid_out = Decimal("0")
+        invoiced = primary["invoiced"]
+        paid = primary["paid"]
+        notes = primary["notes"]
+        advances = primary["advances"]
+        currency_note = ""
 
-    # --- Total row ---------------------------------------------------------
-    invoiced = _sum([row for row in invoice_rows if row["docstatus"] == 1], "base_total")
-    notes = _sum([row for row in note_rows if row["docstatus"] == 1], "base_total")
-    payment_total = _sum([row for row in payment_rows if row["docstatus"] == 1], "base_paid")
-    counter_paid = _sum(
-        [row for row in invoice_rows + note_rows if row["docstatus"] == 1], "base_self_paid"
-    )
-    paid = payment_total + counter_paid
-    advances = _sum(advance_rows, "base_total")
-    closing = opening + invoiced + notes - paid
     difference = closing - closing_gl
     mismatch = abs(difference) > Decimal("0.01")
 
@@ -575,17 +672,21 @@ def execute(filters=None):
     foreign_currencies = sorted(
         {
             row["currency"]
-            for row in invoice_rows + note_rows + payment_rows
+            for row in rows
             if row.get("currency") and row["currency"] != company_currency
         }
     )
-    currency_note = ""
-    if foreign_currencies:
+    if not counterpart and foreign_currencies:
         currency_note = _(
             "Some documents are in {0}. Row amounts use the document currency; "
             "totals and the GL comparison use {1}."
         ).format(", ".join(foreign_currencies), company_currency)
 
+    party_label = (
+        _("Customer & Supplier")
+        if counterpart
+        else _("Customer" if party_type == "Customer" else "Supplier")
+    )
     meta = {
         **company_meta,
         **party_meta,
@@ -594,11 +695,13 @@ def execute(filters=None):
         "print_date": frappe.utils.format_date(today()),
         "party_type": party_type,
         "party": party,
+        "party_label": party_label,
+        "combined": bool(counterpart),
         "opening_balance": _q(opening),
         "total_invoiced": _q(invoiced),
         "total_paid": _q(paid),
-        "payment_total": _q(payment_total),
-        "counter_paid": _q(counter_paid),
+        "payment_total": _q(primary["payment_total"]),
+        "counter_paid": _q(primary["counter_paid"]),
         "notes_total": _q(notes),
         "advances_total": _q(advances),
         "closing_balance": _q(closing),
@@ -607,9 +710,22 @@ def execute(filters=None):
         "mismatch": bool(mismatch),
         "letter_head_header": _letter_head_header(filters.get("letter_head"), company),
     }
+    if counterpart:
+        meta.update(
+            {
+                "sales_total": _q(sales_total),
+                "purchases_total": _q(purchases_total),
+                "paid_in_total": _q(paid_in),
+                "paid_out_total": _q(paid_out),
+                "counterparty_type": other_type,
+                "counterparty": party,
+                "net_receivable": _q(closing) if closing > 0 else 0.0,
+                "net_payable": _q(-closing) if closing < 0 else 0.0,
+            }
+        )
 
     data: list[dict] = []
-    if opening or invoice_rows or note_rows or payment_rows or advance_rows:
+    if opening or rows:
         data.append(
             {
                 **meta,
@@ -632,10 +748,9 @@ def execute(filters=None):
                 "base_outstanding": _q(opening),
             }
         )
-    data.extend({**meta, **row} for row in invoice_rows + note_rows + payment_rows + advance_rows)
+    data.extend({**meta, **row} for row in rows)
 
-    # --- Empty state -------------------------------------------------------
-    if not invoice_rows and not note_rows and not payment_rows and not advance_rows and not opening:
+    if not rows and not opening:
         return _columns(), [], _("No transactions found for this party in the selected period.")
 
     report_summary = [
@@ -664,6 +779,45 @@ def execute(filters=None):
             "currency": company_currency,
         },
     ]
+    if counterpart:
+        report_summary = [
+            {
+                "label": _("Net Opening"),
+                "value": _q(opening),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+            {
+                "label": _("Sales"),
+                "value": _q(sales_total),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+            {
+                "label": _("Purchases"),
+                "value": _q(purchases_total),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+            {
+                "label": _("Paid In"),
+                "value": _q(paid_in),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+            {
+                "label": _("Paid Out"),
+                "value": _q(paid_out),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+            {
+                "label": _("Net Balance"),
+                "value": _q(closing),
+                "datatype": "Currency",
+                "currency": company_currency,
+            },
+        ]
 
     # --- On-screen messages (never printed) --------------------------------
     messages: list[str] = []

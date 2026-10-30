@@ -12,7 +12,14 @@ from decimal import Decimal
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, now_datetime
-from rules_engine import PCS_PER_DOZEN, quantize_money, to_decimal, validate_discount, validate_moq
+from rules_engine import (
+	PCS_PER_DOZEN,
+	next_internal_ean13,
+	quantize_money,
+	to_decimal,
+	validate_discount,
+	validate_moq,
+)
 
 MANAGER_ROLES = {"Sales Manager", "Sales Master Manager", "System Manager"}
 OVERRIDE_HEADER = "X-Diva-Override-Token"
@@ -349,8 +356,24 @@ def _sync_standard_selling_price(doc) -> None:
 			).insert(ignore_permissions=True)
 
 
+def _existing_barcodes() -> list[str]:
+	"""Every barcode already in use, so a generated one is never a duplicate."""
+	values = frappe.get_all("Item Barcode", pluck="barcode", limit_page_length=0)
+	extra = frappe.get_all(
+		"Item",
+		filters={"custom_barcode": ["is", "set"]},
+		pluck="custom_barcode",
+		limit_page_length=0,
+	)
+	return [str(value) for value in values + extra if value]
+
+
 def apply_quick_barcode(doc, method: str | None = None) -> None:
-	"""Copy the one-field quick-entry barcode and price (DEC-78/79)."""
+	"""Copy the one-field quick-entry barcode and price (DEC-78/79/90).
+
+	A new stock Item with no barcode gets an internal EAN-13 (GS1 prefix 20)
+	automatically, so quick entry and the full form behave the same way.
+	"""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
 	if _dec(doc.get("opening_stock")) > 0 and not _dec(doc.get("valuation_rate")):
@@ -363,7 +386,15 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
 	if not doc.meta.has_field("custom_barcode"):
 		return
+	if doc.is_new() and int(doc.get("is_stock_item") or 0):
+		# DEC-20: new stock items are bought and sold in Dozen, stocked in Nos.
+		if not doc.get("purchase_uom"):
+			doc.purchase_uom = "Dozen"
+		if not doc.get("sales_uom"):
+			doc.sales_uom = "Dozen"
 	value = str(doc.get("custom_barcode") or "").strip()
+	if not value and doc.is_new() and int(doc.get("is_stock_item") or 0):
+		value = next_internal_ean13(_existing_barcodes(), prefix=20)
 	if not value:
 		return
 	owner = frappe.db.get_value("Item Barcode", {"barcode": value}, "parent")

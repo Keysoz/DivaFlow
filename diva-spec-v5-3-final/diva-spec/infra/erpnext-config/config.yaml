@@ -56,7 +56,7 @@ property_setters:
     fieldname: standard_rate
     property: description
     property_type: Text
-    value: Saved to the Standard Selling price list per Dozen when the item is saved.
+    value: "Selling price per Dozen. 1 Dozen = 12 Nos; the per-Nos Standard Selling price is created automatically (rate / 12)."
 
   # DEC-86: a Purchase Receipt lands in Stores - DD. The accepted warehouse is
   # the second field (the desk layer focuses it after the supplier) and the
@@ -108,6 +108,861 @@ property_setters:
     property: default
     value: Cash
 
+  # DEC-90: simplify the item row editor. Keep the entry fields (code, name,
+  # qty, UOM, rate, amount, warehouse, batch/serial, accounts) and hide the
+  # tax, discount, weight, manufacture, reference and deferred sections.
+  # Purchase Receipt Item
+  - doctype: Purchase Receipt Item
+    fieldname: product_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: supplier_part_no
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: brand
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: image
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: image_column
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: image_view
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: section_break_4
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: received_stock_qty
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: retain_sample
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: sample_quantity
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: tracking_section
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: col_break_tracking_section
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: returned_qty
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rate_and_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: discount_and_margin_section
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: margin_type
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: margin_rate_or_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: discount_percentage
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: distributed_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: mapped_additional_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: base_rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: pricing_rules
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: stock_uom_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: is_free_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: section_break_29
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: net_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: net_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: item_tax_template
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: column_break_32
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: base_net_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: base_net_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: valuation_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: sales_incoming_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: item_tax_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rm_supp_cost
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: landed_cost_voucher_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: amount_difference_with_purchase_invoice
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: billed_amt
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: from_warehouse
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: material_request
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: purchase_order
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: purchase_invoice
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: allow_zero_valuation_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: return_qty_from_rejected_warehouse
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: is_fixed_asset
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: asset_location
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: asset_category
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: schedule_date
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: quality_inspection
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: material_request_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: purchase_order_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: purchase_invoice_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: purchase_receipt_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: delivery_note_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: delivery_note_packed_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: putaway_rule
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: add_serial_batch_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: use_serial_batch_fields
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: add_serial_batch_for_rejected_qty
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rejected_serial_and_batch_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rejected_serial_no
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: subcontract_bom_section
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: include_exploded_items
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: bom
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: item_weight_details
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: weight_per_unit
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: total_weight
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: weight_uom
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: manufacture_details
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: manufacturer
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: manufacturer_part_no
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: wip_composite_asset
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: provisional_expense_account
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: item_tax_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: page_break
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: sales_order
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: sales_order_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: subcontracting_receipt_item
+    property: hidden
+    value: 1
+  # Purchase Invoice Item
+  - doctype: Purchase Invoice Item
+    fieldname: product_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: brand
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: image
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: image_view
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: col_break7
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: rejected_qty
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: section_break_26
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: margin_type
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: margin_rate_or_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: discount_percentage
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: distributed_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: mapped_additional_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: base_rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: pricing_rules
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: stock_uom_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: is_free_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: item_tax_template
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: tax_withholding_category
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: apply_tds
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: allow_zero_valuation_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: section_break_22
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: net_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: net_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: column_break_25
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: base_net_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: base_net_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: valuation_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: sales_incoming_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: item_tax_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: landed_cost_voucher_amount
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: rm_supp_cost
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: from_warehouse
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: quality_inspection
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: rejected_warehouse
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: rejected_serial_and_batch_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: manufacturer
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: manufacturer_part_no
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: wip_composite_asset
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: is_fixed_asset
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: asset_location
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: asset_category
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: deferred_expense_section
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: deferred_expense_account
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: service_stop_date
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: enable_deferred_expense
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: service_start_date
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: service_end_date
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: item_tax_rate
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: bom
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: include_exploded_items
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: purchase_invoice_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: purchase_order
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: po_detail
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: purchase_receipt
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: pr_detail
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: sales_invoice_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: material_request
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: material_request_item
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: delivered_by_supplier
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: item_weight_details
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: weight_per_unit
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: total_weight
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: weight_uom
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: add_serial_batch_bundle
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: use_serial_batch_fields
+    property: hidden
+    value: 1
+  - doctype: Purchase Invoice Item
+    fieldname: page_break
+    property: hidden
+    value: 1
+  # Sales Invoice Item
+  - doctype: Sales Invoice Item
+    fieldname: customer_item_code
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: discount_and_margin
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: margin_type
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: margin_rate_or_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: discount_percentage
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: discount_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: distributed_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: mapped_additional_discount_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: base_rate_with_margin
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: pricing_rules
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: stock_uom_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: is_free_item
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: item_tax_template
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: tax_withholding_category
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: apply_tds
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: grant_commission
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: allow_zero_valuation_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: section_break_21
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: net_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: net_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: column_break_24
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: base_net_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: base_net_amount
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: drop_ship
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: delivered_by_supplier
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: is_fixed_asset
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: asset
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: finance_book
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: discount_account
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: deferred_revenue
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: deferred_revenue_account
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: service_stop_date
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: enable_deferred_revenue
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: service_start_date
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: service_end_date
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: weight_per_unit
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: total_weight
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: weight_uom
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: target_warehouse
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: quality_inspection
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: pick_serial_and_batch
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: use_serial_batch_fields
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: incoming_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: item_tax_rate
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: actual_batch_qty
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: available_quantity_section
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: actual_qty
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: company_total_stock
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: edit_references
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: sales_order
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: so_detail
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: sales_invoice_item
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: pick_list_item
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: delivery_note
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: dn_detail
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: delivered_qty
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: pos_invoice
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: pos_invoice_item
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: scio_detail
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: against_pick_list
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: purchase_order
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: purchase_order_item
+    property: hidden
+    value: 1
+  - doctype: Sales Invoice Item
+    fieldname: page_break
+    property: hidden
+    value: 1
+
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).
   # HR and Payroll are currently absent on the dev site and are reported as "missing".
@@ -139,6 +994,11 @@ singles:
   - doctype: Global Defaults
     field: default_company
     value: Diva Dev
+  # DEC-90: the system currency must match the company currency, otherwise
+  # ERPNext tries an INR -> EGP exchange rate lookup on every document.
+  - doctype: Global Defaults
+    field: default_currency
+    value: EGP
   # E-04: negative stock off; reservations on (RULE-STOCK / DEC-08).
   - doctype: Stock Settings
     field: allow_negative_stock
@@ -170,7 +1030,7 @@ custom_fields:
     insert_after: item_name
     allow_in_quick_entry: 1
     no_copy: 1
-    description: Scan or type a barcode; it is added to the Barcodes table when you save.
+    description: "Scan or type a barcode; leave blank to auto-generate an internal EAN-13 (starts with 20)."
 
 # E-16 / DEC-72: POS Next ships Custom DocPerm rows. Frappe ignores the
 # standard DocPerm table for any doctype that has custom rows, so roles without
@@ -289,7 +1149,7 @@ records:
     set: { translated_text: "سداد كامل المبلغ المتبقي" }
   - doctype: Translation
     match: { language: ar, source_text: "Amount to pay" }
-    set: { translated_text: "المبلغ المراد سداده" }
+    set: { translated_text: "المبلغ المطلوب سداده" }
   - doctype: Translation
     match: { language: ar, source_text: "Full outstanding amount" }
     set: { translated_text: "كامل المبلغ المتبقي" }
@@ -301,10 +1161,10 @@ records:
     set: { translated_text: "لن يُرحَّل أي شيء حتى تضغط على «سداد». ثم تُراجَع الدفعة بواسطة شخص، كالعادة." }
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted. Use Print for the invoice." }
-    set: { translated_text: "تم إرسال الدفعة {0}. استخدم «طباعة» للفاتورة." }
+    set: { translated_text: "تم ترحيل الدفعة {0}. استخدم «طباعة» للفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "This invoice has nothing left to pay." }
-    set: { translated_text: "هذه الفاتورة ليس عليها أي مبلغ متبقي." }
+    set: { translated_text: "لا يوجد مبلغ متبقٍ على هذه الفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "Diva shortcuts" }
     set: { translated_text: "اختصارات ديفا" }
@@ -313,10 +1173,10 @@ records:
     set: { translated_text: "عرض هذه الاختصارات" }
   - doctype: Translation
     match: { language: ar, source_text: "Focus customer / supplier" }
-    set: { translated_text: "التركيز على العميل / المورّد" }
+    set: { translated_text: "الانتقال إلى العميل / المورد" }
   - doctype: Translation
     match: { language: ar, source_text: "Add or focus the item row" }
-    set: { translated_text: "إضافة أو التركيز على صف الصنف" }
+    set: { translated_text: "إضافة صف صنف أو الانتقال إليه" }
   - doctype: Translation
     match: { language: ar, source_text: "Pay the Sales Invoice" }
     set: { translated_text: "سداد فاتورة المبيعات" }
@@ -335,6 +1195,44 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Print" }
     set: { translated_text: "طباعة" }
+
+  # DEC-90: Arabic for the new Item dialog and opening-stock strings.
+  - doctype: Translation
+    match: { language: ar, source_text: "Create Item & Post Stock" }
+    set: { translated_text: "إنشاء الصنف وترحيل المخزون" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Wholesale Price (EGP/Dozen)" }
+    set: { translated_text: "سعر الجملة (جنيه/دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Opening stock posts as Nos (Accepted Quantity x 12) at Buying Price / 12 per Nos." }
+    set: { translated_text: "تُرحَّل الكمية الافتتاحية بالقطعة (الكمية المقبولة × 12) بسعر الشراء ÷ 12 للقطعة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Leave it blank to generate an internal EAN-13 (starts with 20)." }
+    set: { translated_text: "اتركه فارغًا لتوليد باركود EAN-13 داخلي (يبدأ بـ 20)." }
+  - doctype: Translation
+    match: { language: ar, source_text: "One Dozen = 12 Nos; saved automatically." }
+    set: { translated_text: "الدستة = 12 قطعة؛ تُحفظ تلقائيًا." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item {0} created with opening stock" }
+    set: { translated_text: "تم إنشاء الصنف {0} مع المخزون الافتتاحي." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Optional. Written to the Wholesale price list." }
+    set: { translated_text: "اختياري. يُكتب في قائمة أسعار الجملة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Selling price per Dozen. 1 Dozen = 12 Nos; the per-Nos Standard Selling price is created automatically (rate / 12)." }
+    set: { translated_text: "سعر البيع للدستة. الدستة = 12 قطعة؛ يُنشأ سعر البيع القياسي للقطعة تلقائيًا (السعر ÷ 12)." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Scan or type a barcode; leave blank to auto-generate an internal EAN-13 (starts with 20)." }
+    set: { translated_text: "امسح أو اكتب الباركود؛ واتركه فارغًا لتوليد باركود EAN-13 داخلي تلقائيًا (يبدأ بـ 20)." }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to post opening stock" }
+    set: { translated_text: "ليس لديك صلاحية ترحيل المخزون الافتتاحي." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Set the default company before creating items" }
+    set: { translated_text: "اضبط الشركة الافتراضية قبل إنشاء الأصناف." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment {0} submitted." }
+    set: { translated_text: "تم ترحيل الدفعة {0}." }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

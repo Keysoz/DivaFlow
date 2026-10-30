@@ -94,8 +94,8 @@ check(
     "opening stock is visible on the Item form", by_property.get("hidden") == "0", str(by_property)
 )
 check(
-    "opening stock is in quick entry",
-    by_property.get("allow_in_quick_entry") == "1",
+    "opening stock is not in quick entry (DEC-88)",
+    by_property.get("allow_in_quick_entry") == "0",
     str(by_property),
 )
 

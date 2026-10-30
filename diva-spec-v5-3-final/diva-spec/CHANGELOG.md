@@ -4,6 +4,9 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 
 ## [Unreleased]
 
+### Changed
+- Arabic copy review (dev): aligned the Desk/Item strings with the owner-approved glossary (`Item = صنف`, `Supplier = مورد`, `Warehouse = مخزن`), improved the phrasing (`الانتقال إلى العميل / المورد`, `لا يوجد مبلغ متبقٍ على هذه الفاتورة.`, `تم ترحيل الدفعة`, `المبلغ المطلوب سداده`), and added Arabic for `Item Code` (`رمز الصنف`), `Item Name` (`اسم الصنف`), `Accepted Warehouse` (`المخزن المستلم`) and `Opening stock` (`المخزون الافتتاحي`). Translation data only; re-applied with 0 changes on the second run.
+
 ### Fixed
 - EOD shift report print fixed: the `POS Next EOD Report` format queried the non-existent `POS Profile.address`, so printview failed with `Unknown column 'address'` and the POS showed the generic “EOD report did not print” warning. The format now uses `company_address` + the Address line, and the warning includes the actual print error. Tracked POS Next patch **0014**; closed-shift print preview verified (HTTP 200, END-OF-DAY REPORT).
 - POS Next custom popups (Settings, Product/Promotion Management, Stock Lookup, Invoice Management, Edit Item, Partial Payments) now close with **Escape**; the POS stays usable. Recorded as tracked POS Next patch **0013**; frappe-ui dialogs already closed on Escape. Verified in the running POS with a headless browser.

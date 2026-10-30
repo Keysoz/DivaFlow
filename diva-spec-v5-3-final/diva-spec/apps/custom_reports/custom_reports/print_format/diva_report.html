@@ -1,0 +1,203 @@
+<style>
+	.diva-report {
+		font-family: "Inter", "Cairo", "Segoe UI", Arial, sans-serif;
+		font-size: 9.6pt;
+		line-height: 1.3;
+		color: #1a1a1a;
+	}
+	.diva-report .muted { color: #666; font-size: 8.4pt; }
+	.diva-report .head { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+	.diva-report .head td { vertical-align: top; padding: 0; }
+	.diva-report .company-name { font-size: 13pt; font-weight: 700; }
+	.diva-report .doc-title {
+		font-size: 16pt;
+		font-weight: 700;
+		letter-spacing: 0.3pt;
+		text-align: right;
+	}
+	.diva-report .rule { border-top: 1.2pt solid #1a1a1a; margin: 6px 0 8px; }
+	.diva-report .filters {
+		width: 100%;
+		border-collapse: collapse;
+		margin-bottom: 10px;
+		background: #fafafa;
+		border: 0.6pt solid #d0d0d0;
+	}
+	.diva-report .filters td { padding: 5px 8px; font-size: 8.6pt; }
+	.diva-report table.grid {
+		width: auto;
+		min-width: 100%;
+		border-collapse: collapse;
+		table-layout: auto;
+		margin-bottom: 6px;
+	}
+	.diva-report table.grid th {
+		background: #f0f0f0;
+		border-bottom: 0.9pt solid #1a1a1a;
+		padding: 5px 6px;
+		text-align: left;
+		font-size: 8.2pt;
+		text-transform: uppercase;
+		letter-spacing: 0.2pt;
+		white-space: normal;
+	}
+	.diva-report table.grid td {
+		border-bottom: 0.4pt solid #e2e2e2;
+		padding: 3px 5px;
+		vertical-align: top;
+	}
+	.diva-report table.grid tr:nth-child(even) td { background: #fcfcfc; }
+	.diva-report .num { text-align: right; font-variant-numeric: tabular-nums; }
+	.diva-report table.grid td.num { white-space: nowrap; }
+	.diva-report .total td {
+		font-weight: 700;
+		border-top: 0.9pt solid #1a1a1a;
+		background: #f6f6f6;
+	}
+	.diva-report .group td { font-weight: 700; background: #f6f6f6; }
+	.diva-report .empty { padding: 14px; text-align: center; color: #666; }
+	.diva-report .signatures { width: 100%; border-collapse: collapse; margin-top: 22px; }
+	.diva-report .signatures td { text-align: center; padding-top: 16px; font-size: 8.4pt; color: #444; }
+	.diva-report .sign-line { border-top: 0.6pt solid #999; width: 70%; margin: 0 auto 4px; }
+	.diva-report .footer {
+		margin-top: 10px;
+		border-top: 0.5pt solid #ccc;
+		padding-top: 4px;
+		font-size: 7.8pt;
+		color: #666;
+		display: flex;
+		justify-content: space-between;
+	}
+	@media print { .diva-report { font-size: 9pt; } }
+</style>
+
+{%
+	var rows = data || [];
+	var cols = (columns || []).filter(function (column) {
+		return column && column.fieldname && !column.hidden && column.fieldtype !== "Section Break";
+	});
+	var company = (filters && filters.company) || frappe.defaults.get_default("company") || "";
+	var firstWithCurrency = rows.find(function (row) {
+		return row && row.currency;
+	});
+	var currency =
+		(filters && filters.currency) ||
+		(firstWithCurrency && firstWithCurrency.currency) ||
+		(frappe.boot.sysdefaults && frappe.boot.sysdefaults.currency) ||
+		"EGP";
+	var printed = frappe.datetime.str_to_user(frappe.datetime.now_datetime());
+	var visibleFilters = [];
+	Object.keys(filters || {}).forEach(function (key) {
+		var value = filters[key];
+		var empty = value === null || value === undefined || value === "" ||
+			(Array.isArray(value) && !value.length);
+		if (empty || key === "company") return;
+		visibleFilters.push([key, Array.isArray(value) ? value.join(", ") : String(value)]);
+	});
+
+	function esc(value) {
+		return frappe.utils.escape_html(value === null || value === undefined ? "" : String(value));
+	}
+	function isNumberColumn(column) {
+		return ["Currency", "Float", "Int", "Percent"].indexOf(column.fieldtype) !== -1;
+	}
+	function cell(column, row) {
+		var value = row[column.fieldname];
+		if (value === null || value === undefined || value === "") return "";
+		if (value === '"Total"' || value === "'Total'") value = "Total";
+		if (column.fieldtype === "Currency") {
+			var option = column.options;
+			var code = option && option !== "currency" ? option : row.currency || currency;
+			return format_currency(value, code);
+		}
+		if (column.fieldtype === "Float" || column.fieldtype === "Int" || column.fieldtype === "Percent") {
+			return frappe.format(value, { fieldtype: column.fieldtype });
+		}
+		if (column.fieldtype === "Date" || column.fieldtype === "Datetime") {
+			return frappe.datetime.str_to_user(value);
+		}
+		if (column.fieldtype === "Check") return value ? "✓" : "";
+		return esc(value);
+	}
+	function rowClass(row) {
+		if (row.is_total_row) return "total";
+		if (row.is_group || row.bold) return "group";
+		return "";
+	}
+	var labelFor = function (key) {
+		if (report && typeof report.get_filter === "function") {
+			var filter = report.get_filter(key);
+			if (filter && filter.df && filter.df.label) return __(filter.df.label);
+		}
+		var column = (columns || []).find(function (candidate) {
+			return candidate.fieldname === key;
+		});
+		var text = (column && (column.label || key)) || key;
+		return __(text);
+	};
+%}
+
+<div class="diva-report">
+	<table class="head">
+		<tr>
+			<td>
+				<div class="company-name" dir="auto">{{ esc(company) }}</div>
+				<div class="muted">{{ __("Printed") }}: {{ printed }}</div>
+			</td>
+			<td>
+				<div class="doc-title" dir="auto">{{ __(title || "Report") }}</div>
+				<div class="muted" style="text-align:right">{{ rows.length }} {{ __("rows") }}</div>
+			</td>
+		</tr>
+	</table>
+	<div class="rule"></div>
+
+	{% if (visibleFilters.length) { %}
+	<table class="filters">
+		<tr>
+			{% for (var f = 0; f < visibleFilters.length; f++) { %}
+			<td><span class="muted">{{ labelFor(visibleFilters[f][0]) }}:</span> {{ esc(visibleFilters[f][1]) }}</td>
+			{% } %}
+		</tr>
+	</table>
+	{% } %}
+
+	{% if (!rows.length) { %}
+	<div class="empty">{{ __("No data for the selected filters.") }}</div>
+	{% } else { %}
+	<table class="grid">
+		<thead>
+			<tr>
+				{% for (var h = 0; h < cols.length; h++) { %}
+				<th class="{{ isNumberColumn(cols[h]) ? 'num' : '' }}">{{ __(cols[h].label || cols[h].fieldname) }}</th>
+				{% } %}
+			</tr>
+		</thead>
+		<tbody>
+			{% for (var r = 0; r < rows.length; r++) { %}
+			<tr class="{{ rowClass(rows[r]) }}">
+				{% for (var k = 0; k < cols.length; k++) { %}
+				<td
+					class="{{ isNumberColumn(cols[k]) ? 'num' : '' }}"
+					{% if (rows[r].indent) { %}style="padding-left: {{ 6 + rows[r].indent * 12 }}px"{% } %}
+				>{{ cell(cols[k], rows[r]) }}</td>
+				{% } %}
+			</tr>
+			{% } %}
+		</tbody>
+	</table>
+	{% } %}
+
+	<table class="signatures">
+		<tr>
+			<td><div class="sign-line"></div>{{ __("Prepared by") }}</td>
+			<td><div class="sign-line"></div>{{ __("Reviewed by") }}</td>
+			<td><div class="sign-line"></div>{{ __("Authorized by") }}</td>
+		</tr>
+	</table>
+
+	<div class="footer">
+		<div>{{ esc(company) }}</div>
+		<div>{{ __("Page {0}", ['<span class="page"></span>', '<span class="topage"></span>']) }}</div>
+	</div>
+</div>

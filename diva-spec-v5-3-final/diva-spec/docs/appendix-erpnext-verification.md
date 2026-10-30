@@ -268,3 +268,27 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
   - `GET /api/labels?item_code=&uom=&copies=` — label data for the app-drawn dozen/piece label (EAN-13, name, price, copies).
 - Verified against the dev site: `GET /api/items?search=DS-85` returned the item with 360/Dozen; detail returned its `9506000140444` barcode; the label endpoint returned Dozen data; a disposable item accepted a generated `2000000000039` Nos barcode and was removed. Local API fake-client suite: 19 endpoint tests.
 - Remaining for E-13: the React/TS Ops PWA Items and Labels screens (draw/print EAN-13 labels), product rules/shade variants, then Receive, Transfer, Count and Collect.
+
+## 20. Desk workflows (ENH-E-05, dev site)
+
+**Apps/config**
+- New client-only app `diva_desk` (module "Diva Desk", no doctypes) installed with `scripts/install_diva_desk.sh`; `app_include_js = /assets/diva_desk/js/diva_desk.js`, copied into both the backend and frontend benches because each container serves its own `/assets`. `GET /assets/diva_desk/js/diva_desk.js` returns 200.
+- `diva_guard` now ships `desk_api.py` (Add New Item, Pay, Desk search, Purchase Receipt automation) and the `Purchase Receipt.on_submit` + `awesomebar_search` hooks.
+- `infra/erpnext-config/config.yaml`: `Purchase Receipt.set_warehouse` default **Stores - DD** and label "Accepted Warehouse", `Purchase Receipt Item.warehouse` default **Stores - DD**, `apply_putaway_rule`/`set_posting_time` hidden, `Sales Invoice.set_posting_time` hidden, `Payment Entry.mode_of_payment` default **Cash**, `Item.opening_stock` removed from quick entry (DEC-88). Property setters carry `property_type: Data`; the first apply created two of them with the wrong type, they were deleted and re-applied. Re-run: **0 changes** (`apply.py` 176 no-op/missing).
+- Server meta after apply: PR `set_warehouse.default = 'Stores - DD'`, PR Item `warehouse.default = 'Stores - DD'`, PE `mode_of_payment.default = 'Cash'`, PR `apply_putaway_rule.hidden = 1`.
+
+**Server checks — `scripts/test_desk_workflows.py` (all pass)**
+- Add New Item: generated `20…` EAN-13 with a valid check digit, Nos stock UOM, Dozen purchase/sales UOM, standard rate = Dozen selling price, barcode child row, Standard Selling prices per Dozen (1,200) and Nos (100), duplicate code rejected.
+- Desk search: item by code/name/group/barcode, customer by phone on a linked Contact, supplier by phone on a linked Contact, invoice by id, and the search-bar hook (`frappe.desk.search.awesomebar_search`) returns the invoice.
+- Purchase Receipt (1 Dozen of `RD-852`, accepted warehouse Main Inventory - DD, stock UOM Dozen): Purchase Invoice created by ERPNext's mapping and submitted with `update_stock = 0`; Material Transfer submitted with `purchase_receipt_no`, all target warehouses **Stores - DD**, moving the full `stock_qty`; Bin at Stores - DD increased by exactly that quantity; a duplicate run creates no second invoice.
+- Sales Invoice: nothing is paid on submit (no Payment Entry GL rows); Pay posts a partial Cash Payment Entry and leaves the rest outstanding; a second Pay clears it and the status becomes **Paid**; over-payment and draft invoices are refused. Amounts are kept as `Decimal` from validation to the Payment Entry fields.
+- Review fix verified: the receipt in the test now uses the quick item (stock UOM **Nos**, bought in **Dozen**), so `stock_qty` is 12 and the Material Transfer moves **12 Nos**; the earlier implementation would have moved 1. Idempotency also resumes a draft Purchase Invoice/Stock Entry instead of reporting a false success, and the automation checks create + submit permission on both follow-up doctypes.
+
+**Browser checks — headless Chromium, 2026-10-30 (29 pass)**
+- Purchase Receipt: supplier focused, accepted warehouse defaults to Stores - DD, put-away hidden, **Add New Item** opens with code/name/group/barcode/buying/selling Dozen/Nos/quantity/warehouse, Tab moves supplier → warehouse → item row, F1 lists the Diva shortcuts.
+- Search bar: Ctrl+K + `RD-852` returns the item with its group.
+- Sales Invoice: customer focused; a submitted invoice shows **Print** and **Pay**; the Pay dialog defaults to the full outstanding amount and **Cash**; the Diva A4 preview renders. Screenshots: `/tmp/opencode/desk-verify/*.png`.
+
+**Report print formats — `custom_reports` install hook (DEC-89)**
+- One Print Format named after each report (Accounts Receivable, Accounts Payable, General Ledger, Trial Balance, Profit and Loss Statement, Balance Sheet, Stock Balance, Stock Ledger) uses the shared bilingual `diva_report.html`: company header, printed date, filter summary with real labels, zebra table with indentation, currency from the row data (EGP), bold totals, signatures and page footer.
+- Rendered through `frappe.query_report.get_print_format_data` + `frappe.render_template` on the live reports: Trial Balance 34 rows, General Ledger 169 rows, Accounts Receivable 6 rows, Stock Balance empty-state (no rows in the period) — all with the Diva layout. Screenshots in `/tmp/opencode/desk-verify/report-*.png`.

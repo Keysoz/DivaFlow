@@ -1149,7 +1149,7 @@ records:
     set: { translated_text: "سداد كامل المبلغ المتبقي" }
   - doctype: Translation
     match: { language: ar, source_text: "Amount to pay" }
-    set: { translated_text: "المبلغ المراد سداده" }
+    set: { translated_text: "المبلغ المطلوب سداده" }
   - doctype: Translation
     match: { language: ar, source_text: "Full outstanding amount" }
     set: { translated_text: "كامل المبلغ المتبقي" }
@@ -1161,10 +1161,10 @@ records:
     set: { translated_text: "لن يُرحَّل أي شيء حتى تضغط على «سداد». ثم تُراجَع الدفعة بواسطة شخص، كالعادة." }
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted. Use Print for the invoice." }
-    set: { translated_text: "تم إرسال الدفعة {0}. استخدم «طباعة» للفاتورة." }
+    set: { translated_text: "تم ترحيل الدفعة {0}. استخدم «طباعة» للفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "This invoice has nothing left to pay." }
-    set: { translated_text: "هذه الفاتورة ليس عليها أي مبلغ متبقي." }
+    set: { translated_text: "لا يوجد مبلغ متبقٍ على هذه الفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "Diva shortcuts" }
     set: { translated_text: "اختصارات ديفا" }
@@ -1173,10 +1173,10 @@ records:
     set: { translated_text: "عرض هذه الاختصارات" }
   - doctype: Translation
     match: { language: ar, source_text: "Focus customer / supplier" }
-    set: { translated_text: "التركيز على العميل / المورّد" }
+    set: { translated_text: "الانتقال إلى العميل / المورد" }
   - doctype: Translation
     match: { language: ar, source_text: "Add or focus the item row" }
-    set: { translated_text: "إضافة أو التركيز على صف الصنف" }
+    set: { translated_text: "إضافة صف صنف أو الانتقال إليه" }
   - doctype: Translation
     match: { language: ar, source_text: "Pay the Sales Invoice" }
     set: { translated_text: "سداد فاتورة المبيعات" }
@@ -1232,12 +1232,12 @@ records:
     set: { translated_text: "اضبط الشركة الافتراضية قبل إنشاء الأصناف." }
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted." }
-    set: { translated_text: "تم إرسال الدفعة {0}." }
+    set: { translated_text: "تم ترحيل الدفعة {0}." }
 
   # DEC-91: Arabic for the combined Customer/Supplier statement.
   - doctype: Translation
     match: { language: ar, source_text: "Customer & Supplier" }
-    set: { translated_text: "عميل ومورّد" }
+    set: { translated_text: "عميل ومورد" }
   - doctype: Translation
     match: { language: ar, source_text: "Sale" }
     set: { translated_text: "بيع" }
@@ -1273,16 +1273,16 @@ records:
     set: { translated_text: "صافي مستحق لنا على هذا الطرف" }
   - doctype: Translation
     match: { language: ar, source_text: "Net payable to this party" }
-    set: { translated_text: "صافي مستحق لهذا الطرف علينا" }
+    set: { translated_text: "صافي المستحق لهذا الطرف علينا" }
   - doctype: Translation
     match: { language: ar, source_text: "Credit / Debit Notes" }
     set: { translated_text: "إشعارات دائنة / مدينة" }
   - doctype: Translation
     match: { language: ar, source_text: "Combine same-name Customer / Supplier" }
-    set: { translated_text: "دمج العميل والمورّد بنفس الاسم" }
+    set: { translated_text: "دمج العميل والمورد بنفس الاسم" }
   - doctype: Translation
     match: { language: ar, source_text: "When a Customer and a Supplier share this name, show both ledgers as one net statement." }
-    set: { translated_text: "عندما يتشارك عميل ومورّد نفس الاسم، يُعرض دفتراهما ككشف واحد بالصافي." }
+    set: { translated_text: "عندما يتشارك عميل ومورد نفس الاسم، يُعرض دفتراهما ككشف واحد بالصافي." }
 
   # DEC-91: Arabic for the Party Statement labels (combined + document).
   - doctype: Translation
@@ -1392,7 +1392,7 @@ records:
     set: { translated_text: "صافي مستحق لنا على هذا الطرف" }
   - doctype: Translation
     match: { language: ar, source_text: "Net payable to this party" }
-    set: { translated_text: "صافي مستحق لهذا الطرف علينا" }
+    set: { translated_text: "صافي المستحق لهذا الطرف علينا" }
   - doctype: Translation
     match: { language: ar, source_text: "Credit / Debit Notes" }
     set: { translated_text: "إشعارات دائنة / مدينة" }
@@ -1401,7 +1401,7 @@ records:
     set: { translated_text: "مستحق على العميل" }
   - doctype: Translation
     match: { language: ar, source_text: "Due to the supplier" }
-    set: { translated_text: "مستحق للمورّد" }
+    set: { translated_text: "مستحق للمورد" }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

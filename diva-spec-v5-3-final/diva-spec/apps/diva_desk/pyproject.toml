@@ -1,0 +1,9 @@
+[project]
+name = "diva_desk"
+version = "0.1.0"
+description = "Diva Desk keyboard and workflow layer"
+requires-python = ">=3.12"
+dependencies = []
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"

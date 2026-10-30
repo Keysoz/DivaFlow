@@ -28,7 +28,9 @@ property_setters:
     fieldname: is_fixed_asset
     property: allow_in_quick_entry
     value: 0
-  # DEC-80: quantity (opening stock) is available in the normal form and quick entry.
+  # DEC-80: opening stock stays in the normal Item form. DEC-88 removed it from
+  # the quick entry: stock now arrives through a Purchase Receipt, not a typed
+  # opening balance.
   - doctype: Item
     fieldname: opening_stock
     property: hidden
@@ -36,7 +38,7 @@ property_setters:
   - doctype: Item
     fieldname: opening_stock
     property: allow_in_quick_entry
-    value: 1
+    value: 0
   - doctype: Item
     fieldname: is_stock_item
     property: allow_in_quick_entry
@@ -55,6 +57,61 @@ property_setters:
     property: description
     property_type: Text
     value: Saved to the Standard Selling price list per Dozen when the item is saved.
+
+  # DEC-86: a Purchase Receipt lands in Stores - DD. The accepted warehouse is
+  # the second field (the desk layer focuses it after the supplier) and the
+  # put-away/posting-time options are noise for this shop.
+  - doctype: Purchase Receipt
+    fieldname: set_warehouse
+    property: default
+    property_type: Data
+    value: Stores - DD
+  - doctype: Purchase Receipt
+    fieldname: set_warehouse
+    property: label
+    property_type: Data
+    value: Accepted Warehouse
+  - doctype: Purchase Receipt
+    fieldname: apply_putaway_rule
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt
+    fieldname: set_posting_time
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: warehouse
+    property: default
+    property_type: Data
+    value: Stores - DD
+  # A single receiving flow: no rejects, no subcontracting, no rejection columns.
+  - doctype: Purchase Receipt
+    fieldname: rejected_warehouse
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt
+    fieldname: is_subcontracted
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rejected_qty
+    property: hidden
+    value: 1
+  - doctype: Purchase Receipt Item
+    fieldname: rejected_warehouse
+    property: hidden
+    value: 1
+  # DEC-87: nothing is posted on submit; the user presses Pay. Hide the
+  # posting-time noise on the Sales Invoice so Customer -> Item stays the path.
+  - doctype: Sales Invoice
+    fieldname: set_posting_time
+    property: hidden
+    value: 1
+  # DEC-87: the Desk Pay dialog defaults to Cash, and so does the Payment Entry.
+  - doctype: Payment Entry
+    fieldname: mode_of_payment
+    property: default
+    value: Cash
 
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).

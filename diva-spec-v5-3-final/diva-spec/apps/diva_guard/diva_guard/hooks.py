@@ -302,9 +302,16 @@ doc_events = {
 		"validate": "diva_guard.events.validate_sales_invoice",
 		"before_submit": "diva_guard.events.validate_sales_invoice",
 	},
+	"Purchase Receipt": {
+		"on_submit": "diva_guard.desk_api.auto_create_from_purchase_receipt",
+	},
 	"Item": {
 		"validate": "diva_guard.events.apply_quick_barcode",
 		"after_insert": "diva_guard.events.sync_quick_price",
 		"on_update": "diva_guard.events.sync_quick_price",
 	},
 }
+
+# Desk search (Ctrl+K). The framework calls each method with the typed text and
+# merges the results into the search bar (DEC-87 search requirement).
+awesomebar_search = ["diva_guard.desk_api.awesomebar_search"]

@@ -24,6 +24,7 @@ Date: 2026-10-22. Status: **final and build-ready.** Build order: P0, E (ERPNext
 | `05-state-machines.md` | Order, payment, shipment, hold, shift |
 | `05a-erp-configuration.md` | ERPNext simplification and configuration baseline |
 | `19-localization-arabic-english.md` | Arabic and English on every surface |
+| `27-brand-and-design-tokens.md` | Diva brand, "Diva Navy and Gold" palette, typography and the design-token rules |
 
 ## Modules
 | File | Content |

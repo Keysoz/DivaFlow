@@ -102,6 +102,11 @@ Record for every test: expected result, actual result, evidence, pass or fail. N
 | TEST-105 | AI | A hard case escalates from the small model to the larger one; the cached prompt is reused | integration | A |
 | TEST-106 | Ops | Stopping a service raises an Uptime Kuma alert to the owner in Telegram; an error appears in GlitchTip | manual | PUB |
 | TEST-107 | Ops | A backup to R2 or B2 restores on a clean machine | manual | PUB |
+| TEST-108 | Brand | The tokens contrast test fails if any text pair is below WCAG AA 4.5:1 (light and dark); gold on the light page is decorative only and rejected as text | unit | E |
+| TEST-109 | Brand | Original logo, transparent/gold/white versions, favicon and Telegram avatar sizes exist; receipt (80 mm) and invoice (A4) headers render in Arabic (RTL) and English | manual | E |
+| TEST-110 | Brand | Diva Ops and Control Room use only tokens (no hard-coded colors) and render in light/dark, RTL/LTR | integration | E |
+| TEST-111 | Brand | The POS Next CSS-variable override patch rebases on the pinned version and the counter matches the palette | manual | E |
+| TEST-112 | Brand | The ERPNext logo and app name are set by the config (0 changes on re-run); labels and receipts match the brand | manual | E |
 | TEST-43 | Security | Webhook signatures verified; replayed webhook ignored | integration | all |
 | TEST-44 | Counter | A browser-supplied price or discount that differs from the price list or role limit is rejected by the server | integration | E |
 | TEST-45 | Counter | A counter invoice's payment appears in the ledger and the receivables report shows zero outstanding | integration | E |

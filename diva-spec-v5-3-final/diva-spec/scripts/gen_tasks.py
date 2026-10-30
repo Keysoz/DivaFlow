@@ -24,13 +24,14 @@ def add(i: str, phase: str, title: str, dep: str, ac: str, src: str, pri: str = 
 with open("docs/09-build-plan.md", encoding="utf-8") as f:
     nine = f.read().split("\n")
 for line in nine:
-    m = re.match(r"^\| ((?:P0|E|PUB|O)-\d+[a-z]?) \| (.*) \|$", line)
+    m = re.match(r"^\| ((?:P0|E|PUB|O|BRAND)-\d+[a-z]?) \| (.*) \|$", line)
     if m:
         parts = m.group(2).split(" | ")
         if len(parts) >= 3:
+            phase = m.group(1).split("-")[0]
             add(
                 m.group(1),
-                m.group(1).split("-")[0],
+                "E" if phase == "BRAND" else phase,
                 parts[0],
                 parts[1],
                 " | ".join(parts[2:]),

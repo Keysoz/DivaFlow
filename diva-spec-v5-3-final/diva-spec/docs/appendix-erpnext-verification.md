@@ -292,3 +292,25 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 **Report print formats — `custom_reports` install hook (DEC-89)**
 - One Print Format named after each report (Accounts Receivable, Accounts Payable, General Ledger, Trial Balance, Profit and Loss Statement, Balance Sheet, Stock Balance, Stock Ledger) uses the shared bilingual `diva_report.html`: company header, printed date, filter summary with real labels, zebra table with indentation, currency from the row data (EGP), bold totals, signatures and page footer.
 - Rendered through `frappe.query_report.get_print_format_data` + `frappe.render_template` on the live reports: Trial Balance 34 rows, General Ledger 169 rows, Accounts Receivable 6 rows, Stock Balance empty-state (no rows in the period) — all with the Diva layout. Screenshots in `/tmp/opencode/desk-verify/report-*.png`.
+
+## 21. Desk cleanup (ENH-E-05 follow-up, DEC-90, dev site)
+
+**Currency**
+- `Global Defaults.default_currency` was still **INR** from the demo image while company Diva Dev is EGP, so document saves tried an INR -> EGP exchange-rate lookup and failed. `infra/erpnext-config/config.yaml` now sets `default_currency = EGP`; a Purchase Invoice created afterwards posts with no exchange-rate error and prints show EGP.
+
+**Item creation**
+- The standard Item create path (REST/quick entry/full form) with a blank barcode now auto-generates an internal EAN-13 from the Item validate hook; the item is Nos stock, Dozen purchase/sales, and Standard Selling prices exist per Dozen and per Nos.
+- `diva_guard.desk_api.create_item_with_opening_stock` (Item list "Add Item" dialog) creates the item and a **submitted** Stock Reconciliation: 2 Dozen posted as **24 Nos** at **75/Nos** (buying 900/Dozen ÷ 12) in Stores - DD, using the Temporary Opening account; the optional Wholesale price is written per Dozen (1,000) and per Nos (83.33).
+- The PR/SI "Add New Item" button opens ERPNext's standard Item quick entry (no custom dialog).
+
+**Purchase Receipt**
+- On submit, the Purchase Invoice (`update_stock = 0`) and the Material Transfer to Stores - DD are created as **drafts** (docstatus 0); nothing is auto-submitted. The test then submits both manually: the transfer moves the received `stock_qty` (1 Dozen on a Nos item = 12 Nos) and the Bin at Stores - DD grows by 12; the invoice submits without double stock.
+
+**Sales Invoice**
+- The custom Print button is gone (Pay remains); the standard Menu -> Print and F9 still open the Diva A4 preview. Pay still creates + submits the Payment Entry on click (partial then full verified).
+
+**Items grid**
+- Tab from the supplier goes to the accepted warehouse and then into the item-code cell **inline**; the full "Editing Row" editor opens only from the pin icon. The editor now shows barcode, item code, name, received/accepted quantity, UOM, rate, amount, warehouse, batch/serial and the expense account; tax, discount, weight, manufacture, reference and deferred sections are hidden (213 hide setters, idempotent).
+
+**Checks**
+- `scripts/test_desk_workflows.py` all pass; headless Chromium checks all pass (Item dialog fields, standard quick entry, inline Tab, simplified row editor, no SI Print button); `make lint` clean; `make test` 195 passed, 4 skipped; `apply.py` re-run 0 changes.

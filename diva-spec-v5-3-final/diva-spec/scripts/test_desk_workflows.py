@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Integration checks for the Diva Desk workflows (DEC-85/86/87/88).
+"""Integration checks for the Diva Desk workflows (DEC-85 to DEC-90).
 
 Runs against the disposable dev site. Covers the server half of the Desk layer:
 
-1. Add New Item (EAN-13 generation, Dozen pricing, barcode child row)
-2. Global search: Item code/name/group/barcode, Customer/Supplier phone, invoice id
-3. Purchase Receipt submit -> Purchase Invoice + Material Transfer to Stores - DD
-4. Sales Invoice Pay: partial then full, Cash, nothing paid before the click
+1. Item creation the standard way: blank barcode auto-generates an internal
+   EAN-13; Standard Selling prices per Dozen and Nos are written.
+2. Item dialog backend: item + submitted opening-stock reconciliation.
+3. Global search: Item code/name/group/barcode, Customer/Supplier phone, invoice id.
+4. Purchase Receipt submit -> draft Purchase Invoice + draft Material Transfer to
+   Stores - DD (the owner submits both manually).
+5. Sales Invoice Pay: partial then full, Cash, nothing paid before the click.
 
 Usage:
   ERPNEXT_URL=http://localhost:8080 ERPNEXT_USER=Administrator \
@@ -37,6 +40,7 @@ SOURCE_WAREHOUSE = "Main Inventory - DD"
 TARGET_WAREHOUSE = "Stores - DD"
 STAMP = time.strftime("%H%M%S")
 TEST_ITEM = f"DESK-{STAMP}"
+STOCK_ITEM = f"DESK-STK-{STAMP}"
 TEST_BARCODE_PHONE = f"+2010{STAMP}"
 
 failures = 0
@@ -118,36 +122,40 @@ def ean13_valid(code: str) -> bool:
     return (10 - total % 10) % 10 == int(code[12])
 
 
-# ---------------------------------------------------------------------------
-# 1. Add New Item
-# ---------------------------------------------------------------------------
-def test_quick_item() -> str:
-    print("\n1. Add New Item (Purchase Receipt dialog)")
-    response = call(
-        "diva_guard.desk_api.create_quick_item",
-        item_code=TEST_ITEM,
-        item_name=f"Desk Test {STAMP}",
-        item_group="Accessories",
-        barcode="",
-        generate_barcode=1,
-        buying_price=900,
-        selling_price=1200,
-        accepted_qty=1,
-        warehouse=TARGET_WAREHOUSE,
+def item_prices(item_code: str) -> list[dict[str, Any]]:
+    return list_rows(
+        "Item Price",
+        filters=json.dumps([["item_code", "=", item_code]]),
+        fields='["price_list","uom","price_list_rate"]',
+        limit_page_length=0,
     )
-    if response.status_code >= 400:
-        expect("quick item is created", False, error_of(response))
-        return ""
-    item = response.json()["message"]
-    created.append(("Item", item["item_code"]))
-    barcode = item.get("barcode") or ""
+
+
+# ---------------------------------------------------------------------------
+# 1. Standard Item creation: blank barcode is generated
+# ---------------------------------------------------------------------------
+def test_standard_item() -> str:
+    print("\n1. Item creation (standard): blank barcode generated")
+    item_code = create(
+        "Item",
+        {
+            "item_code": TEST_ITEM,
+            "item_name": f"Desk Test {STAMP}",
+            "item_group": "Accessories",
+            "stock_uom": "Nos",
+            "is_stock_item": 1,
+            "standard_rate": 1200,
+            "custom_barcode": "",
+        },
+    )
+    doc = resource("Item", item_code)
+    barcodes = [row["barcode"] for row in doc.get("barcodes") or []]
+    barcode = barcodes[0] if barcodes else ""
     expect(
-        "generated barcode is a valid internal EAN-13",
+        "blank barcode auto-generates a valid internal EAN-13",
         barcode.startswith("20") and ean13_valid(barcode),
         barcode,
     )
-
-    doc = resource("Item", item["item_code"])
     expect(
         "stock UOM is Nos and buying/selling UOM is Dozen",
         doc["stock_uom"] == "Nos"
@@ -155,52 +163,96 @@ def test_quick_item() -> str:
         and doc["sales_uom"] == "Dozen",
         doc.get("stock_uom"),
     )
+    prices = item_prices(item_code)
     expect(
-        "standard rate is the Dozen selling price",
-        float(doc["standard_rate"]) == 1200.0,
-        doc.get("standard_rate"),
-    )
-
-    barcodes = resource("Item", item["item_code"]).get("barcodes") or []
-    expect(
-        "barcode is stored on the Item",
-        any(row["barcode"] == barcode for row in barcodes),
-        barcodes,
-    )
-
-    prices = list_rows(
-        "Item Price",
-        filters=json.dumps([["item_code", "=", item["item_code"]]]),
-        fields='["price_list","uom","price_list_rate"]',
-    )
-    expect(
-        "Standard Selling price exists per Dozen",
-        any(row["price_list"] == "Standard Selling" and row["uom"] == "Dozen" for row in prices),
+        "Standard Selling prices exist per Dozen and per Nos",
+        any(row["price_list"] == "Standard Selling" and row["uom"] == "Dozen" for row in prices)
+        and any(row["price_list"] == "Standard Selling" and row["uom"] == "Nos" for row in prices),
         prices,
     )
 
-    duplicate = call(
-        "diva_guard.desk_api.create_quick_item",
-        item_code=item["item_code"],
-        item_name="Duplicate",
-        item_group="Accessories",
-        generate_barcode=1,
-        selling_price=1200,
-        accepted_qty=1,
+    duplicate = http.post(
+        "/api/resource/Item",
+        json={
+            "item_code": item_code,
+            "item_name": "Duplicate",
+            "item_group": "Accessories",
+            "stock_uom": "Nos",
+            "is_stock_item": 1,
+        },
     )
     expect(
         "the same item code cannot be created twice",
         duplicate.status_code >= 400,
-        error_of(duplicate),
+        duplicate.text[:200],
     )
-    return str(item["item_code"])
+    return item_code
 
 
 # ---------------------------------------------------------------------------
-# 2. Global search
+# 2. Item dialog backend: item + opening stock
+# ---------------------------------------------------------------------------
+def test_opening_stock_item() -> None:
+    print("\n2. Item dialog backend: item + opening stock reconciliation")
+    response = call(
+        "diva_guard.desk_api.create_item_with_opening_stock",
+        item_code=STOCK_ITEM,
+        item_name=f"Desk Stock {STAMP}",
+        item_group="Accessories",
+        barcode="",
+        selling_price=1200,
+        wholesale_price=1000,
+        buying_price=900,
+        accepted_qty=2,
+        warehouse=TARGET_WAREHOUSE,
+    )
+    if response.status_code >= 400:
+        expect("item with opening stock is created", False, error_of(response))
+        return
+    result = response.json()["message"]
+    created.append(("Item", result["item_code"]))
+    created.append(("Stock Reconciliation", result["stock_reconciliation"]))
+    bins = list_rows(
+        "Bin",
+        filters=json.dumps(
+            [["item_code", "=", result["item_code"]], ["warehouse", "=", TARGET_WAREHOUSE]]
+        ),
+        fields='["actual_qty","valuation_rate"]',
+    )
+    expect(
+        "the item has 24 Nos at Stores - DD",
+        bins and abs(float(bins[0]["actual_qty"]) - 24.0) < 0.001,
+        bins,
+    )
+    expect(
+        "valuation is the buying price / 12 per Nos",
+        bins and abs(float(bins[0]["valuation_rate"]) - 75.0) < 0.01,
+        bins,
+    )
+    reconciliation = resource("Stock Reconciliation", result["stock_reconciliation"])
+    expect(
+        "the stock reconciliation is submitted",
+        reconciliation["docstatus"] == 1,
+        reconciliation["docstatus"],
+    )
+    wholesale = item_prices(result["item_code"])
+    expect(
+        "the Wholesale price list is written",
+        any(row["price_list"] == "Wholesale" and row["uom"] == "Dozen" for row in wholesale),
+        wholesale,
+    )
+    expect(
+        "the blank barcode was generated",
+        bool(result.get("barcode")) and ean13_valid(result["barcode"]),
+        result.get("barcode"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# 3. Global search
 # ---------------------------------------------------------------------------
 def test_global_search(item_code: str) -> None:
-    print("\n2. Global search (search bar / Ctrl+K)")
+    print("\n3. Global search (search bar / Ctrl+K)")
 
     def names(query: str, doctype: str) -> list[str]:
         response = call("diva_guard.desk_api.global_search", query=query)
@@ -211,12 +263,12 @@ def test_global_search(item_code: str) -> None:
 
     expect(
         "item found by code",
-        any(TEST_ITEM in name or name == TEST_ITEM for name in names(TEST_ITEM, "Item")),
+        any(item_code in name or name == item_code for name in names(item_code, "Item")),
     )
     expect("item found by name", bool(names("Desk Test", "Item")))
     expect("item found by item group", bool(names("Accessories", "Item")))
 
-    barcode = resource("Item", TEST_ITEM).get("barcodes")
+    barcode = resource("Item", item_code).get("barcodes") or []
     barcode_value = barcode[0]["barcode"] if barcode else ""
     expect("item found by barcode", bool(names(barcode_value, "Item")), barcode_value)
 
@@ -263,12 +315,10 @@ def test_global_search(item_code: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Purchase Receipt automation
+# 4. Purchase Receipt: drafts only
 # ---------------------------------------------------------------------------
 def test_purchase_receipt(item_code: str) -> None:
-    print("\n3. Purchase Receipt -> Purchase Invoice + transfer to Stores - DD")
-    # The quick item has stock UOM Nos and is bought in Dozen, so 1 Dozen must
-    # move 12 Nos to Stores - DD (the Dozen/Nos regression guard).
+    print("\n4. Purchase Receipt -> draft Purchase Invoice + draft Material Transfer")
     item_code = item_code or ITEM
     before = list_rows(
         "Bin",
@@ -310,13 +360,17 @@ def test_purchase_receipt(item_code: str) -> None:
         limit_page_length=0,
     )
     expect("a Purchase Invoice is created automatically", bool(invoices), invoices)
+    invoice_name = invoices[0]["name"] if invoices else ""
     if invoices:
-        invoice = resource("Purchase Invoice", invoices[0]["name"])
-        expect("the Purchase Invoice is submitted", invoice["docstatus"] == 1, invoice["docstatus"])
+        expect(
+            "the Purchase Invoice is a draft (not auto-submitted)",
+            int(invoices[0]["docstatus"]) == 0,
+            invoices[0],
+        )
         expect(
             "the Purchase Invoice does not post stock twice",
-            int(invoice["update_stock"]) == 0,
-            invoice["update_stock"],
+            int(invoices[0]["update_stock"]) == 0,
+            invoices[0]["update_stock"],
         )
 
     entries = list_rows(
@@ -326,9 +380,14 @@ def test_purchase_receipt(item_code: str) -> None:
         limit_page_length=0,
     )
     expect("a Stock Entry is created automatically", bool(entries), entries)
+    entry_name = entries[0]["name"] if entries else ""
     if entries:
-        entry = resource("Stock Entry", entries[0]["name"])
-        expect("the Stock Entry is submitted", entry["docstatus"] == 1, entry["docstatus"])
+        entry = resource("Stock Entry", entry_name)
+        expect(
+            "the Stock Entry is a draft (not auto-submitted)",
+            entry["docstatus"] == 0,
+            entry["docstatus"],
+        )
         expect(
             "the Stock Entry is a Material Transfer",
             entry["stock_entry_type"] == "Material Transfer",
@@ -349,6 +408,20 @@ def test_purchase_receipt(item_code: str) -> None:
             "a Dozen received on a Nos item moves 12 Nos",
             abs(expected_stock - 12.0) < 0.001 and abs(moved - 12.0) < 0.001,
             (expected_stock, moved),
+        )
+
+    # The owner submits the drafts manually; the stock moves only then.
+    if entry_name:
+        submit("Stock Entry", entry_name)
+        expect(
+            "the manual Stock Entry submit moves the stock",
+            resource("Stock Entry", entry_name)["docstatus"] == 1,
+        )
+    if invoice_name:
+        submit("Purchase Invoice", invoice_name)
+        expect(
+            "the manual Purchase Invoice submit succeeds",
+            resource("Purchase Invoice", invoice_name)["docstatus"] == 1,
         )
 
     after = list_rows(
@@ -377,10 +450,10 @@ def test_purchase_receipt(item_code: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. Sales Invoice Pay (nothing automatic)
+# 5. Sales Invoice Pay (nothing automatic)
 # ---------------------------------------------------------------------------
 def test_pay_invoice() -> None:
-    print("\n4. Sales Invoice Pay: partial, then the rest, always Cash")
+    print("\n5. Sales Invoice Pay: partial, then the rest, always Cash")
     price = list_rows(
         "Item Price",
         filters=json.dumps(
@@ -495,8 +568,7 @@ def cleanup() -> None:
             doc = http.get(f"/api/resource/{doctype}/{name}")
             if doc.status_code == 200 and doc.json()["data"].get("docstatus") == 1:
                 http.post(
-                    "/api/method/frappe.client.cancel",
-                    data={"doctype": doctype, "name": name},
+                    "/api/method/frappe.client.cancel", data={"doctype": doctype, "name": name}
                 )
             http.delete(f"/api/resource/{doctype}/{name}")
         except Exception as error:  # noqa: BLE001 - cleanup must never hide the result
@@ -505,7 +577,8 @@ def cleanup() -> None:
 
 if __name__ == "__main__":
     try:
-        quick_item = test_quick_item()
+        quick_item = test_standard_item()
+        test_opening_stock_item()
         test_global_search(quick_item)
         test_purchase_receipt(quick_item)
         test_pay_invoice()

@@ -178,6 +178,7 @@
 		return total;
 	}
 	function noteLabel() {
+		if (meta.combined) return __("Credit / Debit Notes");
 		return meta.party_type === "Customer" ? __("Credit Notes") : __("Debit Notes");
 	}
 %}
@@ -218,7 +219,7 @@
 	<table class="party">
 		<tr>
 			<td style="width: 58%">
-				<div class="party-label">{{ meta.party_type === "Customer" ? __("Customer") : __("Supplier") }}</div>
+				<div class="party-label">{{ meta.party_label || (meta.party_type === "Customer" ? __("Customer") : __("Supplier")) }}</div>
 				<div class="party-name" dir="auto">{{ esc(meta.party_name) }}</div>
 				<div class="muted" dir="auto">{{ __("Party ID") }}: {{ esc(meta.party_id) }}</div>
 			</td>
@@ -241,17 +242,19 @@
 	<table class="grid">
 		<thead>
 			<tr>
-				<th style="width: 24%">{{ __("Invoice No") }}</th>
-				<th style="width: 13%">{{ __("Date") }}</th>
-				<th style="width: 13%">{{ __("Due Date") }}</th>
-				<th class="num" style="width: 17%">{{ __("Total") }}</th>
-				<th class="num" style="width: 16%">{{ __("Paid") }}</th>
-				<th class="num" style="width: 17%">{{ __("Remaining") }}</th>
+				{% if (meta.combined) { %}<th style="width: 13%">{{ __("Type") }}</th>{% } %}
+				<th style="width: {{ meta.combined ? 22 : 24 }}%">{{ __("Invoice No") }}</th>
+				<th style="width: 12%">{{ __("Date") }}</th>
+				<th style="width: 12%">{{ __("Due Date") }}</th>
+				<th class="num" style="width: 16%">{{ __("Total") }}</th>
+				<th class="num" style="width: 12%">{{ __("Paid") }}</th>
+				<th class="num" style="width: 13%">{{ __("Remaining") }}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{% for (var i = 0; i < invoices.length; i++) { var row = invoices[i]; %}
 			<tr>
+				{% if (meta.combined) { %}<td dir="auto">{{ esc(row.type_label) }}</td>{% } %}
 				<td dir="auto">{{ esc(row.document) }}</td>
 				<td class="nowrap">{{ str(row.posting_date) }}</td>
 				<td class="nowrap">{{ str(row.due_date) }}</td>
@@ -263,7 +266,7 @@
 		</tbody>
 		<tfoot>
 			<tr class="total">
-				<td colspan="3">{{ __("Total") }}</td>
+				<td colspan="{{ meta.combined ? 4 : 3 }}">{{ __("Total") }}</td>
 				<td class="num">{{ money(sumActive(invoices, "base_total"), meta.company_currency) }}</td>
 				<td class="num">{{ money(sumActive(invoices, "base_paid"), meta.company_currency) }}</td>
 				<td class="num">{{ money(sumActive(invoices, "base_outstanding"), meta.company_currency) }}</td>
@@ -277,17 +280,19 @@
 	<table class="grid">
 		<thead>
 			<tr>
-				<th style="width: 24%">{{ __("Note No") }}</th>
-				<th style="width: 13%">{{ __("Date") }}</th>
-				<th style="width: 13%">{{ __("Due Date") }}</th>
-				<th class="num" style="width: 17%">{{ __("Total") }}</th>
-				<th class="num" style="width: 16%">{{ __("Paid") }}</th>
-				<th class="num" style="width: 17%">{{ __("Remaining") }}</th>
+				{% if (meta.combined) { %}<th style="width: 13%">{{ __("Type") }}</th>{% } %}
+				<th style="width: {{ meta.combined ? 22 : 24 }}%">{{ __("Note No") }}</th>
+				<th style="width: 12%">{{ __("Date") }}</th>
+				<th style="width: 12%">{{ __("Due Date") }}</th>
+				<th class="num" style="width: 16%">{{ __("Total") }}</th>
+				<th class="num" style="width: 12%">{{ __("Paid") }}</th>
+				<th class="num" style="width: 13%">{{ __("Remaining") }}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{% for (var i = 0; i < notes.length; i++) { var row = notes[i]; %}
 			<tr>
+				{% if (meta.combined) { %}<td dir="auto">{{ esc(row.type_label) }}</td>{% } %}
 				<td dir="auto">{{ esc(row.document) }}</td>
 				<td class="nowrap">{{ str(row.posting_date) }}</td>
 				<td class="nowrap">{{ str(row.due_date) }}</td>
@@ -299,7 +304,7 @@
 		</tbody>
 		<tfoot>
 			<tr class="total">
-				<td colspan="3">{{ __("Total") }}</td>
+				<td colspan="{{ meta.combined ? 4 : 3 }}">{{ __("Total") }}</td>
 				<td class="num">{{ money(sumActive(notes, "base_total"), meta.company_currency) }}</td>
 				<td class="num">{{ money(sumActive(notes, "base_paid"), meta.company_currency) }}</td>
 				<td class="num">{{ money(sumActive(notes, "base_outstanding"), meta.company_currency) }}</td>
@@ -313,17 +318,19 @@
 	<table class="grid">
 		<thead>
 			<tr>
-				<th style="width: 19%">{{ __("Receipt No") }}</th>
-				<th style="width: 11%">{{ __("Date") }}</th>
-				<th style="width: 11%">{{ __("Method") }}</th>
-				<th style="width: 23%">{{ __("Reference") }}</th>
-				<th style="width: 22%">{{ __("Applied To") }}</th>
-				<th class="num" style="width: 14%">{{ __("Amount") }}</th>
+				{% if (meta.combined) { %}<th style="width: 12%">{{ __("Type") }}</th>{% } %}
+				<th style="width: 17%">{{ __("Receipt No") }}</th>
+				<th style="width: 10%">{{ __("Date") }}</th>
+				<th style="width: 10%">{{ __("Method") }}</th>
+				<th style="width: 20%">{{ __("Reference") }}</th>
+				<th style="width: 18%">{{ __("Applied To") }}</th>
+				<th class="num" style="width: 13%">{{ __("Amount") }}</th>
 			</tr>
 		</thead>
 		<tbody>
 			{% for (var i = 0; i < payments.length; i++) { var row = payments[i]; %}
 			<tr>
+				{% if (meta.combined) { %}<td dir="auto">{{ esc(row.type_label) }}</td>{% } %}
 				<td dir="auto">{{ esc(row.document) }}</td>
 				<td class="nowrap">{{ str(row.posting_date) }}</td>
 				<td dir="auto">{{ esc(row.method) }}</td>
@@ -338,7 +345,7 @@
 		</tbody>
 		<tfoot>
 			<tr class="total">
-				<td colspan="5">{{ __("Total") }}</td>
+				<td colspan="{{ meta.combined ? 6 : 5 }}">{{ __("Total") }}</td>
 				<td class="num">{{ money(sumActive(payments, "base_total"), meta.company_currency) }}</td>
 			</tr>
 		</tfoot>
@@ -382,9 +389,27 @@
 
 	<table class="summary">
 		<tr>
-			<td>{{ __("Opening Balance") }}</td>
+			<td>{{ meta.combined ? __("Net Opening") : __("Opening Balance") }}</td>
 			<td class="num">{{ money(meta.opening_balance, meta.company_currency) }}</td>
 		</tr>
+		{% if (meta.combined) { %}
+		<tr>
+			<td>{{ __("Total Sales") }}</td>
+			<td class="num">{{ money(meta.sales_total, meta.company_currency) }}</td>
+		</tr>
+		<tr>
+			<td>{{ __("Total Purchases") }}</td>
+			<td class="num">{{ money(meta.purchases_total, meta.company_currency) }}</td>
+		</tr>
+		<tr>
+			<td>{{ __("Total Paid In") }}</td>
+			<td class="num">{{ money(meta.paid_in_total, meta.company_currency) }}</td>
+		</tr>
+		<tr>
+			<td>{{ __("Total Paid Out") }}</td>
+			<td class="num">{{ money(meta.paid_out_total, meta.company_currency) }}</td>
+		</tr>
+		{% } else { %}
 		<tr>
 			<td>{{ __("Total Invoiced") }}</td>
 			<td class="num">{{ money(meta.total_invoiced, meta.company_currency) }}</td>
@@ -411,13 +436,18 @@
 			<td class="num small">{{ money(meta.advances_total, meta.company_currency) }}</td>
 		</tr>
 		{% } %}
+		{% } %}
 		<tr class="closing">
-			<td>{{ __("Remaining Balance") }}</td>
+			<td>{{ meta.combined ? __("Net Balance") : __("Remaining Balance") }}</td>
 			<td class="num">{{ money(meta.closing_balance, meta.company_currency) }}</td>
 		</tr>
 	</table>
 	<div class="summary-note">
+		{% if (meta.combined) { %}
+		{{ meta.net_payable > 0 ? __("Net payable to this party") : __("Net receivable from this party") }}
+		{% } else { %}
 		{{ meta.party_type === "Customer" ? __("Due from the customer") : __("Due to the supplier") }}
+		{% } %}
 	</div>
 
 	{% if (meta.currency_note) { %}

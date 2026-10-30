@@ -349,6 +349,14 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Opening stock" }
     set: { translated_text: "المخزون الافتتاحي" }
+
+  # UOM change guard: ERPNext's ar.po mistranslates 'Default UOM' as 'default user interface' and appends the English line; replace it with clean Arabic.
+  - doctype: Translation
+    match: { language: ar, source_text: "Default Unit of Measure for Item {0} cannot be changed directly because you have already made some transaction(s) with another UOM. You will need to create a new Item to use a different Default UOM." }
+    set: { translated_text: "لا يمكن تغيير وحدة القياس الافتراضية للصنف {0} مباشرةً بعد إجراء معاملات بوحدة قياس أخرى. أنشئ صنفًا جديدًا لاستخدام وحدة قياس افتراضية مختلفة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Default Unit of Measure for Item {0} cannot be changed directly because you have already made some transaction(s) with another UOM. You need to either cancel the linked documents or create a new Item." }
+    set: { translated_text: "لا يمكن تغيير وحدة القياس الافتراضية للصنف {0} مباشرةً بعد إجراء معاملات بوحدة قياس أخرى. يجب إلغاء المستندات المرتبطة أو إنشاء صنف جديد." }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

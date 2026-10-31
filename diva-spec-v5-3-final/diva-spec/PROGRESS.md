@@ -10,7 +10,7 @@ The agent updates this file after every task (AGENTS.md section 11, step 9).
 | E-01 | Done (provisional on dev) | — | `docs/erp-field-register.csv` (28 doctypes, 2,028 rows) + apps/company/FY snapshot; regenerate at TASK-E-00a |
 | E-02 | Done (dev) | — | Manufacturing workspace hidden via the config script; HR/Payroll absent; per-role refinement at E-16 |
 | E-03 | Done (dev) | — | Idempotent `infra/erpnext-config/apply.py` + config + tests; re-run prints 0 changes; tax fields hidden (DEC-26) |
-| E-04 | Partial (dev) | — | Dozen whole-number, negative stock off, reservations on, item groups Accessories/Cosmetics via config; batch/expiry per item + simplified Item form pending |
+| E-04 | Partial (dev) | [#50](https://github.com/Keysoz/DivaFlow/pull/50) | Dozen whole-number, negative stock off, reservations on, item groups Accessories/Cosmetics via config; simplified Item form (DEC-99: manufacturing/quality/tax/serial/warranty/weight/commission/asset noise hidden, variant and batch fields kept); batch/expiry per item via E-14c FEFO |
 | E-05 | Partial (dev) | — | `Wholesale` tier price list created; per-tier prices and price-edit permissions later (E-16) |
 | E-12 | Partial — rules + adapter + local-api skeleton | — | rules-engine MOQ/discount/min-order with tests; typed adapter with contract tests (pass on the dev site); local-api `/health`, item-by-barcode, counter rules with bearer auth. More endpoints and nightly staging later |
 | E-06 | Done (dev) | — | 12 items with Dozen + Nos EAN-13 barcodes and per-Dozen prices; uniqueness enforced (P0-04); Barcode, Selling Price and Opening Stock in Item quick entry/normal form (DEC-78/79/80) |

@@ -60,27 +60,59 @@ HIDDEN = {
     "customs_tariff_number",
 }
 
-# The fields the owner asked to keep.
+# The fields the owner asked to keep: identity and naming, UOM and conversion,
+# stock/sales/purchase flags, price and opening stock entry, barcodes, image,
+# description, reorder/purchasing defaults, valuation, variants, batches and
+# the accounting/price tables the shop actually uses.
 KEPT = {
+    # identity and naming
+    "naming_series",
     "item_code",
     "item_name",
     "item_group",
+    "brand",
+    "description",
+    "disabled",
+    # opening stock and price (DEC-79/80/88)
+    "opening_stock",
+    "standard_rate",
+    # UOM and conversion
     "stock_uom",
     "uoms",
+    "uom_tab",
+    "purchase_uom",
+    "sales_uom",
+    # flags
     "is_stock_item",
     "is_sales_item",
     "is_purchase_item",
-    "disabled",
+    # barcodes and image
     "custom_barcode",
     "barcodes",
     "image",
-    "description",
+    # reorder, purchasing and valuation
     "reorder_levels",
+    "safety_stock",
+    "min_order_qty",
+    "lead_time_days",
+    "last_purchase_rate",
+    "supplier_items",
+    "customer_items",
+    "valuation_method",
+    "valuation_rate",
+    "item_defaults",
+    "max_discount",
+    # variants
     "has_variants",
     "variant_of",
+    "variant_based_on",
     "attributes",
+    # batches and expiry (cosmetics / FEFO)
     "has_batch_no",
+    "create_new_batch",
+    "batch_number_series",
     "has_expiry_date",
+    "shelf_life_in_days",
 }
 
 

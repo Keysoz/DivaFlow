@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>معلومات الصنف · Product Info</title>
+<style>
+	:root {
+		color-scheme: light;
+		--page: #f4f6f8;
+		--panel: #ffffff;
+		--text: #14233a;
+		--muted: #4a5a70;
+		--primary: #1f3a5f;
+		--on-primary: #ffffff;
+		--gold: #c9a24b;
+		--on-gold: #14233a;
+		--success: #1f7a6d;
+		--border: #d9dee6;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			color-scheme: dark;
+			--page: #0f1b2d;
+			--panel: #16263d;
+			--text: #eaeff6;
+			--muted: #a9b6c9;
+			--primary: #d6b25e;
+			--on-primary: #0f1b2d;
+			--gold: #d6b25e;
+			--on-gold: #0f1b2d;
+			--success: #6fd0bb;
+			--border: #2a3b55;
+		}
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		background: var(--page);
+		color: var(--text);
+		font-family: "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+		min-height: 100vh;
+	}
+	header {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px 20px;
+		background: var(--panel);
+		border-bottom: 1px solid var(--border);
+	}
+	header .brand { font-weight: 700; font-size: 18px; }
+	header .brand span { color: var(--gold); }
+	header .sub { color: var(--muted); font-size: 13px; }
+	main { max-width: 980px; margin: 0 auto; padding: 20px; }
+	form {
+		display: flex;
+		gap: 10px;
+		margin-bottom: 18px;
+	}
+	input {
+		flex: 1;
+		font: inherit;
+		font-size: 20px;
+		padding: 14px 16px;
+		border-radius: 10px;
+		border: 2px solid var(--border);
+		background: var(--panel);
+		color: var(--text);
+		outline: none;
+	}
+	input:focus { border-color: var(--primary); }
+	button {
+		font: inherit;
+		font-size: 16px;
+		font-weight: 700;
+		padding: 0 22px;
+		border-radius: 10px;
+		border: 0;
+		background: var(--primary);
+		color: var(--on-primary);
+		cursor: pointer;
+	}
+	button.gold { background: var(--gold); color: var(--on-gold); }
+	#status { min-height: 24px; color: var(--muted); margin-bottom: 10px; }
+	#status.error { color: #a8281f; }
+	.card {
+		display: grid;
+		grid-template-columns: 300px 1fr;
+		gap: 22px;
+		background: var(--panel);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		padding: 20px;
+	}
+	@media (max-width: 760px) { .card { grid-template-columns: 1fr; } }
+	.media { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+	.product {
+		width: 100%;
+		aspect-ratio: 1 / 1;
+		object-fit: contain;
+		border-radius: 12px;
+		background: var(--page);
+		border: 1px solid var(--border);
+	}
+	.product.placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 64px;
+		font-weight: 700;
+		color: var(--muted);
+	}
+	.barcode { background: #fff; padding: 8px; border-radius: 8px; border: 1px solid var(--border); max-width: 100%; }
+	.barcode svg { display: block; max-width: 100%; height: auto; }
+	.barcode .code { font-family: monospace; font-size: 13px; text-align: center; margin-top: 2px; color: #14233a; }
+	.details h1 { margin: 4px 0 2px; font-size: 28px; line-height: 1.25; }
+	.code { color: var(--muted); font-family: monospace; font-size: 16px; direction: ltr; text-align: right; }
+	.group { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px; background: var(--page); border: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+	.prices { display: flex; gap: 14px; margin: 18px 0; flex-wrap: wrap; }
+	.price {
+		flex: 1;
+		min-width: 150px;
+		background: var(--page);
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		padding: 12px 14px;
+	}
+	.price span { display: block; color: var(--muted); font-size: 13px; }
+	.price strong { font-size: 22px; color: var(--success); }
+	.stock { margin-top: 10px; }
+	.stock .total { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+	.bins { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+	.bins li { display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+	.bins li:last-child { border-bottom: 0; }
+	.bins .qty { font-weight: 700; direction: ltr; }
+	.matches { display: flex; flex-direction: column; gap: 8px; }
+	.matches button {
+		text-align: right;
+		padding: 12px 14px;
+		background: var(--panel);
+		color: var(--text);
+		border: 1px solid var(--border);
+		font-weight: 400;
+	}
+	.matches button:hover { border-color: var(--gold); }
+	.hint { color: var(--muted); font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<header>
+	<div class="brand">DIVA <span>STORE</span></div>
+	<div class="sub">معلومات الصنف · Product Info</div>
+</header>
+<main>
+	<form id="scan-form" autocomplete="off">
+		<input id="query" name="query" placeholder="امسح الباركود أو اكتب كود / اسم الصنف" autofocus autocomplete="off">
+		<button type="submit" class="gold">بحث</button>
+	</form>
+	<div id="status"></div>
+	<div id="result"></div>
+	<div class="hint">الماسح الضوئي يكتب الباركود ثم Enter. بعد كل نتيجة يعود المؤشر إلى الحقل.</div>
+</main>
+<script>
+{% raw %}
+const input = document.getElementById("query");
+const statusEl = document.getElementById("status");
+const resultEl = document.getElementById("result");
+const METHOD = "/api/method/diva_guard.product_info.product_info";
+
+const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+const EAN_PARITY = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+
+function escapeHtml(value) {
+	return String(value === null || value === undefined ? "" : value).replace(/[&<>"']/g, (c) => ({
+		"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+	}[c]));
+}
+
+function ean13Svg(code) {
+	const value = String(code || "");
+	if (!/^\d{13}$/.test(value)) return "";
+	const digits = value.split("").map(Number);
+	const parity = EAN_PARITY[digits[0]];
+	let bits = "101";
+	for (let i = 1; i <= 6; i++) bits += parity[i - 1] === "L" ? EAN_L[digits[i]] : EAN_G[digits[i]];
+	bits += "01010";
+	for (let i = 7; i <= 12; i++) bits += EAN_R[digits[i]];
+	bits += "101";
+	const module = 2, height = 62;
+	let x = 8, bars = "";
+	for (const bit of bits) {
+		if (bit === "1") bars += `<rect x="${x}" y="0" width="${module}" height="${height}" fill="#000"/>`;
+		x += module;
+	}
+	const width = x + 8;
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height + 18}" viewBox="0 0 ${width} ${height + 18}" role="img" aria-label="${escapeHtml(value)}">
+		<rect width="100%" height="100%" fill="#fff"/>${bars}
+		<text x="${width / 2}" y="${height + 14}" font-family="monospace" font-size="11" text-anchor="middle" fill="#000">${escapeHtml(value)}</text>
+	</svg>`;
+}
+
+function uomLabel(uom) {
+	const labels = { Nos: "قطعة", Dozen: "دستة" };
+	return labels[uom] || uom || "";
+}
+
+function money(value) {
+	if (value === null || value === undefined) return "—";
+	return "EGP " + Number(value).toLocaleString("en-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function card(item) {
+	const barcode = ean13Svg(item.barcode);
+	const image = item.image
+		? `<img class="product" src="${escapeHtml(item.image)}" alt="${escapeHtml(item.item_name)}">`
+		: `<div class="product placeholder">${escapeHtml((item.item_name || "?").trim().charAt(0))}</div>`;
+	const bins = (item.bins || []).length
+		? `<ul class="bins">${item.bins.map((bin) => `<li><span>${escapeHtml(bin.warehouse)}</span><span class="qty" dir="ltr">${Number(bin.qty).toLocaleString("en-EG")} ${escapeHtml(uomLabel(bin.uom))}</span></li>`).join("")}</ul>`
+		: `<div class="hint">لا يوجد مخزون متاح.</div>`;
+	return `<div class="card">
+		<div class="media">
+			${image}
+			<div class="barcode">${barcode || `<div class="code">${escapeHtml(item.barcode || "—")}</div>`}</div>
+		</div>
+		<div class="details">
+			<div class="code">${escapeHtml(item.item_code)}</div>
+			<h1>${escapeHtml(item.item_name)}</h1>
+			<div class="group">${escapeHtml(item.item_group || "")}</div>
+			<div class="prices">
+				<div class="price"><span>سعر البيع (دستة)</span><strong>${money(item.price_dozen)}</strong></div>
+				<div class="price"><span>سعر البيع (قطعة)</span><strong>${money(item.price_nos)}</strong></div>
+			</div>
+			<div class="stock">
+				<div class="total">إجمالي المخزون: <span dir="ltr">${Number(item.total_stock || 0).toLocaleString("en-EG")} ${escapeHtml(uomLabel(item.stock_uom))}</span></div>
+				${bins}
+			</div>
+		</div>
+	</div>`;
+}
+
+function matches(list) {
+	if (!list.length) return `<div class="hint">لا يوجد صنف مطابق. جرّب كودًا أو اسمًا آخر.</div>`;
+	return `<div class="matches">${list.map((row) => `<button type="button" data-code="${escapeHtml(row.item_code)}"><strong>${escapeHtml(row.item_code)}</strong> — ${escapeHtml(row.item_name)} <span class="hint">${escapeHtml(row.item_group || "")}</span></button>`).join("")}</div>`;
+}
+
+async function lookup(query) {
+	const q = (query || "").trim();
+	if (!q) return;
+	statusEl.className = "";
+	statusEl.textContent = "جارٍ البحث…";
+	try {
+		const response = await fetch(METHOD + "?query=" + encodeURIComponent(q), { credentials: "same-origin", headers: { Accept: "application/json" } });
+		if (!response.ok) throw new Error("HTTP " + response.status);
+		const data = await response.json();
+		const message = data.message;
+		if (message && message.matched) {
+			statusEl.textContent = "";
+			resultEl.innerHTML = card(message.item);
+		} else {
+			statusEl.textContent = "نتائج البحث:";
+			resultEl.innerHTML = matches((message && message.matches) || []);
+		}
+	} catch (error) {
+		statusEl.className = "error";
+		statusEl.textContent = "تعذر البحث: " + error.message;
+	} finally {
+		input.focus();
+	}
+}
+
+document.getElementById("scan-form").addEventListener("submit", (event) => {
+	event.preventDefault();
+	lookup(input.value);
+});
+
+resultEl.addEventListener("click", (event) => {
+	const button = event.target.closest("button[data-code]");
+	if (button) lookup(button.getAttribute("data-code"));
+});
+
+window.addEventListener("load", () => input.focus());
+{% endraw %}
+</script>
+</body>
+</html>

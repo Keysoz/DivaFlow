@@ -1098,3 +1098,13 @@ workspaces:
     link_type: DocType
     link_to: Customer
     icon: users
+
+# Append-only shortcuts for the standard ERPNext workspaces (the file above
+# declares Diva's own workspaces; these are merged into the stock ones).
+standard_shortcuts:
+- workspace: Stock
+  label: Product Info
+  type: URL
+  url: /product_info
+  icon: search
+  col: 3

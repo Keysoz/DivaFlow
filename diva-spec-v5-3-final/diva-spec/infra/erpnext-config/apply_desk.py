@@ -180,6 +180,84 @@ def apply_entries(client: Client, entries: list[dict[str, Any]], actions: list[A
             )
 
 
+def _shortcut_row(entry: dict[str, Any]) -> dict[str, Any]:
+    """A Workspace Shortcut child row from a YAML entry."""
+    return {
+        "label": str(entry["label"]),
+        "type": str(entry.get("type", "URL")),
+        "url": str(entry.get("url", "")),
+        "link_to": str(entry.get("link_to", "")),
+        "icon": str(entry.get("icon", "link")),
+        "doc_view": "",
+        "report_ref_doctype": str(entry.get("report_ref_doctype", "")),
+        "stats_filter": "",
+    }
+
+
+def _shortcut_block(workspace: str, label: str, col: int) -> dict[str, Any]:
+    digest = hashlib.sha1(f"{workspace}:standard:{label}".encode()).hexdigest()[:10]
+    return {"id": digest, "type": "shortcut", "data": {"shortcut_name": label, "col": col}}
+
+
+def apply_standard_shortcuts(client: Client, entries: list[dict[str, Any]], apply: bool) -> int:
+    """Append a shortcut to a standard workspace, idempotently.
+
+    Standard workspaces cannot be edited directly (Frappe keeps site edits in a
+    `Custom Workspace` delta), so this reads the base workspace and the existing
+    delta, appends the block and widget once, and saves the delta.
+    """
+    changes = 0
+    for entry in entries:
+        workspace = str(entry["workspace"])
+        label = str(entry["label"])
+        try:
+            base = client.get("/api/resource/" + _quoted("Workspace") + "/" + _quoted(workspace))[
+                "data"
+            ]
+        except ApiError as exc:
+            if exc.code == 404:
+                print(f"missing  workspace  {workspace}::{label}")
+                continue
+            raise
+        try:
+            custom = client.get(
+                "/api/resource/" + _quoted("Custom Workspace") + "/" + _quoted(workspace)
+            )["data"]
+        except ApiError as exc:
+            if exc.code != 404:
+                raise
+            custom = None
+
+        content = json.loads((custom or {}).get("content") or base.get("content") or "[]")
+        widgets = json.loads((custom or {}).get("widgets") or "{}")
+        already = any(str(row.get("label")) == label for row in base.get("shortcuts") or []) or any(
+            block.get("type") == "shortcut" and block.get("data", {}).get("shortcut_name") == label
+            for block in content
+        )
+        if already:
+            print(f"noop     shortcut   {workspace}::{label}")
+            continue
+
+        changes += 1
+        content.append(_shortcut_block(workspace, label, int(entry.get("col", 3))))
+        widgets.setdefault("shortcut", []).append(_shortcut_row(entry))
+        print(f"create   shortcut   {workspace}::{label}")
+        if apply:
+            payload = {
+                "workspace": workspace,
+                "content": json.dumps(content, separators=(",", ":")),
+                "widgets": json.dumps(widgets, separators=(",", ":")),
+            }
+            if custom:
+                client.put(
+                    "/api/resource/" + _quoted("Custom Workspace") + "/" + _quoted(workspace),
+                    payload,
+                )
+            else:
+                client.post("/api/resource/" + _quoted("Custom Workspace"), payload)
+    return changes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
@@ -224,10 +302,15 @@ def main() -> int:
             f"current={_short(action.current)} desired={_short(action.desired)}"
         )
     changed = [action for action in actions if action.action in {"create", "update"}]
-    print(f"\n{len(changed)} change(s), {len(actions) - len(changed)} no-op/missing")
+    shortcut_changes = apply_standard_shortcuts(
+        client, config.get("standard_shortcuts", []), apply=args.apply
+    )
+    total = len(changed) + shortcut_changes
+    print(f"\n{total} change(s), {len(actions) - len(changed)} no-op/missing")
 
     if args.apply and changed:
         apply_entries(client, entries, changed)
+    if args.apply and total:
         print("applied")
     elif not args.apply:
         print("dry run (use --apply to write)")

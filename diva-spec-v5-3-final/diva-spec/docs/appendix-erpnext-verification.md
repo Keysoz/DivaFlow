@@ -337,3 +337,9 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - The patch applies cleanly to `v2.0.0` with `git am` (checked in a throwaway worktree) and is tracked as `0015-feat-pos-share-an-invoice-from-the-invoice-detail.patch`.
 - Rebuild with Node 24 (`vite build --base=/assets/pos_next/pos/`), `node copy-sw.cjs`; the new `/pos-sw.js` has 54 absolute precache entries and every one returns 200.
 - Headless Chromium: **9/9 checks pass** (buttons, preview link, captured `wa.me` link, POS-language message).
+
+### Party Statement (customer and supplier)
+
+- The **Party Statement** report adds **Open in WhatsApp** next to **Print Statement**. `diva_guard.share.statement_share` returns the normalized `wa.me` link and a message naming the party, company and period (`01-07-2026 - 31-10-2026`); the amounts stay in the printed statement, so the share path never recomputes a business rule. The PDF comes from **Print Statement** (browser preview, save as PDF).
+- `scripts/test_statement_sharing.py`: **18/18 checks pass** (customer and supplier, normalized number, link, message party/period/company, print format, English variant, missing phone refused with the fix, unsupported party type refused, missing period refused).
+- Headless Chromium: **7/7 checks pass** — the report page shows both buttons and the captured link is `https://wa.me/201018782245?text=...` with `Ahmed Sayed`, `Diva Dev` and `01-07-2026 - 31-10-2026`.

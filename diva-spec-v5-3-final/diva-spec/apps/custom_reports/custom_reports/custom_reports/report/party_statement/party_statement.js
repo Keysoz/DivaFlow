@@ -5,6 +5,20 @@
 
 (function () {
 const PARTY_STATEMENT_FORMAT = "Party Statement Print";
+
+// Pull the server's own explanation out of a failed xcall.
+function shareErrorMessage(error) {
+	let message = "";
+	try {
+		const server = JSON.parse((error && error._server_messages) || "[]");
+		if (server.length) {
+			message = (JSON.parse(server[0]) || {}).message || "";
+		}
+	} catch (e) {
+		message = "";
+	}
+	return message || (error && error.message) || __("Unknown error");
+}
 const PARTY_STATEMENT_METHOD =
 	"custom_reports.custom_reports.report.party_statement.party_statement.get_fiscal_year_start";
 
@@ -112,6 +126,33 @@ frappe.query_reports["Party Statement"] = {
 			if (dialog && dialog.set_value) {
 				dialog.set_value("orientation", "Portrait");
 			}
+		});
+
+		// E-18/DEC-97: share the statement through the free wa.me link. The
+		// staff save the PDF from the Print Statement preview and attach it.
+		report.page.add_inner_button(__("Open in WhatsApp"), function () {
+			const values = report.get_filter_values();
+			if (!values.party) {
+				frappe.msgprint(__("Choose a party before sharing the statement."));
+				return;
+			}
+			frappe
+				.xcall("diva_guard.share.statement_share", {
+					party_type: values.party_type,
+					party: values.party,
+					from_date: values.from_date,
+					to_date: values.to_date,
+					company: values.company,
+					language: frappe.boot && frappe.boot.lang === "en" ? "en" : "ar",
+				})
+				.then((result) => window.open(result.wa_link, "_blank", "noopener"))
+				.catch((error) => {
+					frappe.msgprint({
+						title: __("Open in WhatsApp failed"),
+						message: shareErrorMessage(error),
+						indicator: "red",
+					});
+				});
 		});
 
 		// Replace the placeholder From Date with the actual fiscal year start.

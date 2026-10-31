@@ -144,6 +144,19 @@
 		font-weight: 400;
 	}
 	.matches button:hover { border-color: var(--gold); }
+	.open-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 16px;
+		padding: 10px 16px;
+		border-radius: 10px;
+		background: var(--gold);
+		color: var(--on-gold);
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.open-item:hover { filter: brightness(0.95); }
 	.hint { color: var(--muted); font-size: 13px; margin-top: 12px; }
 </style>
 </head>
@@ -237,6 +250,7 @@ function card(item) {
 				<div class="total">إجمالي المخزون: <span dir="ltr">${Number(item.total_stock || 0).toLocaleString("en-EG")} ${escapeHtml(uomLabel(item.stock_uom))}</span></div>
 				${bins}
 			</div>
+			<a class="open-item" href="/app/item/${encodeURIComponent(item.item_code)}" target="_blank" rel="noopener">الانتقال إلى الصنف · Open Item</a>
 		</div>
 	</div>`;
 }

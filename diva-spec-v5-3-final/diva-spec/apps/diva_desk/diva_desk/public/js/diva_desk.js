@@ -22,6 +22,7 @@
 	const DEFAULT_PAYMENT_MODE = "Cash";
 	const INVOICE_PRINT_FORMAT = "Diva Sales Invoice A4";
 	const PURCHASE_INVOICE_PRINT_FORMAT = "Diva Purchase Invoice A4";
+	const PAYMENT_RECEIPT_PRINT_FORMAT = "Diva Payment Receipt";
 	const RECEIPT_PRINT_FORMAT = "Diva Purchase Receipt A4";
 
 	// ------------------------------------------------------------------
@@ -82,14 +83,40 @@
 		}, 300);
 	}
 
-	function open_print(doctype, name, printFormat) {
+	function open_print(doctype, name, printFormat, trigger) {
 		const params = new URLSearchParams({
 			doctype: doctype,
 			name: name,
 			format: printFormat,
 			no_letterhead: "1",
 		});
+		if (trigger) params.set("trigger_print", "1");
 		window.open("/printview?" + params.toString(), "_blank");
+	}
+
+	function open_whatsapp(frm) {
+		frappe
+			.xcall("diva_guard.share.invoice_share", {
+				doctype: frm.doctype,
+				name: frm.doc.name,
+				language: frappe.boot && frappe.boot.lang === "en" ? "en" : "ar",
+			})
+			.then((result) => window.open(result.wa_link, "_blank"))
+			.catch((error) => {
+				frappe.msgprint({
+					title: __("Open in WhatsApp failed"),
+					message: (error && (error.message || error._server_messages)) || String(error),
+					indicator: "red",
+				});
+			});
+	}
+
+	function add_share_buttons(frm, printFormat) {
+		frm.add_custom_button(__("Open in WhatsApp"), () => open_whatsapp(frm));
+		frm.add_custom_button(__("Download PDF"), () =>
+			open_print(frm.doctype, frm.doc.name, printFormat, true)
+		);
+		frm.add_custom_button(__("Print"), () => open_print(frm.doctype, frm.doc.name, printFormat));
 	}
 
 	function fieldname_of(element) {
@@ -103,9 +130,15 @@
 	frappe.ui.form.on("Purchase Invoice", {
 		refresh(frm) {
 			if (is_submitted(frm)) {
-				frm.add_custom_button(__("Print"), () =>
-					open_print("Purchase Invoice", frm.doc.name, PURCHASE_INVOICE_PRINT_FORMAT)
-				);
+				add_share_buttons(frm, PURCHASE_INVOICE_PRINT_FORMAT);
+			}
+		},
+	});
+
+	frappe.ui.form.on("Payment Entry", {
+		refresh(frm) {
+			if (is_submitted(frm)) {
+				add_share_buttons(frm, PAYMENT_RECEIPT_PRINT_FORMAT);
 			}
 		},
 	});
@@ -238,9 +271,7 @@
 				focus_field(frm, "customer");
 			}
 			if (is_submitted(frm)) {
-				frm.add_custom_button(__("Print"), () =>
-					open_print("Sales Invoice", frm.doc.name, INVOICE_PRINT_FORMAT)
-				);
+				add_share_buttons(frm, INVOICE_PRINT_FORMAT);
 				if (flt(frm.doc.outstanding_amount) > 0) {
 					frm.add_custom_button(__("Pay"), () => pay_invoice_dialog(frm));
 				}

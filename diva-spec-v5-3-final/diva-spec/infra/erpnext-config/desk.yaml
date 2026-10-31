@@ -471,6 +471,9 @@ workspaces:
     shortcut_name: Items
     col: 3
   - type: shortcut
+    shortcut_name: Product Info
+    col: 3
+  - type: shortcut
     shortcut_name: Customers
     col: 3
   - type: shortcut
@@ -504,6 +507,10 @@ workspaces:
     type: URL
     url: /pos/
     icon: shopping-cart
+  - label: Product Info
+    type: URL
+    url: /product_info
+    icon: search
   - label: Party Statement
     type: Report
     link_to: Party Statement

@@ -66,7 +66,7 @@ Spec: `05a-erp-configuration.md`, `07` (Ops and POS), `04` rules.
 | E-17 | Backups, restore test, downtime runbook, Arabic SOPs, staff training; retire daily Desk clutter | E-14d, E-15, E-16 | Staff complete the full workflow from SOPs; restore test passed |
 **Exit gate E:** acceptance list in `05a` section 14 passes; POS-CHECK passes; staff use the new system for daily work for one full week without a blocking issue.
 
-**Delivered ahead of the plan (owner requests, 2026-10-29):** **ENH-E-01** Party Statement report and print format (`custom_reports`); **ENH-E-02** Desk workspaces, number cards and store analytics (`desk.yaml` + `apply_desk.py`); **ENH-E-03** POS Next Escape-to-close for custom popups (patch 0013); **ENH-E-04** EOD print format fix (patch 0014); **ENH-E-05** Desk workflows (`diva_desk` + `diva_guard.desk_api`, DEC-85 to DEC-89). These do not replace the planned E-17 (backups/training) or E-18 (invoice sharing).
+**Delivered ahead of the plan (owner requests, 2026-10-29):** **ENH-E-01** Party Statement report and print format (`custom_reports`); **ENH-E-02** Desk workspaces, number cards and store analytics (`desk.yaml` + `apply_desk.py`); **ENH-E-03** POS Next Escape-to-close for custom popups (patch 0013); **ENH-E-04** EOD print format fix (patch 0014); **ENH-E-05** Desk workflows (`diva_desk` + `diva_guard.desk_api`, DEC-85 to DEC-89); **ENH-E-06** staff Product Info page (`diva_guard.product_info` + `diva_desk/www/product_info.html`, DEC-95). These do not replace the planned E-17 (backups/training) or E-18 (invoice sharing).
 
 ## Phase PUB — Publishing (second priority)
 | ID | Task | Dep | AC |

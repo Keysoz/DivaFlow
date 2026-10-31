@@ -102,6 +102,7 @@ Record for every test: expected result, actual result, evidence, pass or fail. N
 | TEST-105 | AI | A hard case escalates from the small model to the larger one; the cached prompt is reused | integration | A |
 | TEST-106 | Ops | Stopping a service raises an Uptime Kuma alert to the owner in Telegram; an error appears in GlitchTip | manual | PUB |
 | TEST-107 | Ops | A backup to R2 or B2 restores on a clean machine | manual | PUB |
+| TEST-113 | Ops | The Product Info page resolves a scanned barcode and a typed code/name, and shows code, name, group, EAN-13 image, product image, Dozen/Nos price, total stock and the warehouses | integration | E |
 | TEST-43 | Security | Webhook signatures verified; replayed webhook ignored | integration | all |
 | TEST-44 | Counter | A browser-supplied price or discount that differs from the price list or role limit is rejected by the server | integration | E |
 | TEST-45 | Counter | A counter invoice's payment appears in the ledger and the receivables report shows zero outstanding | integration | E |

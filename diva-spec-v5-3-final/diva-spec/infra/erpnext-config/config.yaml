@@ -108,6 +108,148 @@ property_setters:
     property: default
     value: Cash
 
+  # E-04: simplified Item form. Keep code, name, group, UOM and conversion,
+  # stock/sales/purchase flags, disabled, barcodes, image, description,
+  # reorder level and the cosmetics variant/batch fields; hide manufacturing,
+  # serial, warranty, weight/shipping, commission, assets, tax, deferred
+  # accounting and import noise (TASK-E-04, DEC-99).
+  - doctype: Item
+    fieldname: manufacturing
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: quality_tab
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: item_tax_section_break
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: deferred_accounting_section
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: foreign_trade_details
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: supplier_details
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: auto_create_assets
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: is_grouped_asset
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: asset_category
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: asset_naming_series
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: is_fixed_asset
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: allow_alternative_item
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: is_customer_provided_item
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: over_delivery_receipt_allowance
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: over_billing_allowance
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: end_of_life
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: default_material_request_type
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: warranty_period
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: weight_per_unit
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: weight_uom
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: allow_negative_stock
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: has_serial_no
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: serial_no_series
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: use_serial_no_wise_valuation
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: retain_sample
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: sample_quantity
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: enable_deferred_expense
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: no_of_months_exp
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: enable_deferred_revenue
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: no_of_months
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: grant_commission
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: delivered_by_supplier
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: country_of_origin
+    property: hidden
+    value: 1
+  - doctype: Item
+    fieldname: customs_tariff_number
+    property: hidden
+    value: 1
+
 workspaces:
   # E-02: hide HR, payroll and manufacturing workspaces (DEC-24).
   # HR and Payroll are currently absent on the dev site and are reported as "missing".

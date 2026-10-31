@@ -292,3 +292,9 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 **Report print formats — `custom_reports` install hook (DEC-89)**
 - One Print Format named after each report (Accounts Receivable, Accounts Payable, General Ledger, Trial Balance, Profit and Loss Statement, Balance Sheet, Stock Balance, Stock Ledger) uses the shared bilingual `diva_report.html`: company header, printed date, filter summary with real labels, zebra table with indentation, currency from the row data (EGP), bold totals, signatures and page footer.
 - Rendered through `frappe.query_report.get_print_format_data` + `frappe.render_template` on the live reports: Trial Balance 34 rows, General Ledger 169 rows, Accounts Receivable 6 rows, Stock Balance empty-state (no rows in the period) — all with the Diva layout. Screenshots in `/tmp/opencode/desk-verify/report-*.png`.
+
+## 27. Simplified Item form (E-04 / DEC-99, dev site)
+
+- `apply.py` applied **44** property setters (34 new Item rows plus the existing Item settings), then a second run reported **0 changes** (idempotent). Item meta: **38 hidden fields**; `item_code`, `item_name`, `item_group`, `stock_uom`, `barcodes`, `image`, `description`, `reorder_levels`, `has_variants`, `has_batch_no`, `has_expiry_date`, `is_stock_item`, `is_sales_item`, `is_purchase_item` stay visible.
+- Headless Chromium on a disposable Item: only **Details, Inventory, Accounting, UOM, Purchasing, Sales, Pricing, Connections** tabs render (Manufacturing, Quality and Tax gone); `has_serial_no`, `warranty_period`, `weight_per_unit`, `grant_commission`, `allow_negative_stock`, `end_of_life` are absent; barcodes, batch fields and the reorder table stay; the quick entry still shows its seven fields. **24/24 checks pass**.
+- `tests/config/test_item_form_simplification.py`: 3 tests (hidden list, kept list, batches/variants stay).

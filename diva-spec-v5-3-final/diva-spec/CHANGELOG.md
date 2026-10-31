@@ -5,6 +5,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 ## [Unreleased]
 
 ### Changed
+- DEC-98 (dev, E-15): the prints bundle **Cairo** (SIL OFL 1.1) locally as `"Diva Cairo"` (Arabic, Latin-ext and Latin woff2 subsets, ~81 KB) in `custom_reports/public/fonts`. All eight `infra/erpnext-config` print formats and the two report templates use it, so receipts, invoices and statements no longer depend on a font CDN or a system font. `scripts/install_custom_reports.sh` publishes the files to both containers; `tests/config/test_print_fonts.py` guards the rule.
 - Arabic copy review (dev): aligned the Desk/Item strings with the owner-approved glossary (`Item = صنف`, `Supplier = مورد`, `Warehouse = مخزن`), improved the phrasing (`الانتقال إلى العميل / المورد`, `لا يوجد مبلغ متبقٍ على هذه الفاتورة.`, `تم ترحيل الدفعة`, `المبلغ المطلوب سداده`), and added Arabic for `Item Code` (`رمز الصنف`), `Item Name` (`اسم الصنف`), `Accepted Warehouse` (`المخزن المستلم`) and `Opening stock` (`المخزون الافتتاحي`). Translation data only; re-applied with 0 changes on the second run. Also fixed ERPNext's ar.po guard message for changing an Item's default UOM: it mistranslated "Default UOM" as "default user interface" and appended the English line; the Arabic is now "لا يمكن تغيير وحدة القياس الافتراضية للصنف {0} مباشرةً بعد إجراء معاملات بوحدة قياس أخرى…".
 
 ### Fixed

@@ -7,6 +7,7 @@
 set -euo pipefail
 
 CONTAINER="${CONTAINER:-frappe_docker-backend-1}"
+FRONTEND_CONTAINER="${FRONTEND_CONTAINER:-frappe_docker-frontend-1}"
 SITE="${SITE:-frontend}"
 BENCH="${BENCH:-/home/frappe/frappe-bench}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -33,6 +34,12 @@ else
   echo "==> installing custom_reports on ${SITE}"
   docker exec "${CONTAINER}" bash -lc "cd ${BENCH} && bench --site ${SITE} install-app custom_reports"
 fi
+
+echo "==> publish the bundled print font to the containers that serve /assets"
+for target in "${CONTAINER}" "${FRONTEND_CONTAINER}"; do
+  docker exec "${target}" mkdir -p "${BENCH}/sites/assets/custom_reports/fonts"
+  docker cp "${ROOT}/apps/custom_reports/custom_reports/public/fonts/." "${target}:${BENCH}/sites/assets/custom_reports/fonts/"
+done
 
 echo "==> build assets"
 if docker exec "${CONTAINER}" bash -lc "command -v node >/dev/null 2>&1"; then

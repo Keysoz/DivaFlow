@@ -292,3 +292,10 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 **Report print formats — `custom_reports` install hook (DEC-89)**
 - One Print Format named after each report (Accounts Receivable, Accounts Payable, General Ledger, Trial Balance, Profit and Loss Statement, Balance Sheet, Stock Balance, Stock Ledger) uses the shared bilingual `diva_report.html`: company header, printed date, filter summary with real labels, zebra table with indentation, currency from the row data (EGP), bold totals, signatures and page footer.
 - Rendered through `frappe.query_report.get_print_format_data` + `frappe.render_template` on the live reports: Trial Balance 34 rows, General Ledger 169 rows, Accounts Receivable 6 rows, Stock Balance empty-state (no rows in the period) — all with the Diva layout. Screenshots in `/tmp/opencode/desk-verify/report-*.png`.
+
+## 26. Bundled Arabic print font (E-15 / DEC-98, dev site)
+
+- **Cairo** (SIL OFL 1.1) is served from `/assets/custom_reports/fonts/` as three woff2 subsets (Arabic 30,896 B, Latin-ext 16,648 B, Latin 33,820 B) and is declared as `"Diva Cairo"` (weight 400–700, `font-display: swap`) in all ten print formats. The asset URLs return **200** with `font/woff2`.
+- Headless Chromium on `/printview` for the Sales Invoice A4 and the 80 mm receipt: **8/8 checks pass** — computed `font-family` starts with `Diva Cairo`, `document.fonts.load('12px "Diva Cairo"', "مرحبا")` resolves with a loaded face, the Arabic subset is requested from `/assets/custom_reports/fonts/cairo-arabic.woff2` and every font request is 200. The rendered Arabic is correct RTL (screenshot inspected).
+- `tests/config/test_print_fonts.py`: 4 tests (bundled font in every format, no Google Fonts reference, every referenced file exists and is non-empty, the OFL license ships).
+- No font CDN is referenced anywhere in the print formats; the store can run without internet.

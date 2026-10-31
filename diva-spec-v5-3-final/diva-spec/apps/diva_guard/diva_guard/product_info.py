@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import frappe
+import frappe  # type: ignore[import-not-found]
 from frappe import _
 
 DEFAULT_PRICE_LIST = "Standard Selling"
@@ -57,7 +57,9 @@ def _item_card(item_code: str) -> dict[str, Any]:
 		"item_name": item.item_name,
 		"item_group": item.item_group,
 		"barcode": barcode,
-		"image": frappe.utils.get_url(item.image) if item.get("image") else "",
+		# Keep the file URL relative: the page is served from the same site, and an
+		# absolute URL built from the site host may drop the port (e.g. :8080).
+		"image": item.get("image") or "",
 		"stock_uom": item.stock_uom,
 		"price_dozen": price_dozen,
 		"price_nos": price_nos,

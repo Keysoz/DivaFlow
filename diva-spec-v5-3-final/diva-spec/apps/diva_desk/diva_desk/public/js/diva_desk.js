@@ -261,6 +261,10 @@
 			if (is_draft(frm)) {
 				focus_field(frm, "supplier");
 				frm.add_custom_button(__("Add New Item"), () => frappe.ui.form.make_quick_entry("Item"));
+				// Saving a Purchase Receipt must never submit it by accident: the
+				// primary action stays Save, and Submit is an explicit button.
+				frm.page.set_primary_action(__("Save"), () => frm.save());
+				frm.add_custom_button(__("Submit"), () => frm.savesubmit());
 			}
 			if (is_submitted(frm)) {
 				frm.add_custom_button(__("Print"), () =>

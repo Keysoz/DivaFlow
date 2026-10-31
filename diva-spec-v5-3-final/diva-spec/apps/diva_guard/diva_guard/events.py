@@ -14,6 +14,7 @@ from frappe import _
 from frappe.utils import get_datetime, now_datetime
 from rules_engine import (
 	PCS_PER_DOZEN,
+	is_valid_ean13,
 	next_internal_ean13,
 	quantize_money,
 	to_decimal,
@@ -52,7 +53,11 @@ def _dec(value: object) -> Decimal:
 
 
 def _qty_dozens(item) -> Decimal:
-	return _dec(item.stock_qty) / Decimal(PCS_PER_DOZEN)
+	"""Quantities in Dozen, whatever the item's stock UOM is (DEC-96)."""
+	qty = _dec(item.stock_qty)
+	if str(item.get("stock_uom") or "") == "Dozen":
+		return qty
+	return qty / Decimal(PCS_PER_DOZEN)
 
 
 def _check_counter_payment(doc) -> None:
@@ -323,7 +328,7 @@ def _sync_standard_selling_price(doc) -> None:
 		limit=0,
 	)
 	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
-	stock = next((row for row in rows if str(row.uom) == str(doc.stock_uom)), None)
+	nos = next((row for row in rows if str(row.uom) == "Nos"), None)
 	if dozen:
 		frappe.db.set_value("Item Price", dozen.name, "price_list_rate", rate, update_modified=False)
 	else:
@@ -337,23 +342,21 @@ def _sync_standard_selling_price(doc) -> None:
 				"selling": 1,
 			}
 		).insert(ignore_permissions=True)
-	if str(doc.stock_uom) != "Dozen":
-		stock_rate = quantize_money(rate / Decimal(PCS_PER_DOZEN))
-		if stock:
-			frappe.db.set_value(
-				"Item Price", stock.name, "price_list_rate", stock_rate, update_modified=False
-			)
-		else:
-			frappe.get_doc(
-				{
-					"doctype": "Item Price",
-					"item_code": doc.name,
-					"price_list": "Standard Selling",
-					"uom": doc.stock_uom,
-					"price_list_rate": stock_rate,
-					"selling": 1,
-				}
-			).insert(ignore_permissions=True)
+	# The piece price is always Dozen / 12, whatever the stock UOM is.
+	nos_rate = quantize_money(rate / Decimal(PCS_PER_DOZEN))
+	if nos:
+		frappe.db.set_value("Item Price", nos.name, "price_list_rate", nos_rate, update_modified=False)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"item_code": doc.name,
+				"price_list": "Standard Selling",
+				"uom": "Nos",
+				"price_list_rate": nos_rate,
+				"selling": 1,
+			}
+		).insert(ignore_permissions=True)
 
 
 def _existing_barcodes() -> list[str]:
@@ -368,32 +371,52 @@ def _existing_barcodes() -> list[str]:
 	return [str(value) for value in values + extra if value]
 
 
-def apply_quick_barcode(doc, method: str | None = None) -> None:
-	"""Copy the one-field quick-entry barcode and price (DEC-78/79/90).
+def _ensure_uom(doc, uom: str, conversion_factor: float) -> None:
+	"""Keep one UOM Conversion Detail row per UOM, relative to the stock UOM."""
+	for row in doc.get("uoms") or []:
+		if str(row.uom) == uom:
+			row.conversion_factor = conversion_factor
+			return
+	doc.append("uoms", {"uom": uom, "conversion_factor": conversion_factor})
 
-	A new stock Item with no barcode gets an internal EAN-13 (GS1 prefix 20)
-	automatically, so quick entry and the full form behave the same way.
+
+def apply_quick_barcode(doc, method: str | None = None) -> None:
+	"""Copy the quick-entry barcode and prices, and default stock to Dozen (DEC-96).
+
+	A new stock Item is stocked, bought and sold in Dozen (supersedes the Nos
+	stock half of DEC-20). A blank barcode gets an internal EAN-13 (GS1 prefix
+	20), stored with type EAN-13 and UOM Dozen. The primary barcode is kept on
+	the Item so the list view can show it.
 	"""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
-	if _dec(doc.get("opening_stock")) > 0 and not _dec(doc.get("valuation_rate")):
-		selling = _dec(doc.get("standard_rate"))
-		if selling > 0:
-			doc.valuation_rate = quantize_money(selling / Decimal(PCS_PER_DOZEN))
-	if _dec(doc.get("standard_rate")) > 0 and not any(
-		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
-	):
-		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
-	if not doc.meta.has_field("custom_barcode"):
-		return
-	if doc.is_new() and int(doc.get("is_stock_item") or 0):
-		# DEC-20: new stock items are bought and sold in Dozen, stocked in Nos.
+	is_stock = int(doc.get("is_stock_item") or 0)
+	if doc.is_new() and is_stock:
+		if not doc.get("stock_uom") or str(doc.get("stock_uom")) == "Nos":
+			doc.stock_uom = "Dozen"
 		if not doc.get("purchase_uom"):
 			doc.purchase_uom = "Dozen"
 		if not doc.get("sales_uom"):
 			doc.sales_uom = "Dozen"
+
+	stock_uom = str(doc.get("stock_uom") or "Dozen")
+	if is_stock:
+		if stock_uom == "Dozen":
+			_ensure_uom(doc, "Dozen", 1)
+			_ensure_uom(doc, "Nos", 1 / PCS_PER_DOZEN)
+		else:
+			_ensure_uom(doc, "Dozen", PCS_PER_DOZEN)
+
+	if _dec(doc.get("opening_stock")) > 0 and not _dec(doc.get("valuation_rate")):
+		selling = _dec(doc.get("standard_rate"))
+		if selling > 0:
+			divisor = 1 if stock_uom == "Dozen" else PCS_PER_DOZEN
+			doc.valuation_rate = quantize_money(selling / divisor)
+
+	if not doc.meta.has_field("custom_barcode"):
+		return
 	value = str(doc.get("custom_barcode") or "").strip()
-	if not value and doc.is_new() and int(doc.get("is_stock_item") or 0):
+	if not value and doc.is_new() and is_stock:
 		value = next_internal_ean13(_existing_barcodes(), prefix=20)
 	if not value:
 		return
@@ -408,10 +431,12 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 			"barcodes",
 			{
 				"barcode": value,
-				"uom": doc.get("stock_uom") or "Nos",
+				"barcode_type": "EAN-13" if is_valid_ean13(value) else "",
+				"uom": "Dozen",
 			},
 		)
-	doc.set("custom_barcode", None)
+	# Keep the primary barcode on the Item (the list view shows this field).
+	doc.custom_barcode = value
 
 
 def sync_quick_price(doc, method: str | None = None) -> None:

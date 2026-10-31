@@ -19,11 +19,10 @@
 (function () {
 	"use strict";
 
-	const DEFAULT_WAREHOUSE = "Stores - DD";
 	const DEFAULT_PAYMENT_MODE = "Cash";
 	const INVOICE_PRINT_FORMAT = "Diva Sales Invoice A4";
+	const PURCHASE_INVOICE_PRINT_FORMAT = "Diva Purchase Invoice A4";
 	const RECEIPT_PRINT_FORMAT = "Diva Purchase Receipt A4";
-	const PCS_PER_DOZEN = 12;
 
 	// ------------------------------------------------------------------
 	// Helpers
@@ -99,159 +98,17 @@
 	}
 
 	// ------------------------------------------------------------------
-	// Item module: create item + opening stock (DEC-90)
+	// Purchase Invoice: Print button (submitted)
 	// ------------------------------------------------------------------
-	function is_item_list_route() {
-		const route = (frappe.get_route && frappe.get_route()) || [];
-		const parts = route.map((part) => String(part).toLowerCase());
-		return parts.includes("list") && parts.includes("item");
-	}
-
-	function open_item_dialog() {
-		if (window._diva_item_dialog) {
-			const existing = window._diva_item_dialog;
-			existing.set_values({
-				item_code: "",
-				item_name: "",
-				item_group: "Accessories",
-				barcode: "",
-				accepted_qty: 1,
-				warehouse: DEFAULT_WAREHOUSE,
-				buying_price: 0,
-				selling_price: 0,
-				selling_price_nos: 0,
-				wholesale_price: 0,
-			});
-			existing.show();
-			return;
-		}
-
-		const dialog = new frappe.ui.Dialog({
-			title: __("Add New Item"),
-			size: "large",
-			fields: [
-				{ fieldtype: "Section Break", label: __("Item") },
-				{ fieldname: "item_code", label: __("Item Code"), fieldtype: "Data", reqd: 1 },
-				{ fieldname: "item_name", label: __("Item Name"), fieldtype: "Data", reqd: 1 },
-				{
-					fieldname: "item_group",
-					label: __("Item Group"),
-					fieldtype: "Link",
-					options: "Item Group",
-					reqd: 1,
-					default: "Accessories",
-				},
-				{
-					fieldname: "barcode",
-					label: __("Barcode (EAN-13)"),
-					fieldtype: "Data",
-					description: __("Leave it blank to generate an internal EAN-13 (starts with 20)."),
-				},
-				{ fieldtype: "Column Break" },
-				{
-					fieldname: "selling_price",
-					label: __("Selling Price (EGP/Dozen)"),
-					fieldtype: "Currency",
-					reqd: 1,
-				},
-				{
-					fieldname: "selling_price_nos",
-					label: __("Selling Price (EGP/Nos)"),
-					fieldtype: "Currency",
-					read_only: 1,
-					description: __("One Dozen = 12 Nos; saved automatically."),
-				},
-				{
-					fieldname: "wholesale_price",
-					label: __("Wholesale Price (EGP/Dozen)"),
-					fieldtype: "Currency",
-					description: __("Optional. Written to the Wholesale price list."),
-				},
-				{ fieldtype: "Section Break", label: __("Opening stock") },
-				{
-					fieldname: "accepted_qty",
-					label: __("Accepted Quantity (Dozen)"),
-					fieldtype: "Float",
-					default: 1,
-					reqd: 1,
-				},
-				{
-					fieldname: "warehouse",
-					label: __("Accepted Warehouse"),
-					fieldtype: "Link",
-					options: "Warehouse",
-					reqd: 1,
-					default: DEFAULT_WAREHOUSE,
-				},
-				{
-					fieldname: "buying_price",
-					label: __("Buying Price (EGP/Dozen)"),
-					fieldtype: "Currency",
-					reqd: 1,
-				},
-				{
-					fieldtype: "HTML",
-					options: `<div class="text-muted small">${__(
-						"Opening stock posts as Nos (Accepted Quantity x 12) at Buying Price / 12 per Nos."
-					)}</div>`,
-				},
-			],
-			primary_action_label: __("Create Item & Post Stock"),
-			primary_action(values) {
-				dialog.hide();
-				frappe.dom.freeze(__("Creating the item..."));
-				frappe
-					.xcall("diva_guard.desk_api.create_item_with_opening_stock", {
-						item_code: values.item_code,
-						item_name: values.item_name,
-						item_group: values.item_group,
-						barcode: values.barcode || "",
-						selling_price: values.selling_price,
-						wholesale_price: values.wholesale_price || 0,
-						buying_price: values.buying_price,
-						accepted_qty: values.accepted_qty,
-						warehouse: values.warehouse,
-					})
-					.then((result) => {
-						frappe.show_alert({
-							message: __("Item {0} created with opening stock", [result.item_code]),
-							indicator: "green",
-						});
-						if (window.cur_list && typeof cur_list.refresh === "function") {
-							cur_list.refresh();
-						}
-					})
-					.catch((error) => {
-						const message = (error && (error.message || error._server_messages)) || String(error);
-						frappe.msgprint({
-							title: __("Could not create the item"),
-							message: message,
-							indicator: "red",
-						});
-					})
-					.finally(() => frappe.dom.unfreeze());
-			},
-		});
-
-		dialog.fields_dict.selling_price.$input.on("change", () => {
-			const dozens = flt(dialog.get_value("selling_price"));
-			dialog.set_value("selling_price_nos", dozens > 0 ? dozens / PCS_PER_DOZEN : 0);
-		});
-
-		window._diva_item_dialog = dialog;
-		dialog.show();
-	}
-
-	// The Item list "Add" button opens the Diva dialog; the standard quick entry
-	// still opens from a Link field's "+" on a form (not on the list route).
-	const original_new_doc = frappe.new_doc;
-	frappe.new_doc = function (doctype, opts, init_callback) {
-		if (doctype === "Item" && is_item_list_route()) {
-			open_item_dialog();
-			return Promise.resolve();
-		}
-		return original_new_doc.call(this, doctype, opts, init_callback);
-	};
+	frappe.ui.form.on("Purchase Invoice", {
+		refresh(frm) {
+			if (is_submitted(frm)) {
+				frm.add_custom_button(__("Print"), () =>
+					open_print("Purchase Invoice", frm.doc.name, PURCHASE_INVOICE_PRINT_FORMAT)
+				);
+			}
+		},
+	});
 
 	// ------------------------------------------------------------------
 	// Purchase Receipt
@@ -380,8 +237,13 @@
 			if (is_draft(frm)) {
 				focus_field(frm, "customer");
 			}
-			if (is_submitted(frm) && flt(frm.doc.outstanding_amount) > 0) {
-				frm.add_custom_button(__("Pay"), () => pay_invoice_dialog(frm));
+			if (is_submitted(frm)) {
+				frm.add_custom_button(__("Print"), () =>
+					open_print("Sales Invoice", frm.doc.name, INVOICE_PRINT_FORMAT)
+				);
+				if (flt(frm.doc.outstanding_amount) > 0) {
+					frm.add_custom_button(__("Pay"), () => pay_invoice_dialog(frm));
+				}
 			}
 		},
 	});
@@ -518,4 +380,64 @@
 		},
 		true
 	);
+
+	// ------------------------------------------------------------------
+	// Item list: Left stock column and the primary barcode (DEC-96)
+	// ------------------------------------------------------------------
+	function enrich_item_list(listview) {
+		if (!listview || listview.doctype !== "Item" || listview.view !== "List") return;
+		if (listview._diva_stock_loading) return;
+		const names = (listview.data || []).map((row) => row.name);
+		if (!names.length) return;
+		listview._diva_stock_loading = true;
+		frappe
+			.xcall("diva_guard.item_list.left_stock", { items: names })
+			.then((totals) => {
+				(listview.data || []).forEach((row) => {
+					row.left_stock = (totals && totals[row.name]) || 0;
+				});
+				listview.render_list();
+			})
+			.finally(() => {
+				listview._diva_stock_loading = false;
+			});
+	}
+
+	function patch_item_list(listview) {
+		if (
+			!listview ||
+			listview.doctype !== "Item" ||
+			listview.view !== "List" ||
+			listview._diva_patched
+		) {
+			return;
+		}
+		listview._diva_patched = true;
+		listview.columns = (listview.columns || []).filter(
+			(column) => !(column.df && column.df.fieldname === "opening_stock")
+		);
+		if (!(listview.columns || []).some((column) => column.df && column.df.fieldname === "left_stock")) {
+			listview.columns.push({
+				type: "Field",
+				df: { fieldname: "left_stock", label: __("Left stock"), fieldtype: "Float" },
+			});
+		}
+		if (listview.header) listview.render_header(true);
+		const original_refresh = listview.refresh.bind(listview);
+		listview.refresh = function (...args) {
+			const result = original_refresh(...args);
+			if (result && typeof result.then === "function") {
+				result.then(() => enrich_item_list(listview));
+			} else {
+				setTimeout(() => enrich_item_list(listview), 800);
+			}
+			return result;
+		};
+		enrich_item_list(listview);
+	}
+
+	setInterval(() => {
+		if (window.cur_list) patch_item_list(window.cur_list);
+	}, 1000);
+
 })();

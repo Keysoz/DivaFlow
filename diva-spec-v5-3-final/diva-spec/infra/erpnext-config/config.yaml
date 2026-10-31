@@ -49,6 +49,16 @@ property_setters:
     value: 1
   - doctype: Item
     fieldname: standard_rate
+    property: depends_on
+    property_type: Data
+    value: "eval:doc.is_sales_item"
+  - doctype: Item
+    fieldname: stock_uom
+    property: default
+    property_type: Data
+    value: Dozen
+  - doctype: Item
+    fieldname: standard_rate
     property: label
     property_type: Data
     value: Selling Price (EGP/Dozen)

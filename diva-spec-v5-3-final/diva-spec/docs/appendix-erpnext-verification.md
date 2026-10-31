@@ -314,3 +314,11 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 
 **Checks**
 - `scripts/test_desk_workflows.py` all pass; headless Chromium checks all pass (Item dialog fields, standard quick entry, inline Tab, simplified row editor, no SI Print button); `make lint` clean; `make test` 195 passed, 4 skipped; `apply.py` re-run 0 changes.
+
+## 24. Item UOM, barcodes, list and print buttons (DEC-96, dev site)
+
+- New stock Items are created with `stock_uom = Dozen` (purchase/sales Dozen; UOM conversion Dozen = 1, Nos = 1/12). Verified via REST: an Item created with the Nos default came back as Dozen, `custom_barcode` kept, barcode row `barcode_type = EAN-13` / `uom = Dozen`, Standard Selling prices Dozen 1,200 and Nos 100. Existing items with history are unchanged (ERPNext blocks a stock-UOM change).
+- Item list: the standard **Opening Stock** column is replaced by **Left stock** (total `Bin.actual_qty` via `diva_guard.item_list.left_stock`), and the **Barcode** column shows the primary barcode; the Item Barcode child table shows Barcode, **Barcode Type** and UOM (PASS in headless Chromium).
+- Item -> Add Item opens ERPNext's standard quick entry with **Edit Full Form**; the full form shows `custom_barcode`, `standard_rate` (for saved sales items, `depends_on` overridden) and `stock_uom` (default Dozen).
+- **Print** buttons added to Purchase Invoice and Sales Invoice (submitted); both verified in headless Chromium.
+- Checks: `scripts/test_desk_workflows.py` all pass (Dozen stock, 2 Dozen @ 900 opening, 1 Dozen transfer); `make lint` clean (146 files, mypy 44); `make test` 195 passed, 4 skipped; config applied 2 + 1 changes then 0.

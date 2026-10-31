@@ -157,8 +157,8 @@ def test_standard_item() -> str:
         barcode,
     )
     expect(
-        "stock UOM is Nos and buying/selling UOM is Dozen",
-        doc["stock_uom"] == "Nos"
+        "stock UOM is Dozen and buying/selling UOM is Dozen (DEC-96)",
+        doc["stock_uom"] == "Dozen"
         and doc["purchase_uom"] == "Dozen"
         and doc["sales_uom"] == "Dozen",
         doc.get("stock_uom"),
@@ -220,13 +220,13 @@ def test_opening_stock_item() -> None:
         fields='["actual_qty","valuation_rate"]',
     )
     expect(
-        "the item has 24 Nos at Stores - DD",
-        bins and abs(float(bins[0]["actual_qty"]) - 24.0) < 0.001,
+        "the item has 2 Dozen at Stores - DD",
+        bins and abs(float(bins[0]["actual_qty"]) - 2.0) < 0.001,
         bins,
     )
     expect(
-        "valuation is the buying price / 12 per Nos",
-        bins and abs(float(bins[0]["valuation_rate"]) - 75.0) < 0.01,
+        "valuation is the buying price per Dozen",
+        bins and abs(float(bins[0]["valuation_rate"]) - 900.0) < 0.01,
         bins,
     )
     reconciliation = resource("Stock Reconciliation", result["stock_reconciliation"])
@@ -342,7 +342,7 @@ def test_purchase_receipt(item_code: str) -> None:
                     "item_code": item_code,
                     "qty": 1,
                     "uom": "Dozen",
-                    "conversion_factor": 12,
+                    "conversion_factor": 1,
                     "rate": 1000,
                     "warehouse": SOURCE_WAREHOUSE,
                 }
@@ -405,8 +405,8 @@ def test_purchase_receipt(item_code: str) -> None:
             (moved, expected_stock),
         )
         expect(
-            "a Dozen received on a Nos item moves 12 Nos",
-            abs(expected_stock - 12.0) < 0.001 and abs(moved - 12.0) < 0.001,
+            "a Dozen received on a Dozen item moves 1 Dozen",
+            abs(expected_stock - 1.0) < 0.001 and abs(moved - 1.0) < 0.001,
             (expected_stock, moved),
         )
 

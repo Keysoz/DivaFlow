@@ -289,7 +289,7 @@ records:
     set: { translated_text: "سداد كامل المبلغ المتبقي" }
   - doctype: Translation
     match: { language: ar, source_text: "Amount to pay" }
-    set: { translated_text: "المبلغ المراد سداده" }
+    set: { translated_text: "المبلغ المطلوب سداده" }
   - doctype: Translation
     match: { language: ar, source_text: "Full outstanding amount" }
     set: { translated_text: "كامل المبلغ المتبقي" }
@@ -301,10 +301,10 @@ records:
     set: { translated_text: "لن يُرحَّل أي شيء حتى تضغط على «سداد». ثم تُراجَع الدفعة بواسطة شخص، كالعادة." }
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted. Use Print for the invoice." }
-    set: { translated_text: "تم إرسال الدفعة {0}. استخدم «طباعة» للفاتورة." }
+    set: { translated_text: "تم ترحيل الدفعة {0}. استخدم «طباعة» للفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "This invoice has nothing left to pay." }
-    set: { translated_text: "هذه الفاتورة ليس عليها أي مبلغ متبقي." }
+    set: { translated_text: "لا يوجد مبلغ متبقٍ على هذه الفاتورة." }
   - doctype: Translation
     match: { language: ar, source_text: "Diva shortcuts" }
     set: { translated_text: "اختصارات ديفا" }
@@ -313,10 +313,10 @@ records:
     set: { translated_text: "عرض هذه الاختصارات" }
   - doctype: Translation
     match: { language: ar, source_text: "Focus customer / supplier" }
-    set: { translated_text: "التركيز على العميل / المورّد" }
+    set: { translated_text: "الانتقال إلى العميل / المورد" }
   - doctype: Translation
     match: { language: ar, source_text: "Add or focus the item row" }
-    set: { translated_text: "إضافة أو التركيز على صف الصنف" }
+    set: { translated_text: "إضافة صف صنف أو الانتقال إليه" }
   - doctype: Translation
     match: { language: ar, source_text: "Pay the Sales Invoice" }
     set: { translated_text: "سداد فاتورة المبيعات" }
@@ -335,6 +335,28 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Print" }
     set: { translated_text: "طباعة" }
+
+  # Glossary alignment: Item = صنف, Warehouse = مخزن (docs/19 section 8).
+  - doctype: Translation
+    match: { language: ar, source_text: "Item Code" }
+    set: { translated_text: "رمز الصنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item Name" }
+    set: { translated_text: "اسم الصنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Accepted Warehouse" }
+    set: { translated_text: "المخزن المستلم" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Opening stock" }
+    set: { translated_text: "المخزون الافتتاحي" }
+
+  # UOM change guard: ERPNext's ar.po mistranslates 'Default UOM' as 'default user interface' and appends the English line; replace it with clean Arabic.
+  - doctype: Translation
+    match: { language: ar, source_text: "Default Unit of Measure for Item {0} cannot be changed directly because you have already made some transaction(s) with another UOM. You will need to create a new Item to use a different Default UOM." }
+    set: { translated_text: "لا يمكن تغيير وحدة القياس الافتراضية للصنف {0} مباشرةً بعد إجراء معاملات بوحدة قياس أخرى. أنشئ صنفًا جديدًا لاستخدام وحدة قياس افتراضية مختلفة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Default Unit of Measure for Item {0} cannot be changed directly because you have already made some transaction(s) with another UOM. You need to either cancel the linked documents or create a new Item." }
+    set: { translated_text: "لا يمكن تغيير وحدة القياس الافتراضية للصنف {0} مباشرةً بعد إجراء معاملات بوحدة قياس أخرى. يجب إلغاء المستندات المرتبطة أو إنشاء صنف جديد." }
   # E-15: print EGP explicitly instead of ERPNext's ambiguous "£ or ج.م" symbol.
   - doctype: Currency
     match: { name: EGP }

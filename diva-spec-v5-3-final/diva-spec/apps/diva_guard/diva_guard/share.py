@@ -33,6 +33,9 @@ def _normalize_phone(phone: str) -> str:
 	if digits.startswith("00"):
 		digits = digits[2:]
 	if digits.startswith("20"):
+		# "+20-01018782245" keeps the trunk 0 after the country code.
+		if len(digits) > 3 and digits[2] == "0":
+			return "20" + digits[3:]
 		return digits
 	if digits.startswith("0"):
 		return "20" + digits[1:]

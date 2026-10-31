@@ -25,6 +25,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 12 | `feat(apps): show POS Next on the apps screen` | The Desk Apps screen only lists apps that declare `add_to_apps_screen`; the tile opens `/app/posnext` |
 | 13 | `feat(pos): close custom popups with Escape` | Custom modals (settings, product/promotion management, stock lookup, invoice management, edit item, partial payments) close on Esc; frappe-ui dialogs already did |
 | 14 | `fix(eod): use POS Profile company_address and show the real print error` | The EOD print format queried `POS Profile.address`, which does not exist in v16, so printview failed with `Unknown column 'address'`; use `company_address` + Address line 1. The warning now shows the actual print error (e.g. no printer) instead of a generic message. Runs on migrate. |
+| 15 | `feat(pos): share an invoice from the invoice detail` | E-18/DEC-97: the invoice detail shows **Download PDF** (Diva A4 print preview with `trigger_print`) and **Open in WhatsApp** (`diva_guard.share.invoice_share` -> normalized `wa.me` link with a ready Arabic/English message) next to Print. Hidden for drafts and local-only (offline queue) invoices. |
 
 ## Apply
 
@@ -59,6 +60,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 10. The Desk **Apps** screen shows ERPNext, Diva, Diva Guard, POS Next and Framework; the POS Next tile opens the POSNext workspace.
 11. Esc closes the topmost custom popup (Settings, Product Management, Promotions, Stock Lookup, Invoice Management, Edit Item, Partial Payments) and the POS stays usable; frappe-ui dialogs (payment, customer, drafts, returns, history, shift) still close as before.
 12. The EOD print preview renders for a closed POS Closing Shift (`/printview?doctype=POS Closing Shift&name=...&format=POS Next EOD Report`) with **END-OF-DAY REPORT** and no `Unknown column 'address'` error. If QZ Tray/printer is unavailable, closing a shift shows the real reason and keeps the Reprint button.
+13. Invoice Management -> View shows **Download PDF**, **Open in WhatsApp** and **Print** for a submitted invoice; Download opens the Diva A4 print preview with `trigger_print=1`; WhatsApp opens a `wa.me` link with the normalized number and the message in the POS language; drafts and local-only invoices hide the two share actions.
 
 ## Rebase recipe
 

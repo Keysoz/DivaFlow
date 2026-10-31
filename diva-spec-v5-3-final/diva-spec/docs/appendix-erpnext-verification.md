@@ -330,3 +330,10 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - `diva_guard.share.invoice_share` returns `wa.me/201001234567?text=...` from a `01001234567` mobile (also `+20`, `0020` and 10-digit forms), with the document number, company and amount (`2,400.00 EGP`); the message is Arabic unless the Desk language is English. A party without a phone is refused with an error that names the fix.
 - **Download PDF** opens `/printview?...&trigger_print=1` (the browser print-to-PDF dialog) because `frappe.utils.print_format.download_pdf` raises `pdfkit.from_string` OSError on this dev image; wkhtmltopdf is installed but unusable. The print preview renders the Diva A4 formats and the Arabic layout.
 - `scripts/test_invoice_sharing.py`: **20/20 checks pass** (normalized number, link, message, print format, English variant for SI/PI/PE; missing phone refused). Headless Chromium: 14/14 checks pass, including the captured `wa.me` URL and the `trigger_print=1` preview link.
+
+### POS Next (patch 0015)
+
+- Invoice Management -> View (Sales Invoice `ACC-SINV-2026-00178`) shows **Download PDF**, **Open in WhatsApp** and **Print**. Download opens `/printview?doctype=Sales+Invoice&...&format=Diva+Sales+Invoice+A4&trigger_print=1`; WhatsApp opens `https://wa.me/201018782245?text=...` with the invoice number and `35.40 EGP` in the POS language. A draft or a local-only (offline queue) invoice hides the two share actions.
+- The patch applies cleanly to `v2.0.0` with `git am` (checked in a throwaway worktree) and is tracked as `0015-feat-pos-share-an-invoice-from-the-invoice-detail.patch`.
+- Rebuild with Node 24 (`vite build --base=/assets/pos_next/pos/`), `node copy-sw.cjs`; the new `/pos-sw.js` has 54 absolute precache entries and every one returns 200.
+- Headless Chromium: **9/9 checks pass** (buttons, preview link, captured `wa.me` link, POS-language message).

@@ -179,6 +179,33 @@ def main() -> None:
         created.append(("Payment Entry", entry))
         check_document("Payment Entry", entry, "Diva Payment Receipt", 2400.0)
 
+    trunk = create(
+        "Customer",
+        {
+            "customer_name": f"SHARE-TRUNK-{STAMP}",
+            "customer_type": "Individual",
+            "mobile_no": "+20-01018782245",
+        },
+    )
+    trunk_invoice = create(
+        "Sales Invoice",
+        {
+            "customer": trunk,
+            "company": COMPANY,
+            "currency": "EGP",
+            "conversion_rate": 1,
+            "update_stock": 0,
+            "items": [{"item_code": ITEM, "qty": 2, "uom": "Dozen", "rate": 1200}],
+        },
+    )
+    trunk_share = share("Sales Invoice", trunk_invoice)
+    expect(
+        "a +20 number with a trunk 0 is normalized",
+        trunk_share.status_code < 400
+        and trunk_share.json()["message"].get("phone") == "201018782245",
+        trunk_share.text[:200],
+    )
+
     no_phone = create("Customer", {"customer_name": NO_PHONE, "customer_type": "Individual"})
     draft = create(
         "Sales Invoice",

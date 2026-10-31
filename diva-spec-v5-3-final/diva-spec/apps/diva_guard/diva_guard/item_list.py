@@ -31,3 +31,28 @@ def left_stock(items: str | list[str]) -> dict[str, float]:
 		item_code = str(row["item_code"])
 		totals[item_code] = totals.get(item_code, 0.0) + float(row["actual_qty"] or 0)
 	return totals
+
+
+@frappe.whitelist()  # type: ignore[untyped-decorator]
+def backfill_primary_barcodes() -> int:
+	"""Copy the first child barcode into Item.custom_barcode when it is empty."""
+	if not frappe.has_permission("Item", "write"):
+		frappe.throw(_("You do not have permission to update items"), frappe.PermissionError)
+	rows = frappe.get_all(
+		"Item Barcode",
+		fields=["parent", "barcode"],
+		order_by="parent asc, idx asc",
+		limit_page_length=0,
+	)
+	first: dict[str, str] = {}
+	for row in rows:
+		parent, barcode = str(row["parent"]), row["barcode"]
+		if parent and barcode and parent not in first:
+			first[parent] = str(barcode)
+	updated = 0
+	for item_code, barcode in first.items():
+		if frappe.db.get_value("Item", item_code, "custom_barcode"):
+			continue
+		frappe.db.set_value("Item", item_code, "custom_barcode", barcode, update_modified=False)
+		updated += 1
+	return updated

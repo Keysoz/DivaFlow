@@ -321,4 +321,5 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - Item list: the standard **Opening Stock** column is replaced by **Left stock** (total `Bin.actual_qty` via `diva_guard.item_list.left_stock`), and the **Barcode** column shows the primary barcode; the Item Barcode child table shows Barcode, **Barcode Type** and UOM (PASS in headless Chromium).
 - Item -> Add Item opens ERPNext's standard quick entry with **Edit Full Form**; the full form shows `custom_barcode`, `standard_rate` (for saved sales items, `depends_on` overridden) and `stock_uom` (default Dozen).
 - **Print** buttons added to Purchase Invoice and Sales Invoice (submitted); both verified in headless Chromium.
+- Backfill: `diva_guard.item_list.backfill_primary_barcodes` copied the first child barcode into `custom_barcode` for **53 existing items** (idempotent), so the Item list Barcode column is populated for seeded items too.
 - Checks: `scripts/test_desk_workflows.py` all pass (Dozen stock, 2 Dozen @ 900 opening, 1 Dozen transfer); `make lint` clean (146 files, mypy 44); `make test` 195 passed, 4 skipped; config applied 2 + 1 changes then 0.

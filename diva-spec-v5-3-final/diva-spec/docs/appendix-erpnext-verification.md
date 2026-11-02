@@ -343,3 +343,10 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - The **Party Statement** report adds **Open in WhatsApp** next to **Print Statement**. `diva_guard.share.statement_share` returns the normalized `wa.me` link and a message naming the party, company and period (`01-07-2026 - 31-10-2026`); the amounts stay in the printed statement, so the share path never recomputes a business rule. The PDF comes from **Print Statement** (browser preview, save as PDF).
 - `scripts/test_statement_sharing.py`: **18/18 checks pass** (customer and supplier, normalized number, link, message party/period/company, print format, English variant, missing phone refused with the fix, unsupported party type refused, missing period refused).
 - Headless Chromium: **7/7 checks pass** — the report page shows both buttons and the captured link is `https://wa.me/201018782245?text=...` with `Ahmed Sayed`, `Diva Dev` and `01-07-2026 - 31-10-2026`.
+
+## 26. Bundled Arabic print font (E-15 / DEC-98, dev site)
+
+- **Cairo** (SIL OFL 1.1) is served from `/assets/custom_reports/fonts/` as three woff2 subsets (Arabic 30,896 B, Latin-ext 16,648 B, Latin 33,820 B) and is declared as `"Diva Cairo"` (weight 400–700, `font-display: swap`) in all ten print formats. The asset URLs return **200** with `font/woff2`.
+- Headless Chromium on `/printview` for the Sales Invoice A4 and the 80 mm receipt: **8/8 checks pass** — computed `font-family` starts with `Diva Cairo`, `document.fonts.load('12px "Diva Cairo"', "مرحبا")` resolves with a loaded face, the Arabic subset is requested from `/assets/custom_reports/fonts/cairo-arabic.woff2` and every font request is 200. The rendered Arabic is correct RTL (screenshot inspected).
+- `tests/config/test_print_fonts.py`: 4 tests (bundled font in every format, no Google Fonts reference, every referenced file exists and is non-empty, the OFL license ships).
+- No font CDN is referenced anywhere in the print formats; the store can run without internet.

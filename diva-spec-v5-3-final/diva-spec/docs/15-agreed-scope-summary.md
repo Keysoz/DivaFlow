@@ -14,6 +14,7 @@ What the owner and the specification have agreed will be done, what will not, an
 | Counter rules (enforced on the server) | Minimum quantity in dozens; cashier discount up to 5%, manager PIN above; price must match the price list; no credit or partial payment at the counter | E |
 | Staff screens | Diva Ops: Receive (Purchase Invoice), Transfer, Count, Labels (EAN-13), Items and barcodes, Collect, Pack | E |
 | Barcodes | Existing internal EAN-13 barcodes kept; generator ported with validation | E |
+| Brand | "Diva Navy and Gold" design tokens (`packages/ui/tokens.css` and `tokens.json`, light and dark) with a WCAG AA contrast test; locally bundled IBM Plex Sans Arabic; the Diva look on Ops, Control Room, Mini App, POS Next, receipts, labels and prints; ERPNext Desk stays stock with only the logo and app name set by config | E |
 | Cosmetics | Batch and expiry tracking, first-expiry-first-out, expired stock blocked | E |
 | Old app | Reviewed; retired after POS Next works; useful logic ported | E |
 | Publishing | Facebook, WhatsApp (broadcast templates and a manual pack), Telegram, Instagram, TikTok | PUB |
@@ -23,6 +24,7 @@ What the owner and the specification have agreed will be done, what will not, an
 
 ## 2. Will not be done
 - A new custom ERPNext app beyond the small guard app, or custom fields of our own.
+- A Desk theme app in production (the ERPNext Desk stays stock; a dev-only trial is optional and never ships).
 - Keeping the old Desk POS or the Diva Sale pilot.
 - Credit, partial payment or installments at the counter or in chat.
 - Automatic payment confirmation by the AI or any workflow.

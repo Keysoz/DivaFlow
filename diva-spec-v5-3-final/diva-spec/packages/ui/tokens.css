@@ -1,0 +1,94 @@
+/*
+ * Diva design tokens - "Diva Navy and Gold" (DEC-92).
+ *
+ * Single source of truth for the Diva palette, typography, spacing and radius.
+ * Light values live on :root; dark values apply with [data-theme="dark"] or the
+ * operating system preference unless the app pins [data-theme="light"].
+ *
+ * Rules: never hard-code a color in an app, never use gold #C9A24B for text on
+ * a light background, and keep every text pair at WCAG AA (4.5:1).
+ * The matching JSON and the contrast test live in this folder.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* Palette - light */
+	--diva-color-page: #f4f6f8;
+	--diva-color-panel: #ffffff;
+	--diva-color-text: #14233a;
+	--diva-color-text-secondary: #4a5a70;
+	--diva-color-primary: #1f3a5f;
+	--diva-color-on-primary: #ffffff;
+	--diva-color-gold: #c9a24b;
+	--diva-color-on-gold: #14233a;
+	--diva-color-success: #1f7a6d;
+	--diva-color-warning: #9a6208;
+	--diva-color-error: #a8281f;
+	--diva-color-border: #d9dee6;
+
+	/* Typography - bundled locally, no CDN */
+	--diva-font-sans: "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+	--diva-font-brand: "Cormorant Garamond", "Times New Roman", serif;
+	--diva-text-xs: 0.75rem;
+	--diva-text-sm: 0.875rem;
+	--diva-text-base: 1rem;
+	--diva-text-lg: 1.25rem;
+	--diva-text-xl: 1.5rem;
+	--diva-text-2xl: 2rem;
+	--diva-text-3xl: 2.5rem;
+	--diva-line-tight: 1.2;
+	--diva-line-normal: 1.5;
+
+	/* Spacing */
+	--diva-space-1: 0.25rem;
+	--diva-space-2: 0.5rem;
+	--diva-space-3: 0.75rem;
+	--diva-space-4: 1rem;
+	--diva-space-5: 1.5rem;
+	--diva-space-6: 2rem;
+	--diva-space-7: 3rem;
+	--diva-space-8: 4rem;
+
+	/* Radius */
+	--diva-radius-sm: 0.25rem;
+	--diva-radius-md: 0.5rem;
+	--diva-radius-lg: 0.75rem;
+	--diva-radius-pill: 999px;
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+
+	--diva-color-page: #0f1b2d;
+	--diva-color-panel: #16263d;
+	--diva-color-text: #eaeff6;
+	--diva-color-text-secondary: #a9b6c9;
+	--diva-color-primary: #d6b25e;
+	--diva-color-on-primary: #0f1b2d;
+	--diva-color-gold: #d6b25e;
+	--diva-color-on-gold: #0f1b2d;
+	--diva-color-success: #6fd0bb;
+	--diva-color-warning: #e6b45a;
+	--diva-color-error: #f09a92;
+	--diva-color-border: #2a3b55;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		color-scheme: dark;
+
+		--diva-color-page: #0f1b2d;
+		--diva-color-panel: #16263d;
+		--diva-color-text: #eaeff6;
+		--diva-color-text-secondary: #a9b6c9;
+		--diva-color-primary: #d6b25e;
+		--diva-color-on-primary: #0f1b2d;
+		--diva-color-gold: #d6b25e;
+		--diva-color-on-gold: #0f1b2d;
+		--diva-color-success: #6fd0bb;
+		--diva-color-warning: #e6b45a;
+		--diva-color-error: #f09a92;
+		--diva-color-border: #2a3b55;
+	}
+}

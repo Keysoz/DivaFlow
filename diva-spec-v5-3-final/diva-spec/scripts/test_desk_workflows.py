@@ -904,6 +904,42 @@ def test_backfill_item_prices() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# 10. Print Labels dialog default: opening stock per item (DEC-100)
+# ---------------------------------------------------------------------------
+def test_item_opening_stock() -> None:
+    print("\n10. Print Labels dialog default: opening stock per item")
+    item_code = f"DESK-LABEL-{STAMP}"
+    create(
+        "Item",
+        {
+            "item_code": item_code,
+            "item_name": f"Desk Label {STAMP}",
+            "item_group": "Accessories",
+            "stock_uom": "Dozen",
+            "is_stock_item": 1,
+            "standard_rate": 1200,
+        },
+    )
+    opened = http.put(f"/api/resource/Item/{item_code}", json={"opening_stock": 5})
+    expect("the item accepts an opening stock", opened.status_code < 400, error_of(opened))
+    response = call("diva_guard.desk_api.item_opening_stock", items=json.dumps([item_code]))
+    if response.status_code >= 400:
+        expect("the label default lookup runs", False, error_of(response))
+        return
+    result = response.json()["message"]
+    expect(
+        "the opening stock is returned for the label dialog",
+        abs(float(result.get(item_code) or 0) - 5.0) < 0.001,
+        result,
+    )
+    expect(
+        "an unknown item is not returned",
+        item_code + "-MISSING" not in result,
+        result,
+    )
+
+
 def cleanup() -> None:
     """Best effort: cancel and delete what this run created, newest first."""
     for doctype, name in reversed(created):
@@ -929,6 +965,7 @@ if __name__ == "__main__":
         test_opening_stock_after_creation()
         test_nos_equivalence(quick_item)
         test_backfill_item_prices()
+        test_item_opening_stock()
     finally:
         cleanup()
     print(f"\n{'FAILURES: ' + str(failures) if failures else 'all desk workflow checks passed'}")

@@ -1295,6 +1295,21 @@ records:
     match: { language: ar, source_text: "Print Labels" }
     set: { translated_text: "طباعة الملصقات" }
   - doctype: Translation
+    match: { language: ar, source_text: "Number of labels" }
+    set: { translated_text: "عدد الملصقات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Labels per item" }
+    set: { translated_text: "الملصقات لكل صنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Defaults to the opening stock ({0})." }
+    set: { translated_text: "القيمة الافتراضية هي المخزون الافتتاحي ({0})." }
+  - doctype: Translation
+    match: { language: ar, source_text: "{0} (opening stock {1})" }
+    set: { translated_text: "{0} (المخزون الافتتاحي {1})" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print Labels — {0}" }
+    set: { translated_text: "طباعة الملصقات — {0}" }
+  - doctype: Translation
     match: { language: ar, source_text: "Per Dozen. Used as the opening-stock valuation." }
     set: { translated_text: "للدستة. يُستخدم كتقييم المخزون الافتتاحي." }
   - doctype: Translation

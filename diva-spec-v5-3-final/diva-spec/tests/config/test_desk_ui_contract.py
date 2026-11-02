@@ -107,17 +107,36 @@ def test_pos_next_groups_the_same_share_actions() -> None:
 def test_item_label_print_buttons() -> None:
     """DEC-100 follow-up: print the item code + barcode from the Item form and list."""
     source = desk_js()
-    # Item form: a Print Label button that prints the current item.
-    assert 'frm.add_custom_button(__("Print Label"), () => print_item_label(frm.doc))' in source
-    # Item list: a bulk Print Labels action for the checked items.
+    # Item form: Print Label opens the count dialog (default = opening stock).
+    assert 'frm.add_custom_button(__("Print Label"), () =>' in source
+    assert "print_label_dialog({" in source
+    # Item list: Print Labels fetches opening stock, then opens the per-item dialog.
     assert 'listview.page.add_action_item(__("Print Labels"), () =>' in source
     assert "listview.get_checked_items()" in source
+    assert '"diva_guard.desk_api.item_opening_stock"' in source
+    assert "print_labels_dialog(" in source
     # The label shows the code and the barcode only (no name line).
-    start = source.index("function print_item_label")
-    block = source[start : source.index("function print_item_labels", start)]
+    start = source.index("function label_block")
+    block = source[start : source.index("function open_label_window", start)]
     assert 'class="code"' in block
     assert 'class="name"' not in block
     assert "ean13Svg(barcode)" in block
+    # One label per page, one print window for all labels.
+    assert "page-break-after" in source
+    assert "function open_label_window" in source
+    # One count per item in the many-items dialog; single item uses one field.
+    assert 'label: __("Number of labels")' in source
+    assert "count_${index}" in source
+    assert "Math.max(1, opening)" in source
+
+
+def test_item_opening_stock_endpoint() -> None:
+    desk_api = (ROOT / "apps" / "diva_guard" / "diva_guard" / "desk_api.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def item_opening_stock" in desk_api
+    assert '"opening_stock"' in desk_api
+    assert "frappe.parse_json" in desk_api
 
 
 def test_item_code_is_re_shown_on_saved_items() -> None:

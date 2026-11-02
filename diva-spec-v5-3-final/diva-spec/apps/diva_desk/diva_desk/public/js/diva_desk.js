@@ -186,26 +186,32 @@
 		</svg>`;
 	}
 
-	function print_item_label(item) {
+	// ------------------------------------------------------------------
+	// Item label (50 x 30 mm): item code + EAN-13 barcode, one per page
+	// ------------------------------------------------------------------
+	function label_block(item) {
 		const esc = frappe.utils.escape_html;
 		const barcode = String(item.barcode || item.custom_barcode || "").trim();
 		const code = String(item.item_code || item.name || "").trim();
 		const svg = ean13Svg(barcode);
-		// DEC-100 follow-up: the owner wants the code and the barcode only.
+		return `<div class="label"><div class="code">${esc(code)}</div>${
+			svg ? `<div class="barcode">${svg}</div>` : `<div class="code">${esc(barcode)}</div>`
+		}</div>`;
+	}
+
+	function open_label_window(blocks) {
 		const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 			@page { size: 50mm 30mm; margin: 2mm; }
-			body { font-family: Arial, "Segoe UI", sans-serif; margin: 0; padding: 2mm; text-align: center; }
+			body { font-family: Arial, "Segoe UI", sans-serif; margin: 0; padding: 0; text-align: center; }
+			.label { width: 46mm; margin: 0 auto; padding: 2mm; }
 			.code { font-size: 11px; font-weight: 700; line-height: 1.15; }
 			.barcode { margin-top: 3px; }
 			.barcode svg { max-width: 46mm; height: auto; }
-			@media print { body { width: 46mm; } }
-		</style></head><body>
-			<div class="code">${esc(code)}</div>
-			${svg ? `<div class="barcode">${svg}</div>` : `<div class="code">${esc(barcode)}</div>`}
-		</body></html>`;
+			@media print { .label { page-break-after: always; } .label:last-child { page-break-after: auto; } }
+		</style></head><body>${blocks.join("")}</body></html>`;
 		const win = window.open("", "_blank", "width=420,height=320");
 		if (!win) {
-			frappe.msgprint(__("Please allow pop-ups to print the label."));
+			frappe.msgprint(__("Please allow pop-ups to print the labels."));
 			return;
 		}
 		win.document.write(html);
@@ -213,11 +219,17 @@
 		win.addEventListener("load", () => win.print());
 	}
 
-	function print_item_labels(items) {
-		const rows = (items || []).filter(Boolean).map((item) => ({
-			item_code: item.item_code || item.name,
-			barcode: item.barcode || item.custom_barcode,
-		}));
+	function label_count(value) {
+		return Math.max(1, parseInt(value, 10) || 1);
+	}
+
+	function print_item_label(item, count = 1) {
+		open_label_window(Array(label_count(count)).fill(label_block(item)));
+	}
+
+	// jobs: [{ item_code, barcode, count }, ...]
+	function print_item_labels(jobs) {
+		const rows = (jobs || []).filter(Boolean);
 		if (!rows.length) {
 			frappe.show_alert({
 				message: __("Select the items to print first."),
@@ -225,7 +237,86 @@
 			});
 			return;
 		}
-		rows.forEach((row) => print_item_label(row));
+		const blocks = [];
+		rows.forEach((job) => {
+			const count = label_count(job.count);
+			for (let index = 0; index < count; index += 1) blocks.push(label_block(job));
+		});
+		open_label_window(blocks);
+	}
+
+	// Ask how many labels to print for one item (default: its opening stock).
+	function print_label_dialog(item) {
+		const opening = Math.floor(flt(item.opening_stock) || 0);
+		const dialog = new frappe.ui.Dialog({
+			title: __("Print Labels — {0}", [item.item_code || item.name || ""]),
+			fields: [
+				{
+					fieldname: "count",
+					label: __("Number of labels"),
+					fieldtype: "Int",
+					default: Math.max(1, opening),
+					reqd: 1,
+					description: __("Defaults to the opening stock ({0}).", [opening]),
+				},
+			],
+			primary_action_label: __("Print"),
+			primary_action(values) {
+				dialog.hide();
+				print_item_label(item, label_count(values.count));
+			},
+		});
+		dialog.show();
+	}
+
+	// Several checked items: one count per item (default: each item's opening stock).
+	function print_labels_dialog(rows) {
+		const items = (rows || [])
+			.filter(Boolean)
+			.map((row) => ({
+				item_code: row.item_code || row.name,
+				barcode: row.barcode || row.custom_barcode,
+				opening_stock: row.opening_stock,
+			}));
+		if (!items.length) {
+			frappe.show_alert({
+				message: __("Select the items to print first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		if (items.length === 1) {
+			print_label_dialog(items[0]);
+			return;
+		}
+		const fields = [{ fieldtype: "Section Break", label: __("Labels per item") }];
+		items.forEach((item, index) => {
+			const opening = Math.floor(flt(item.opening_stock) || 0);
+			fields.push({
+				fieldname: `count_${index}`,
+				label: __("{0} (opening stock {1})", [item.item_code, opening]),
+				fieldtype: "Int",
+				default: Math.max(1, opening),
+				reqd: 1,
+			});
+		});
+		const dialog = new frappe.ui.Dialog({
+			title: __("Print Labels"),
+			size: "large",
+			fields,
+			primary_action_label: __("Print"),
+			primary_action(values) {
+				dialog.hide();
+				print_item_labels(
+					items.map((item, index) => ({
+						item_code: item.item_code,
+						barcode: item.barcode,
+						count: values[`count_${index}`],
+					}))
+				);
+			},
+		});
+		dialog.show();
 	}
 
 	// ------------------------------------------------------------------
@@ -602,12 +693,19 @@
 			if (!is_new(frm)) {
 				frm.toggle_display("item_code", true);
 			}
-			// Print Label: code + barcode for a saved item that has a barcode.
+			// Print Label: ask for the count (default = opening stock) and print
+			// code + barcode for a saved item that has a barcode.
 			if (
 				frm.doc.custom_barcode ||
 				(frm.doc.barcodes || []).some((row) => row.barcode)
 			) {
-				frm.add_custom_button(__("Print Label"), () => print_item_label(frm.doc));
+				frm.add_custom_button(__("Print Label"), () =>
+					print_label_dialog({
+						item_code: frm.doc.item_code || frm.doc.name,
+						barcode: frm.doc.custom_barcode,
+						opening_stock: frm.doc.opening_stock,
+					})
+				);
 			}
 			if (!is_new(frm) || frm._diva_defaults_applied) return;
 			let raw = null;
@@ -990,9 +1088,31 @@
 			return;
 		}
 		listview._diva_patched = true;
-		// Print the code + barcode label for every selected item (DEC-100).
+		// Print the code + barcode label for the checked items; a dialog asks how
+		// many labels per item, defaulting to each item's opening stock (DEC-100).
 		listview.page.add_action_item(__("Print Labels"), () => {
-			print_item_labels(listview.get_checked_items());
+			const rows = listview.get_checked_items() || [];
+			if (!rows.length) {
+				frappe.show_alert({
+					message: __("Select the items to print first."),
+					indicator: "orange",
+				});
+				return;
+			}
+			frappe
+				.xcall("diva_guard.desk_api.item_opening_stock", {
+					items: rows.map((row) => row.name),
+				})
+				.then((opening) => {
+					print_labels_dialog(
+						rows.map((row) => ({
+							item_code: row.name,
+							barcode: row.custom_barcode,
+							opening_stock:
+								(opening && opening[row.name]) || row.opening_stock || 0,
+						}))
+					);
+				});
 		});
 		listview.columns = (listview.columns || []).filter(
 			(column) => !(column.df && column.df.fieldname === "opening_stock")

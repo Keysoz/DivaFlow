@@ -837,6 +837,73 @@ def test_nos_equivalence(item_code: str) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# 9. Backfill the Item price fields from existing Item Price rows (DEC-100)
+# ---------------------------------------------------------------------------
+def test_backfill_item_prices() -> None:
+    print("\n9. Backfill the Item price fields from existing Item Price rows")
+    item_code = f"DESK-PRICE-{STAMP}"
+    create(
+        "Item",
+        {
+            "item_code": item_code,
+            "item_name": f"Desk Price {STAMP}",
+            "item_group": "Accessories",
+            "stock_uom": "Dozen",
+            "is_stock_item": 1,
+            "standard_rate": 1200,
+        },
+    )
+    create(
+        "Item Price",
+        {
+            "item_code": item_code,
+            "price_list": "Wholesale Of The Wholesale",
+            "uom": "Dozen",
+            "price_list_rate": 480,
+            "currency": "EGP",
+            "selling": 1,
+        },
+    )
+    item = resource("Item", item_code)
+    expect(
+        "the new item starts with an empty wholesale price field",
+        not float(item.get("custom_wholesale_price") or 0),
+        item.get("custom_wholesale_price"),
+    )
+
+    response = call("diva_guard.events.backfill_item_price_fields")
+    if response.status_code >= 400:
+        expect("the backfill runs", False, error_of(response))
+        return
+    item = resource("Item", item_code)
+    expect(
+        "the wholesale price is backfilled from the tier list",
+        abs(float(item.get("custom_wholesale_price") or 0) - 480.0) < 0.01,
+        item.get("custom_wholesale_price"),
+    )
+    expect(
+        "the Wholesale Item Price row is created from the field",
+        any(
+            row["price_list"] == "Wholesale"
+            and row["uom"] == "Dozen"
+            and abs(float(row["price_list_rate"]) - 480.0) < 0.01
+            for row in item_prices(item_code)
+        ),
+        item_prices(item_code),
+    )
+    expect(
+        "the Wholesale per-Nos row is created (Dozen / 12)",
+        any(
+            row["price_list"] == "Wholesale"
+            and row["uom"] == "Nos"
+            and abs(float(row["price_list_rate"]) - 40.0) < 0.01
+            for row in item_prices(item_code)
+        ),
+        item_prices(item_code),
+    )
+
+
 def cleanup() -> None:
     """Best effort: cancel and delete what this run created, newest first."""
     for doctype, name in reversed(created):
@@ -861,6 +928,7 @@ if __name__ == "__main__":
         test_document_add_item()
         test_opening_stock_after_creation()
         test_nos_equivalence(quick_item)
+        test_backfill_item_prices()
     finally:
         cleanup()
     print(f"\n{'FAILURES: ' + str(failures) if failures else 'all desk workflow checks passed'}")

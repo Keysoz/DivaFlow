@@ -1289,6 +1289,12 @@ records:
     match: { language: ar, source_text: "Edit in full" }
     set: { translated_text: "تعديل في النموذج الكامل" }
   - doctype: Translation
+    match: { language: ar, source_text: "Print Label" }
+    set: { translated_text: "طباعة الملصق" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print Labels" }
+    set: { translated_text: "طباعة الملصقات" }
+  - doctype: Translation
     match: { language: ar, source_text: "Per Dozen. Used as the opening-stock valuation." }
     set: { translated_text: "للدستة. يُستخدم كتقييم المخزون الافتتاحي." }
   - doctype: Translation

@@ -104,6 +104,36 @@ def test_pos_next_groups_the_same_share_actions() -> None:
     assert '<Button @click="handlePrint">' in patch
 
 
+def test_item_label_print_buttons() -> None:
+    """DEC-100 follow-up: print the item code + barcode from the Item form and list."""
+    source = desk_js()
+    # Item form: a Print Label button that prints the current item.
+    assert 'frm.add_custom_button(__("Print Label"), () => print_item_label(frm.doc))' in source
+    # Item list: a bulk Print Labels action for the checked items.
+    assert 'listview.page.add_action_item(__("Print Labels"), () =>' in source
+    assert "listview.get_checked_items()" in source
+    # The label shows the code and the barcode only (no name line).
+    start = source.index("function print_item_label")
+    block = source[start : source.index("function print_item_labels", start)]
+    assert 'class="code"' in block
+    assert 'class="name"' not in block
+    assert "ean13Svg(barcode)" in block
+
+
+def test_item_code_is_re_shown_on_saved_items() -> None:
+    """Frappe hides the autoname field after save; the owner wants it visible."""
+    source = desk_js()
+    assert 'frm.toggle_display("item_code", true)' in source
+
+
+def test_item_price_fields_can_be_backfilled() -> None:
+    events = (ROOT / "apps" / "diva_guard" / "diva_guard" / "events.py").read_text(encoding="utf-8")
+    assert "def backfill_item_price_fields" in events
+    assert '"Wholesale Of The Wholesale"' in events
+    assert "last_purchase_rate" in events
+    assert 'frappe.only_for("System Manager")' in events
+
+
 def test_share_and_dialog_strings_have_arabic_translations() -> None:
     config = (ROOT / "infra" / "erpnext-config" / "config.yaml").read_text(encoding="utf-8")
     for source_text in (
@@ -114,5 +144,7 @@ def test_share_and_dialog_strings_have_arabic_translations() -> None:
         "Source Warehouse",
         "Store WhatsApp number",
         "Edit in full",
+        "Print Label",
+        "Print Labels",
     ):
         assert f'source_text: "{source_text}"' in config, source_text

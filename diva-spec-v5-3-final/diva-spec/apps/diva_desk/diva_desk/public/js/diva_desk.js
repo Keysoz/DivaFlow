@@ -189,18 +189,18 @@
 	function print_item_label(item) {
 		const esc = frappe.utils.escape_html;
 		const barcode = String(item.barcode || item.custom_barcode || "").trim();
+		const code = String(item.item_code || item.name || "").trim();
 		const svg = ean13Svg(barcode);
+		// DEC-100 follow-up: the owner wants the code and the barcode only.
 		const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 			@page { size: 50mm 30mm; margin: 2mm; }
 			body { font-family: Arial, "Segoe UI", sans-serif; margin: 0; padding: 2mm; text-align: center; }
-			.name { font-size: 11px; font-weight: 700; line-height: 1.15; }
-			.code { font-size: 9px; margin-top: 2px; }
+			.code { font-size: 11px; font-weight: 700; line-height: 1.15; }
 			.barcode { margin-top: 3px; }
 			.barcode svg { max-width: 46mm; height: auto; }
 			@media print { body { width: 46mm; } }
 		</style></head><body>
-			<div class="name">${esc(item.item_name || item.item_code || "")}</div>
-			<div class="code">${esc(item.item_code || "")}</div>
+			<div class="code">${esc(code)}</div>
 			${svg ? `<div class="barcode">${svg}</div>` : `<div class="code">${esc(barcode)}</div>`}
 		</body></html>`;
 		const win = window.open("", "_blank", "width=420,height=320");
@@ -211,6 +211,21 @@
 		win.document.write(html);
 		win.document.close();
 		win.addEventListener("load", () => win.print());
+	}
+
+	function print_item_labels(items) {
+		const rows = (items || []).filter(Boolean).map((item) => ({
+			item_code: item.item_code || item.name,
+			barcode: item.barcode || item.custom_barcode,
+		}));
+		if (!rows.length) {
+			frappe.show_alert({
+				message: __("Select the items to print first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		rows.forEach((row) => print_item_label(row));
 	}
 
 	// ------------------------------------------------------------------
@@ -581,6 +596,19 @@
 	// frappe.route_options); a stale handoff older than two minutes is ignored.
 	frappe.ui.form.on("Item", {
 		refresh(frm) {
+			// Frappe hides the autoname field once the doc is saved (form.js:
+			// autoname = "field:item_code"); the owner wants the code visible
+			// on the Item form, so bring it back.
+			if (!is_new(frm)) {
+				frm.toggle_display("item_code", true);
+			}
+			// Print Label: code + barcode for a saved item that has a barcode.
+			if (
+				frm.doc.custom_barcode ||
+				(frm.doc.barcodes || []).some((row) => row.barcode)
+			) {
+				frm.add_custom_button(__("Print Label"), () => print_item_label(frm.doc));
+			}
 			if (!is_new(frm) || frm._diva_defaults_applied) return;
 			let raw = null;
 			try {
@@ -962,6 +990,10 @@
 			return;
 		}
 		listview._diva_patched = true;
+		// Print the code + barcode label for every selected item (DEC-100).
+		listview.page.add_action_item(__("Print Labels"), () => {
+			print_item_labels(listview.get_checked_items());
+		});
 		listview.columns = (listview.columns || []).filter(
 			(column) => !(column.df && column.df.fieldname === "opening_stock")
 		);

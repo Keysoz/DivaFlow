@@ -34,6 +34,7 @@ pin_hash = hashlib.pbkdf2_hmac("sha256", PIN.encode(), bytes.fromhex(salt), ITER
 
 settings = {
     "enabled": 1,
+    "whatsapp_number": "201119595715",
     "manager_pin_hash": pin_hash,
     "manager_pin_salt": salt,
     "manager_pin_iterations": ITERATIONS,

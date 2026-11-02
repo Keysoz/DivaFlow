@@ -5,11 +5,20 @@ Runs against the disposable dev site. Covers the server half of the Desk layer:
 
 1. Item creation the standard way: blank barcode auto-generates an internal
    EAN-13; Standard Selling prices per Dozen and Nos are written.
-2. Item dialog backend: item + submitted opening-stock reconciliation.
+2. Item dialog backend: item + submitted opening-stock reconciliation; the
+   entered opening stock and valuation stay on the Item, and the Buying and
+   Wholesale prices (DEC-100 amendment) are kept on the Item with their
+   Standard Buying / Wholesale Item Price rows.
 3. Global search: Item code/name/group/barcode, Customer/Supplier phone, invoice id.
 4. Purchase Receipt submit -> draft Purchase Invoice + draft Material Transfer to
    Stores - DD (the owner submits both manually).
 5. Sales Invoice Pay: partial then full, Cash, nothing paid before the click.
+6. Document "Add New Item": the item is created without an opening
+   reconciliation; the document line moves the stock (DEC-100).
+7. Opening stock typed after the item exists is posted once, and a second save
+   does not post it again (DEC-100).
+8. A Dozen Item Price always gains a Nos row equal to Dozen / 12, whatever the
+   price list, and the Item-form price fields follow (DEC-100).
 
 Usage:
   ERPNEXT_URL=http://localhost:8080 ERPNEXT_USER=Administrator \
@@ -245,6 +254,44 @@ def test_opening_stock_item() -> None:
         "the blank barcode was generated",
         bool(result.get("barcode")) and ean13_valid(result["barcode"]),
         result.get("barcode"),
+    )
+    item = resource("Item", result["item_code"])
+    expect(
+        "the entered opening stock is kept on the Item",
+        abs(float(item.get("opening_stock") or 0) - 2.0) < 0.001,
+        item.get("opening_stock"),
+    )
+    expect(
+        "the valuation rate is kept on the Item",
+        abs(float(item.get("valuation_rate") or 0) - 900.0) < 0.01,
+        item.get("valuation_rate"),
+    )
+    expect(
+        "the buying price is kept on the Item",
+        abs(float(item.get("custom_buying_price") or 0) - 900.0) < 0.01,
+        item.get("custom_buying_price"),
+    )
+    expect(
+        "the wholesale price is kept on the Item",
+        abs(float(item.get("custom_wholesale_price") or 0) - 1000.0) < 0.01,
+        item.get("custom_wholesale_price"),
+    )
+    prices = item_prices(result["item_code"])
+    expect(
+        "the Wholesale price has its per-Nos row (Dozen / 12)",
+        any(
+            row["price_list"] == "Wholesale"
+            and row["uom"] == "Dozen"
+            and abs(float(row["price_list_rate"]) - 1000.0) < 0.01
+            for row in prices
+        )
+        and any(
+            row["price_list"] == "Wholesale"
+            and row["uom"] == "Nos"
+            and abs(float(row["price_list_rate"]) - round(1000 / 12, 2)) < 0.01
+            for row in prices
+        ),
+        prices,
     )
 
 
@@ -561,6 +608,235 @@ def test_pay_invoice() -> None:
     expect("a draft invoice cannot be paid", unpaid.status_code >= 400, error_of(unpaid))
 
 
+def opening_reconciliations(item_code: str) -> list[dict[str, Any]]:
+    """Every submitted Opening Stock reconciliation that touched this item."""
+    rows = list_rows(
+        "Stock Reconciliation",
+        filters=json.dumps([["Stock Reconciliation Item", "item_code", "=", item_code]]),
+        fields='["name","purpose","docstatus"]',
+        limit_page_length=0,
+    )
+    return [
+        row
+        for row in rows
+        if row.get("purpose") == "Opening Stock" and int(row.get("docstatus") or 0) == 1
+    ]
+
+
+def bin_qty(item_code: str, warehouse: str) -> float:
+    rows = list_rows(
+        "Bin",
+        filters=json.dumps([["item_code", "=", item_code], ["warehouse", "=", warehouse]]),
+        fields='["actual_qty"]',
+    )
+    return float(rows[0]["actual_qty"]) if rows else 0.0
+
+
+# ---------------------------------------------------------------------------
+# 6. Document "Add New Item": item only, the document moves the stock
+# ---------------------------------------------------------------------------
+def test_document_add_item() -> None:
+    print("\n6. Document Add New Item: no opening reconciliation, the line moves stock")
+    item_code = f"DESK-DOC-{STAMP}"
+    response = call(
+        "diva_guard.desk_api.create_item_with_opening_stock",
+        item_code=item_code,
+        item_name=f"Desk Doc {STAMP}",
+        item_group="Accessories",
+        barcode="",
+        selling_price=1200,
+        wholesale_price=0,
+        buying_price=900,
+        accepted_qty=1,
+        warehouse=TARGET_WAREHOUSE,
+        post_opening_stock=0,
+    )
+    if response.status_code >= 400:
+        expect("the document dialog creates the item", False, error_of(response))
+        return
+    result = response.json()["message"]
+    created.append(("Item", item_code))
+    expect(
+        "no opening-stock reconciliation is returned",
+        not result.get("stock_reconciliation"),
+        result,
+    )
+    expect(
+        "no Opening Stock reconciliation exists for the item",
+        not opening_reconciliations(item_code),
+        opening_reconciliations(item_code),
+    )
+    expect("the item has no stock before the document", bin_qty(item_code, SOURCE_WAREHOUSE) == 0.0)
+    expect(
+        "the item is still stocked, bought and sold in Dozen",
+        resource("Item", item_code)["stock_uom"] == "Dozen",
+    )
+
+    before = bin_qty(item_code, SOURCE_WAREHOUSE)
+    receipt = create(
+        "Purchase Receipt",
+        {
+            "supplier": SUPPLIER,
+            "company": COMPANY,
+            "posting_date": time.strftime("%Y-%m-%d"),
+            "set_warehouse": SOURCE_WAREHOUSE,
+            "currency": "EGP",
+            "conversion_rate": 1,
+            "remarks": f"desk add-item test {STAMP}",
+            "items": [
+                {
+                    "item_code": item_code,
+                    "qty": 1,
+                    "uom": "Dozen",
+                    "conversion_factor": 1,
+                    "rate": 900,
+                    "warehouse": SOURCE_WAREHOUSE,
+                }
+            ],
+        },
+    )
+    submit("Purchase Receipt", receipt)
+    after = bin_qty(item_code, SOURCE_WAREHOUSE)
+    expect(
+        "submitting the document line moves 1 Dozen",
+        abs((after - before) - 1.0) < 0.001,
+        (before, after),
+    )
+    expect(
+        "the document did not create an Opening Stock reconciliation",
+        not opening_reconciliations(item_code),
+    )
+
+
+# ---------------------------------------------------------------------------
+# 7. Opening stock typed after the item exists posts exactly once
+# ---------------------------------------------------------------------------
+def test_opening_stock_after_creation() -> None:
+    print("\n7. Opening stock typed after creation posts once (no double posting)")
+    item_code = f"DESK-OPEN-{STAMP}"
+    create(
+        "Item",
+        {
+            "item_code": item_code,
+            "item_name": f"Desk Opening {STAMP}",
+            "item_group": "Accessories",
+            "stock_uom": "Dozen",
+            "is_stock_item": 1,
+            "standard_rate": 1200,
+        },
+    )
+    expect(
+        "the new item starts without opening stock",
+        not opening_reconciliations(item_code) and bin_qty(item_code, TARGET_WAREHOUSE) == 0.0,
+    )
+
+    first = http.put(f"/api/resource/Item/{item_code}", json={"opening_stock": 3})
+    if first.status_code >= 400:
+        expect("opening stock typed later is posted", False, error_of(first))
+        return
+    recos = opening_reconciliations(item_code)
+    expect("exactly one Opening Stock reconciliation is posted", len(recos) == 1, len(recos))
+    expect(
+        "the opening stock reached Stores - DD in Dozen",
+        abs(bin_qty(item_code, TARGET_WAREHOUSE) - 3.0) < 0.001,
+        bin_qty(item_code, TARGET_WAREHOUSE),
+    )
+    if recos:
+        created.append(("Stock Reconciliation", recos[0]["name"]))
+        lines = resource("Stock Reconciliation", recos[0]["name"]).get("items") or []
+        rate = float(lines[0]["valuation_rate"]) if lines else 0.0
+        expect(
+            "the reconciliation takes its valuation from the selling price",
+            abs(rate - 1200.0) < 0.01,
+            rate,
+        )
+
+    second = http.put(
+        f"/api/resource/Item/{item_code}", json={"description": f"second save {STAMP}"}
+    )
+    expect("a second save succeeds", second.status_code < 400, error_of(second))
+    expect(
+        "a second save does not post the opening stock again",
+        len(opening_reconciliations(item_code)) == 1
+        and abs(bin_qty(item_code, TARGET_WAREHOUSE) - 3.0) < 0.001,
+        (len(opening_reconciliations(item_code)), bin_qty(item_code, TARGET_WAREHOUSE)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# 8. Dozen -> Nos equivalence on any price list
+# ---------------------------------------------------------------------------
+def test_nos_equivalence(item_code: str) -> None:
+    print("\n8. A Dozen price always gains a Nos price (Dozen / 12)")
+    item_code = item_code or ITEM
+    price_name = create(
+        "Item Price",
+        {
+            "item_code": item_code,
+            "price_list": "Wholesale",
+            "uom": "Dozen",
+            "price_list_rate": 600,
+            "currency": "EGP",
+            "selling": 1,
+        },
+    )
+    wholesale = [row for row in item_prices(item_code) if row["price_list"] == "Wholesale"]
+    expect(
+        "the Nos price is created automatically at Dozen / 12",
+        any(
+            row["uom"] == "Nos" and abs(float(row["price_list_rate"]) - 50.0) < 0.001
+            for row in wholesale
+        ),
+        wholesale,
+    )
+
+    update = http.put(f"/api/resource/Item Price/{price_name}", json={"price_list_rate": 720})
+    expect("the Dozen price can be updated", update.status_code < 400, error_of(update))
+    wholesale = [row for row in item_prices(item_code) if row["price_list"] == "Wholesale"]
+    expect(
+        "updating the Dozen price updates the Nos price",
+        any(
+            row["uom"] == "Nos" and abs(float(row["price_list_rate"]) - 60.0) < 0.001
+            for row in wholesale
+        ),
+        wholesale,
+    )
+    expect(
+        "there is exactly one Nos row (no duplicates)",
+        len([row for row in wholesale if row["uom"] == "Nos"]) == 1,
+        wholesale,
+    )
+
+    # DEC-100 amendment: the editable Wholesale field on the Item form stays in
+    # step with its Item Price row; the buying price is stored on the Item.
+    update_item = http.put(
+        f"/api/resource/Item/{item_code}",
+        json={"custom_buying_price": 120, "custom_wholesale_price": 240},
+    )
+    expect(
+        "the Item price fields can be updated",
+        update_item.status_code < 400,
+        error_of(update_item),
+    )
+    updated = resource("Item", item_code)
+    expect(
+        "the buying price stays on the Item",
+        abs(float(updated.get("custom_buying_price") or 0) - 120.0) < 0.01,
+        updated.get("custom_buying_price"),
+    )
+    after = item_prices(item_code)
+    expect(
+        "the Wholesale price follows the Item field",
+        any(
+            row["price_list"] == "Wholesale"
+            and row["uom"] == "Dozen"
+            and abs(float(row["price_list_rate"]) - 240.0) < 0.01
+            for row in after
+        ),
+        after,
+    )
+
+
 def cleanup() -> None:
     """Best effort: cancel and delete what this run created, newest first."""
     for doctype, name in reversed(created):
@@ -582,6 +858,9 @@ if __name__ == "__main__":
         test_global_search(quick_item)
         test_purchase_receipt(quick_item)
         test_pay_invoice()
+        test_document_add_item()
+        test_opening_stock_after_creation()
+        test_nos_equivalence(quick_item)
     finally:
         cleanup()
     print(f"\n{'FAILURES: ' + str(failures) if failures else 'all desk workflow checks passed'}")

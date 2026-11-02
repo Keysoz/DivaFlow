@@ -70,6 +70,7 @@
 {% set phone = frappe.db.get_value("Company", company, "phone_no") %}
 {% set email = frappe.db.get_value("Company", company, "email") %}
 {% set qr_text = "Diva|Sales Invoice|" ~ doc.name ~ "|" ~ doc.get_formatted("grand_total") ~ "|" ~ doc.get_formatted("posting_date") %}
+{% set wa_link = whatsapp_link() %}
 <div class="invoice">
   <div class="header">
     <div class="brand">
@@ -166,6 +167,12 @@
       {{ qr_svg(qr_text) }}
       <div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div>
     </div>
+    {% if wa_link %}
+    <div class="qr-card">
+      {{ qr_svg(wa_link) }}
+      <div class="cap">راسلنا<span class="en">Message us</span></div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="note">الأسعار والكميات حسب وحدة الصنف في كل سطر (الدستة = 12 قطعة).<span class="en">Rates and quantities follow the item UOM on each line (1 Dozen = 12 pieces).</span></div>

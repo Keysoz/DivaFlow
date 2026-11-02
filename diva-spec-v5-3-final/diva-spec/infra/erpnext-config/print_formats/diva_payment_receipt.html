@@ -46,6 +46,7 @@
 {% set company = doc.company %}
 {% set logo = frappe.db.get_value("Company", company, "company_logo") %}
 {% set qr_text = "Diva|Payment Entry|" ~ doc.name ~ "|" ~ doc.get_formatted("paid_amount") ~ "|" ~ doc.get_formatted("posting_date") ~ "|" ~ (doc.party_name or doc.party or "") %}
+{% set wa_link = whatsapp_link() %}
 <div class="header">
   <div class="brand">
     {% if logo %}<img class="logo" src="{{ logo }}" alt="">{% else %}<div class="monogram">{{ company[:2] }}</div>{% endif %}
@@ -96,6 +97,7 @@
     </table>
   </div>
   <div class="qr-card">{{ qr_svg(qr_text) }}<div class="cap">امسح للتحقق<span class="en">Scan to verify</span></div></div>
+  {% if wa_link %}<div class="qr-card">{{ qr_svg(wa_link) }}<div class="cap">راسلنا<span class="en">Message us</span></div></div>{% endif %}
 </div>
 
 <div class="footer"><div>شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div><div>تم إصدارها بواسطة Diva<span class="en">Issued by Diva</span></div></div>

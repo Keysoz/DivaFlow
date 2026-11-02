@@ -36,6 +36,9 @@
   table.totals tr.grand td { border-top: 1px solid #000; font-weight: bold; font-size: 10pt; padding-top: 1mm; }
   .footer { text-align: center; margin-top: 2mm; font-size: 8pt; }
   .thanks { font-weight: bold; font-size: 9.5pt; }
+  .qr-card { text-align: center; margin-top: 2mm; }
+  .qr-card svg { width: 24mm !important; height: 24mm !important; }
+  .qr-card .cap { font-size: 7.5pt; color: #333; margin-top: 0.5mm; }
 </style>
 </head>
 <body>
@@ -96,6 +99,10 @@
   {% endif %}
 
   <div class="rule"></div>
+  {% set wa_link = whatsapp_link() %}
+  {% if wa_link %}
+  <div class="qr-card">{{ qr_svg(wa_link) }}<div class="cap">راسلنا<span class="en">Message us</span></div></div>
+  {% endif %}
   <div class="footer">
     <div class="thanks">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
     <div>الدستة = 12 قطعة<span class="en">1 Dozen = 12 pieces</span></div>

@@ -1032,6 +1032,8 @@ singles:
 
 # DEC-78: one governed custom field so the Item quick entry can take a barcode.
 # diva_guard copies it into the Item Barcode child table on save.
+# DEC-100 (amendment): two more governed fields carry the per-Dozen buying and
+# wholesale prices on the Item form; diva_guard writes their Item Price rows.
 custom_fields:
   - dt: Item
     fieldname: custom_barcode
@@ -1041,6 +1043,18 @@ custom_fields:
     allow_in_quick_entry: 1
     no_copy: 1
     description: "Scan or type a barcode; leave blank to auto-generate an internal EAN-13 (starts with 20)."
+  - dt: Item
+    fieldname: custom_buying_price
+    label: Buying Price (EGP/Dozen)
+    fieldtype: Currency
+    insert_after: standard_rate
+    description: "Per Dozen. Used as the opening-stock valuation."
+  - dt: Item
+    fieldname: custom_wholesale_price
+    label: Wholesale Price (EGP/Dozen)
+    fieldtype: Currency
+    insert_after: custom_buying_price
+    description: "Per Dozen. Kept in the Wholesale price list (Nos = Dozen / 12)."
 
 # E-16 / DEC-72: POS Next ships Custom DocPerm rows. Frappe ignores the
 # standard DocPerm table for any doctype that has custom rows, so roles without
@@ -1243,6 +1257,43 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Payment {0} submitted." }
     set: { translated_text: "تم ترحيل الدفعة {0}." }
+  # DEC-100: Add New Item dialog, share dropdown and the opening-stock fix.
+  - doctype: Translation
+    match: { language: ar, source_text: "Share" }
+    set: { translated_text: "مشاركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Opening Stock (Dozen)" }
+    set: { translated_text: "المخزون الافتتاحي (دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Quantity (Dozen)" }
+    set: { translated_text: "الكمية (دستة)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Source Warehouse" }
+    set: { translated_text: "مخزن الصرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Create Item & Add Line" }
+    set: { translated_text: "إنشاء الصنف وإضافة سطر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Print the label after saving" }
+    set: { translated_text: "طباعة الملصق بعد الحفظ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Opening stock is posted in Dozen at the buying price, using the company's Temporary Opening account." }
+    set: { translated_text: "يُرحَّل المخزون الافتتاحي بالدستة بسعر الشراء عبر حساب الافتتاحي المؤقت للشركة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Set a valuation rate or a selling price before posting opening stock" }
+    set: { translated_text: "حدد سعر التقييم أو سعر البيع قبل ترحيل المخزون الافتتاحي." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Store WhatsApp number" }
+    set: { translated_text: "رقم واتساب المتجر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Edit in full" }
+    set: { translated_text: "تعديل في النموذج الكامل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Per Dozen. Used as the opening-stock valuation." }
+    set: { translated_text: "للدستة. يُستخدم كتقييم المخزون الافتتاحي." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Per Dozen. Kept in the Wholesale price list (Nos = Dozen / 12)." }
+    set: { translated_text: "للدستة. يُحفظ في قائمة أسعار الجملة (القطعة = الدستة ÷ 12)." }
   # Glossary alignment: Item = صنف, Warehouse = مخزن (docs/19 section 8).
   - doctype: Translation
     match: { language: ar, source_text: "Item Code" }

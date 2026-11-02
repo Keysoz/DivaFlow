@@ -293,9 +293,69 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - One Print Format named after each report (Accounts Receivable, Accounts Payable, General Ledger, Trial Balance, Profit and Loss Statement, Balance Sheet, Stock Balance, Stock Ledger) uses the shared bilingual `diva_report.html`: company header, printed date, filter summary with real labels, zebra table with indentation, currency from the row data (EGP), bold totals, signatures and page footer.
 - Rendered through `frappe.query_report.get_print_format_data` + `frappe.render_template` on the live reports: Trial Balance 34 rows, General Ledger 169 rows, Accounts Receivable 6 rows, Stock Balance empty-state (no rows in the period) — all with the Diva layout. Screenshots in `/tmp/opencode/desk-verify/report-*.png`.
 
+## 21. Desk cleanup (ENH-E-05 follow-up, DEC-90, dev site)
+
+**Currency**
+- `Global Defaults.default_currency` was still **INR** from the demo image while company Diva Dev is EGP, so document saves tried an INR -> EGP exchange-rate lookup and failed. `infra/erpnext-config/config.yaml` now sets `default_currency = EGP`; a Purchase Invoice created afterwards posts with no exchange-rate error and prints show EGP.
+
+**Item creation**
+- The standard Item create path (REST/quick entry/full form) with a blank barcode now auto-generates an internal EAN-13 from the Item validate hook; the item is Nos stock, Dozen purchase/sales, and Standard Selling prices exist per Dozen and per Nos.
+- `diva_guard.desk_api.create_item_with_opening_stock` (Item list "Add Item" dialog) creates the item and a **submitted** Stock Reconciliation: 2 Dozen posted as **24 Nos** at **75/Nos** (buying 900/Dozen ÷ 12) in Stores - DD, using the Temporary Opening account; the optional Wholesale price is written per Dozen (1,000) and per Nos (83.33).
+- The PR/SI "Add New Item" button opens ERPNext's standard Item quick entry (no custom dialog).
+
+**Purchase Receipt**
+- On submit, the Purchase Invoice (`update_stock = 0`) and the Material Transfer to Stores - DD are created as **drafts** (docstatus 0); nothing is auto-submitted. The test then submits both manually: the transfer moves the received `stock_qty` (1 Dozen on a Nos item = 12 Nos) and the Bin at Stores - DD grows by 12; the invoice submits without double stock.
+
+**Sales Invoice**
+- The custom Print button is gone (Pay remains); the standard Menu -> Print and F9 still open the Diva A4 preview. Pay still creates + submits the Payment Entry on click (partial then full verified).
+
+**Items grid**
+- Tab from the supplier goes to the accepted warehouse and then into the item-code cell **inline**; the full "Editing Row" editor opens only from the pin icon. The editor now shows barcode, item code, name, received/accepted quantity, UOM, rate, amount, warehouse, batch/serial and the expense account; tax, discount, weight, manufacture, reference and deferred sections are hidden (213 hide setters, idempotent).
+
+**Checks**
+- `scripts/test_desk_workflows.py` all pass; headless Chromium checks all pass (Item dialog fields, standard quick entry, inline Tab, simplified row editor, no SI Print button); `make lint` clean; `make test` 195 passed, 4 skipped; `apply.py` re-run 0 changes.
+
+## 24. Item UOM, barcodes, list and print buttons (DEC-96, dev site)
+
+- New stock Items are created with `stock_uom = Dozen` (purchase/sales Dozen; UOM conversion Dozen = 1, Nos = 1/12). Verified via REST: an Item created with the Nos default came back as Dozen, `custom_barcode` kept, barcode row `barcode_type = EAN-13` / `uom = Dozen`, Standard Selling prices Dozen 1,200 and Nos 100. Existing items with history are unchanged (ERPNext blocks a stock-UOM change).
+- Item list: the standard **Opening Stock** column is replaced by **Left stock** (total `Bin.actual_qty` via `diva_guard.item_list.left_stock`), and the **Barcode** column shows the primary barcode; the Item Barcode child table shows Barcode, **Barcode Type** and UOM (PASS in headless Chromium).
+- Item -> Add Item opens ERPNext's standard quick entry with **Edit Full Form**; the full form shows `custom_barcode`, `standard_rate` (for saved sales items, `depends_on` overridden) and `stock_uom` (default Dozen).
+- **Print** buttons added to Purchase Invoice and Sales Invoice (submitted); both verified in headless Chromium.
+- Backfill: `diva_guard.item_list.backfill_primary_barcodes` copied the first child barcode into `custom_barcode` for **53 existing items** (idempotent), so the Item list Barcode column is populated for seeded items too.
+- Checks: `scripts/test_desk_workflows.py` all pass (Dozen stock, 2 Dozen @ 900 opening, 1 Dozen transfer); `make lint` clean (146 files, mypy 44); `make test` 195 passed, 4 skipped; config applied 2 + 1 changes then 0.
+
+## 25. Invoice sharing level 1 (E-18 / DEC-97, dev site)
+
+- A submitted Sales Invoice, Purchase Invoice and Payment Entry each show **Open in WhatsApp**, **Download PDF** and **Print** (headless Chromium: all three PASS).
+- `diva_guard.share.invoice_share` returns `wa.me/201001234567?text=...` from a `01001234567` mobile (also `+20`, `0020` and 10-digit forms), with the document number, company and amount (`2,400.00 EGP`); the message is Arabic unless the Desk language is English. A party without a phone is refused with an error that names the fix.
+- **Download PDF** opens `/printview?...&trigger_print=1` (the browser print-to-PDF dialog) because `frappe.utils.print_format.download_pdf` raises `pdfkit.from_string` OSError on this dev image; wkhtmltopdf is installed but unusable. The print preview renders the Diva A4 formats and the Arabic layout.
+- `scripts/test_invoice_sharing.py`: **20/20 checks pass** (normalized number, link, message, print format, English variant for SI/PI/PE; missing phone refused). Headless Chromium: 14/14 checks pass, including the captured `wa.me` URL and the `trigger_print=1` preview link.
+
+### POS Next (patch 0015)
+
+- Invoice Management -> View (Sales Invoice `ACC-SINV-2026-00178`) shows **Download PDF**, **Open in WhatsApp** and **Print**. Download opens `/printview?doctype=Sales+Invoice&...&format=Diva+Sales+Invoice+A4&trigger_print=1`; WhatsApp opens `https://wa.me/201018782245?text=...` with the invoice number and `35.40 EGP` in the POS language. A draft or a local-only (offline queue) invoice hides the two share actions.
+- The patch applies cleanly to `v2.0.0` with `git am` (checked in a throwaway worktree) and is tracked as `0015-feat-pos-share-an-invoice-from-the-invoice-detail.patch`.
+- Rebuild with Node 24 (`vite build --base=/assets/pos_next/pos/`), `node copy-sw.cjs`; the new `/pos-sw.js` has 54 absolute precache entries and every one returns 200.
+- Headless Chromium: **9/9 checks pass** (buttons, preview link, captured `wa.me` link, POS-language message).
+
+### Party Statement (customer and supplier)
+
+- The **Party Statement** report adds **Open in WhatsApp** next to **Print Statement**. `diva_guard.share.statement_share` returns the normalized `wa.me` link and a message naming the party, company and period (`01-07-2026 - 31-10-2026`); the amounts stay in the printed statement, so the share path never recomputes a business rule. The PDF comes from **Print Statement** (browser preview, save as PDF).
+- `scripts/test_statement_sharing.py`: **18/18 checks pass** (customer and supplier, normalized number, link, message party/period/company, print format, English variant, missing phone refused with the fix, unsupported party type refused, missing period refused).
+- Headless Chromium: **7/7 checks pass** — the report page shows both buttons and the captured link is `https://wa.me/201018782245?text=...` with `Ahmed Sayed`, `Diva Dev` and `01-07-2026 - 31-10-2026`.
+
 ## 26. Bundled Arabic print font (E-15 / DEC-98, dev site)
 
 - **Cairo** (SIL OFL 1.1) is served from `/assets/custom_reports/fonts/` as three woff2 subsets (Arabic 30,896 B, Latin-ext 16,648 B, Latin 33,820 B) and is declared as `"Diva Cairo"` (weight 400–700, `font-display: swap`) in all ten print formats. The asset URLs return **200** with `font/woff2`.
 - Headless Chromium on `/printview` for the Sales Invoice A4 and the 80 mm receipt: **8/8 checks pass** — computed `font-family` starts with `Diva Cairo`, `document.fonts.load('12px "Diva Cairo"', "مرحبا")` resolves with a loaded face, the Arabic subset is requested from `/assets/custom_reports/fonts/cairo-arabic.woff2` and every font request is 200. The rendered Arabic is correct RTL (screenshot inspected).
 - `tests/config/test_print_fonts.py`: 4 tests (bundled font in every format, no Google Fonts reference, every referenced file exists and is non-empty, the OFL license ships).
 - No font CDN is referenced anywhere in the print formats; the store can run without internet.
+
+## 27. Item dialog opening stock, price fields and Edit in full (DEC-100, dev site)
+
+- **Opening stock kept on the Item.** `diva_guard.desk_api.create_item_with_opening_stock` now writes `opening_stock` (and `valuation_rate`) back to the Item after posting the reconciliation. Verified live: an item created through the dialog with 2 Dozen at buying price 900 comes back with `opening_stock = 2`, `valuation_rate = 900`; the Bin shows 2 Dozen at Stores - DD and the reconciliation is submitted.
+- **Open once, then never again.** Opening stock typed on an existing Item posts exactly one Opening Stock reconciliation; a second save does not post it again (checked twice in `scripts/test_desk_workflows.py`). ERPNext's `after_insert` runs before our `on_update` hook, and `_has_opening_reconciliation` stops the second post, so a full-form save cannot double up.
+- **Buying and Wholesale prices on the Item form.** Two owner-approved fields (`custom_buying_price`, `custom_wholesale_price`, EGP/Dozen) sit after Selling Price in the Details section (headless Chromium: both visible). Created by `apply.py` (2 new custom fields + 3 Arabic translations; re-run 0 changes). The buying price stays as the opening valuation; the wholesale price writes the **Wholesale** Item Price Dozen row and its Dozen/12 Nos row, and is kept in step by `diva_guard.events.sync_item_price_fields` when the field changes. A site without a `Standard Buying` list is left untouched (this dev site has none).
+- **A Dozen price always gains its Nos row** on any price list (Standard Selling, Wholesale, or a directly created Item Price); a second update does not duplicate it.
+- **Edit in full.** Both the Item-list dialog and the document dialog show it. From the Item list it opens the full Item form in the same tab; from a draft Purchase Receipt / Purchase Invoice / Sales Invoice it opens in a new tab so the draft is kept. The typed code, name, group, barcode, selling/buying/wholesale prices and opening stock are carried over. Headless Chromium fills the dialog, presses **Edit in full**, and asserts the full form shows `UI-EDIT-FULL-1`, selling 1,200, buying 900, wholesale 600, opening stock 4 (screenshot `dec100-edit-in-full.png`). Nothing is saved, so no test item remains.
+- **Checks.** `make lint` clean (156 files formatted, mypy 47 files); `make test` **230 passed, 4 skipped**; `scripts/test_desk_workflows.py` all pass (sections 1–8, including the new price-field checks); `test_invoice_sharing.py` and `test_statement_sharing.py` all pass; the headless Desk check is **25/25 PASS**.

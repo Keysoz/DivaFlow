@@ -307,8 +307,18 @@ doc_events = {
 	},
 	"Item": {
 		"validate": "diva_guard.events.apply_quick_barcode",
-		"after_insert": "diva_guard.events.sync_quick_price",
-		"on_update": "diva_guard.events.sync_quick_price",
+		"after_insert": [
+			"diva_guard.events.sync_quick_price",
+			"diva_guard.events.sync_item_price_fields",
+		],
+		"on_update": [
+			"diva_guard.events.sync_quick_price",
+			"diva_guard.events.sync_item_price_fields",
+			"diva_guard.events.post_opening_stock_on_update",
+		],
+	},
+	"Item Price": {
+		"on_update": "diva_guard.events.sync_nos_price",
 	},
 }
 

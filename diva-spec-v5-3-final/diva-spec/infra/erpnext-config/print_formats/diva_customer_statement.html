@@ -42,6 +42,9 @@
   .totals tr.grand td { border-top: 2px solid #0f4c5c; font-weight: bold; font-size: 11pt; color: #0f4c5c; }
   .note { margin-top: 4mm; font-size: 8pt; color: #52606d; }
   .footer { margin-top: 6mm; border-top: 1px solid #cbd2d9; padding-top: 2.5mm; font-size: 8.5pt; color: #52606d; }
+  .qr-card { width: 32mm; margin-top: 4mm; text-align: center; border: 1px solid #d9e2e6; border-radius: 3mm; padding: 2mm 1.5mm; }
+  .qr-card svg { width: 25mm !important; height: 25mm !important; }
+  .qr-card .cap { font-size: 7.5pt; color: #52606d; margin-top: 1mm; }
 </style>
 </head>
 <body>
@@ -127,6 +130,8 @@
 </div>
 
 <div class="note">كشف حساب آلي من Diva؛ يعتمد على الفواتير والدفعات المرحلة. المبالغ بالجنيه المصري. يرجى مراجعة أي فرق مع قسم الحسابات.<span class="en">System-generated statement from posted invoices and payments. Amounts are in EGP; report any difference to accounts.</span></div>
+{% set wa_link = whatsapp_link() %}
+{% if wa_link %}<div class="qr-card">{{ qr_svg(wa_link) }}<div class="cap">راسلنا<span class="en">Message us</span></div></div>{% endif %}
 <div class="footer">شكراً لتعاملكم معنا<span class="en">Thank you for your business</span></div>
 </body>
 </html>

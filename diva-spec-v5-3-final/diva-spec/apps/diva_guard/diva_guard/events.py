@@ -12,7 +12,15 @@ from decimal import Decimal
 import frappe
 from frappe import _
 from frappe.utils import get_datetime, now_datetime
-from rules_engine import PCS_PER_DOZEN, quantize_money, to_decimal, validate_discount, validate_moq
+from rules_engine import (
+	PCS_PER_DOZEN,
+	is_valid_ean13,
+	next_internal_ean13,
+	quantize_money,
+	to_decimal,
+	validate_discount,
+	validate_moq,
+)
 
 MANAGER_ROLES = {"Sales Manager", "Sales Master Manager", "System Manager"}
 OVERRIDE_HEADER = "X-Diva-Override-Token"
@@ -45,7 +53,11 @@ def _dec(value: object) -> Decimal:
 
 
 def _qty_dozens(item) -> Decimal:
-	return _dec(item.stock_qty) / Decimal(PCS_PER_DOZEN)
+	"""Quantities in Dozen, whatever the item's stock UOM is (DEC-96)."""
+	qty = _dec(item.stock_qty)
+	if str(item.get("stock_uom") or "") == "Dozen":
+		return qty
+	return qty / Decimal(PCS_PER_DOZEN)
 
 
 def _check_counter_payment(doc) -> None:
@@ -300,7 +312,8 @@ def _sync_standard_selling_price(doc) -> None:
 
 	The quick-entry field is per Dozen. ERPNext's Item.after_insert creates a
 	stock-UOM price from standard_rate; convert that one to a per-piece rate and
-	keep an explicit Dozen row.
+	keep an explicit Dozen row. The Nos row comes from ``ensure_nos_price`` so
+	the Dozen -> Nos rule lives in one place (DEC-100).
 	"""
 	rate = _dec(doc.get("standard_rate"))
 	if rate <= 0:
@@ -316,7 +329,6 @@ def _sync_standard_selling_price(doc) -> None:
 		limit=0,
 	)
 	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
-	stock = next((row for row in rows if str(row.uom) == str(doc.stock_uom)), None)
 	if dozen:
 		frappe.db.set_value("Item Price", dozen.name, "price_list_rate", rate, update_modified=False)
 	else:
@@ -330,40 +342,178 @@ def _sync_standard_selling_price(doc) -> None:
 				"selling": 1,
 			}
 		).insert(ignore_permissions=True)
-	if str(doc.stock_uom) != "Dozen":
-		stock_rate = quantize_money(rate / Decimal(PCS_PER_DOZEN))
-		if stock:
-			frappe.db.set_value(
-				"Item Price", stock.name, "price_list_rate", stock_rate, update_modified=False
+	# The piece price is always Dozen / 12, whatever the stock UOM is.
+	ensure_nos_price(doc.name, "Standard Selling", rate, selling=1)
+
+
+def _has_opening_reconciliation(item_code: str) -> bool:
+	"""True when a submitted Opening Stock reconciliation already exists."""
+	rows = frappe.db.sql(
+		"""
+		SELECT 1
+		FROM `tabStock Reconciliation Item` sri
+		JOIN `tabStock Reconciliation` sr ON sr.name = sri.parent
+		WHERE sri.item_code = %s AND sr.purpose = 'Opening Stock' AND sr.docstatus = 1
+		LIMIT 1
+		""",
+		(item_code,),
+		as_dict=True,
+	)
+	return bool(rows)
+
+
+def post_opening_stock_on_update(doc, method: str | None = None) -> None:
+	"""Post opening stock typed after the item was created (DEC-100).
+
+	ERPNext posts ``opening_stock`` only in ``after_insert`` (item.py), so an
+	opening balance added later through the full form never reached stock. Post
+	it once here. An item created with opening stock, or a second save, is
+	skipped because an opening Stock Reconciliation already exists.
+	"""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	if not int(doc.get("is_stock_item") or 0):
+		return
+	if _dec(doc.get("opening_stock")) <= 0:
+		return
+	if _has_opening_reconciliation(doc.name):
+		return
+	if not _dec(doc.get("valuation_rate")):
+		selling = _dec(doc.get("standard_rate"))
+		if selling > 0:
+			stock_uom = str(doc.get("stock_uom") or "Dozen")
+			doc.valuation_rate = quantize_money(
+				selling / Decimal(1 if stock_uom == "Dozen" else PCS_PER_DOZEN)
 			)
-		else:
-			frappe.get_doc(
-				{
-					"doctype": "Item Price",
-					"item_code": doc.name,
-					"price_list": "Standard Selling",
-					"uom": doc.stock_uom,
-					"price_list_rate": stock_rate,
-					"selling": 1,
-				}
-			).insert(ignore_permissions=True)
+			# on_update runs after the write: persist the derived rate so the
+			# Item record matches the reconciliation (no hook recursion).
+			frappe.db.set_value("Item", doc.name, "valuation_rate", doc.valuation_rate, update_modified=False)
+	if not _dec(doc.get("valuation_rate")):
+		frappe.throw(_("Set a valuation rate or a selling price before posting opening stock"))
+	doc.set_opening_stock()
+
+
+def ensure_nos_price(
+	item_code: str,
+	price_list: str,
+	dozen_rate: Decimal | float | str,
+	currency: str = "",
+	selling: int = 0,
+	buying: int = 0,
+) -> str:
+	"""Add or update the Nos price as Dozen / 12 for an item and price list."""
+	rate = _dec(dozen_rate)
+	if not item_code or not price_list or rate <= 0:
+		return ""
+	nos_rate = float(quantize_money(rate / Decimal(PCS_PER_DOZEN)))
+	existing = frappe.get_all(
+		"Item Price",
+		filters={"item_code": item_code, "price_list": price_list, "uom": "Nos"},
+		fields=["name", "price_list_rate"],
+		limit_page_length=0,
+	)
+	if existing:
+		row = existing[0]
+		if abs(_dec(row.price_list_rate) - _dec(nos_rate)) > Decimal("0.0001"):
+			frappe.db.set_value("Item Price", row.name, "price_list_rate", nos_rate, update_modified=False)
+		return str(row.name)
+	company = str(frappe.defaults.get_global_default("company") or "")
+	doc = frappe.get_doc(
+		{
+			"doctype": "Item Price",
+			"item_code": item_code,
+			"price_list": price_list,
+			"uom": "Nos",
+			"price_list_rate": nos_rate,
+			"currency": currency
+			or (frappe.get_cached_value("Company", company, "default_currency") if company else None)
+			or "EGP",
+			"selling": 1 if selling else 0,
+			"buying": 1 if buying else 0,
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	return str(doc.name)
+
+
+def sync_nos_price(doc, method: str | None = None) -> None:
+	"""A Dozen Item Price always gains a Nos row equal to Dozen / 12 (DEC-100).
+
+	Applies to any price list, not only Standard Selling.
+	"""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	if str(doc.get("uom") or "") != "Dozen":
+		return
+	ensure_nos_price(
+		str(doc.item_code),
+		str(doc.price_list),
+		doc.get("price_list_rate"),
+		currency=str(doc.get("currency") or ""),
+		selling=int(doc.get("selling") or 0),
+		buying=int(doc.get("buying") or 0),
+	)
+
+
+def _existing_barcodes() -> list[str]:
+	"""Every barcode already in use, so a generated one is never a duplicate."""
+	values = frappe.get_all("Item Barcode", pluck="barcode", limit_page_length=0)
+	extra = frappe.get_all(
+		"Item",
+		filters={"custom_barcode": ["is", "set"]},
+		pluck="custom_barcode",
+		limit_page_length=0,
+	)
+	return [str(value) for value in values + extra if value]
+
+
+def _ensure_uom(doc, uom: str, conversion_factor: float) -> None:
+	"""Keep one UOM Conversion Detail row per UOM, relative to the stock UOM."""
+	for row in doc.get("uoms") or []:
+		if str(row.uom) == uom:
+			row.conversion_factor = conversion_factor
+			return
+	doc.append("uoms", {"uom": uom, "conversion_factor": conversion_factor})
 
 
 def apply_quick_barcode(doc, method: str | None = None) -> None:
-	"""Copy the one-field quick-entry barcode and price (DEC-78/79)."""
+	"""Copy the quick-entry barcode and prices, and default stock to Dozen (DEC-96).
+
+	A new stock Item is stocked, bought and sold in Dozen (supersedes the Nos
+	stock half of DEC-20). A blank barcode gets an internal EAN-13 (GS1 prefix
+	20), stored with type EAN-13 and UOM Dozen. The primary barcode is kept on
+	the Item so the list view can show it.
+	"""
 	if getattr(doc.flags, "ignore_diva_guard", False):
 		return
+	is_stock = int(doc.get("is_stock_item") or 0)
+	if doc.is_new() and is_stock:
+		if not doc.get("stock_uom") or str(doc.get("stock_uom")) == "Nos":
+			doc.stock_uom = "Dozen"
+		if not doc.get("purchase_uom"):
+			doc.purchase_uom = "Dozen"
+		if not doc.get("sales_uom"):
+			doc.sales_uom = "Dozen"
+
+	stock_uom = str(doc.get("stock_uom") or "Dozen")
+	if is_stock:
+		if stock_uom == "Dozen":
+			_ensure_uom(doc, "Dozen", 1)
+			_ensure_uom(doc, "Nos", 1 / PCS_PER_DOZEN)
+		else:
+			_ensure_uom(doc, "Dozen", PCS_PER_DOZEN)
+
 	if _dec(doc.get("opening_stock")) > 0 and not _dec(doc.get("valuation_rate")):
 		selling = _dec(doc.get("standard_rate"))
 		if selling > 0:
-			doc.valuation_rate = quantize_money(selling / Decimal(PCS_PER_DOZEN))
-	if _dec(doc.get("standard_rate")) > 0 and not any(
-		str(row.uom) == "Dozen" for row in doc.get("uoms") or []
-	):
-		doc.append("uoms", {"uom": "Dozen", "conversion_factor": PCS_PER_DOZEN})
+			divisor = 1 if stock_uom == "Dozen" else PCS_PER_DOZEN
+			doc.valuation_rate = quantize_money(selling / divisor)
+
 	if not doc.meta.has_field("custom_barcode"):
 		return
 	value = str(doc.get("custom_barcode") or "").strip()
+	if not value and doc.is_new() and is_stock:
+		value = next_internal_ean13(_existing_barcodes(), prefix=20)
 	if not value:
 		return
 	owner = frappe.db.get_value("Item Barcode", {"barcode": value}, "parent")
@@ -377,10 +527,12 @@ def apply_quick_barcode(doc, method: str | None = None) -> None:
 			"barcodes",
 			{
 				"barcode": value,
-				"uom": doc.get("stock_uom") or "Nos",
+				"barcode_type": "EAN-13" if is_valid_ean13(value) else "",
+				"uom": "Dozen",
 			},
 		)
-	doc.set("custom_barcode", None)
+	# Keep the primary barcode on the Item (the list view shows this field).
+	doc.custom_barcode = value
 
 
 def sync_quick_price(doc, method: str | None = None) -> None:
@@ -391,3 +543,66 @@ def sync_quick_price(doc, method: str | None = None) -> None:
 		# Do not clobber a deliberate Item Price edit on an unrelated Item save.
 		return
 	_sync_standard_selling_price(doc)
+
+
+def _upsert_dozen_price(item_code: str, price_list: str, rate: Decimal, selling: int, buying: int) -> None:
+	"""Add or update the Dozen row of a price list and its Dozen / 12 Nos row."""
+	company = frappe.defaults.get_global_default("company")
+	currency = frappe.get_cached_value("Company", company, "default_currency") if company else "EGP"
+	rows = frappe.get_all(
+		"Item Price",
+		filters={"item_code": item_code, "price_list": price_list},
+		fields=["name", "uom"],
+		limit_page_length=0,
+	)
+	dozen = next((row for row in rows if str(row.uom) == "Dozen"), None)
+	if dozen:
+		frappe.db.set_value("Item Price", dozen.name, "price_list_rate", float(rate), update_modified=False)
+	else:
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"item_code": item_code,
+				"price_list": price_list,
+				"uom": "Dozen",
+				"price_list_rate": float(rate),
+				"currency": currency,
+				"selling": 1 if selling else 0,
+				"buying": 1 if buying else 0,
+			}
+		).insert(ignore_permissions=True)
+	ensure_nos_price(
+		item_code,
+		price_list,
+		rate,
+		currency=str(currency or ""),
+		selling=selling,
+		buying=buying,
+	)
+
+
+def sync_item_price_fields(doc, method: str | None = None) -> None:
+	"""The editable Buying/Wholesale prices on the Item form drive their Item Price rows (DEC-100).
+
+	``custom_wholesale_price`` feeds the **Wholesale** list as a Dozen row plus its
+	Dozen / 12 Nos row. ``custom_buying_price`` is kept on the Item (it is the
+	opening-stock valuation); a **Standard Buying** row is added only when that
+	list exists, so a site without a buying list is never broken. The fields are
+	the source of truth on the Item form; a deliberate Item Price edit on an
+	unrelated Item save is left alone.
+	"""
+	if getattr(doc.flags, "ignore_diva_guard", False):
+		return
+	if not doc.meta.has_field("custom_buying_price"):
+		return
+	buying = _dec(doc.get("custom_buying_price"))
+	wholesale = _dec(doc.get("custom_wholesale_price"))
+	if method == "on_update":
+		buying_changed = doc.has_value_changed("custom_buying_price")
+		wholesale_changed = doc.has_value_changed("custom_wholesale_price")
+	else:
+		buying_changed = wholesale_changed = True
+	if buying > 0 and buying_changed and frappe.db.exists("Price List", "Standard Buying"):
+		_upsert_dozen_price(doc.name, "Standard Buying", buying, selling=0, buying=1)
+	if wholesale > 0 and wholesale_changed and frappe.db.exists("Price List", "Wholesale"):
+		_upsert_dozen_price(doc.name, "Wholesale", wholesale, selling=1, buying=0)

@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "section_break_store_contact",
+  "whatsapp_number",
   "manager_pin_hash",
   "manager_pin_salt",
   "manager_pin_iterations",
@@ -22,6 +24,17 @@
    "fieldtype": "Check",
    "label": "Enabled",
    "default": "1"
+  },
+  {
+   "fieldname": "section_break_store_contact",
+   "fieldtype": "Section Break",
+   "label": "Store contact"
+  },
+  {
+   "fieldname": "whatsapp_number",
+   "fieldtype": "Data",
+   "label": "Store WhatsApp number",
+   "description": "Digits with the country code (01119595715 -> 201119595715). The Message-us QR on customer prints uses this number."
   },
   {
    "fieldname": "section_break_pin",
@@ -91,7 +104,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-10-28 05:00:00.000000",
+ "modified": "2026-11-02 06:00:00.000000",
  "modified_by": "Administrator",
  "module": "Diva Guard",
  "name": "Diva Guard Settings",

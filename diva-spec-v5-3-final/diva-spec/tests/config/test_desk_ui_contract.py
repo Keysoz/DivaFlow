@@ -153,6 +153,28 @@ def test_item_price_fields_can_be_backfilled() -> None:
     assert 'frappe.only_for("System Manager")' in events
 
 
+def test_add_item_errors_keep_the_dialog_open() -> None:
+    """DEC-100 follow-up: a duplicate code must not close the dialog or lose input."""
+    source = desk_js()
+    # The old pattern (hide before the call) is gone from both item dialogs, and
+    # both handlers now receive the dialog so they can keep it open.
+    for function in ("function open_item_dialog", "function add_new_item_dialog"):
+        start = source.index(function)
+        block = source[start : source.index("secondary_action_label", start)]
+        assert "dialog.hide();\n\t\t\t\tfrappe.dom.freeze(" not in block
+        assert "show_create_error(error, dialog)" in block
+        assert "frappe.dom.unfreeze();" in block
+    assert ".catch(show_create_error)" not in source
+    # The handler parses the server messages and focuses the item code to fix.
+    assert "function call_server" in source
+    assert "function server_error_message" in source
+    assert "error._server_messages" in source
+    assert "error.exception" in source
+    assert "ValidationError: () => {}" in source
+    assert "dialog.fields_dict.item_code" in source
+    assert 'field.$input.trigger("focus")' in source
+
+
 def test_share_and_dialog_strings_have_arabic_translations() -> None:
     config = (ROOT / "infra" / "erpnext-config" / "config.yaml").read_text(encoding="utf-8")
     for source_text in (

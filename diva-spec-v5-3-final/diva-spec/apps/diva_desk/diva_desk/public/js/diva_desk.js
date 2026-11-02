@@ -327,13 +327,99 @@
 		return dozens > 0 ? dozens / PCS_PER_DOZEN : 0;
 	}
 
-	function show_create_error(error) {
-		const message = (error && (error.message || error._server_messages)) || String(error);
-		frappe.msgprint({
-			title: __("Could not create the item"),
-			message: message,
-			indicator: "red",
+	function call_server(method, args) {
+		// frappe.xcall rejects with only `response.message`, which is undefined for
+		// a frappe.throw ValidationError (the text is in `exception`). Keep the whole
+		// response so the dialog can show the real message. The no-op error handler
+		// stops frappe.request.cleanup from also opening a "Message" modal; the
+		// dialog shows the text inline instead.
+		return new Promise((resolve, reject) => {
+			frappe.call({
+				method: method,
+				args: args,
+				type: "POST",
+				callback: (response) => resolve(response.message),
+				error: (response) => reject(response || {}),
+				error_handlers: {
+					ValidationError: () => {},
+					MandatoryError: () => {},
+				},
+			});
 		});
+	}
+
+	function server_error_message(error) {
+		// Frappe carries the human text in _server_messages: a JSON array of
+		// JSON strings. Parse it so the dialog shows the message, never raw JSON.
+		const raw = error && error._server_messages;
+		if (raw) {
+			try {
+				const parts = JSON.parse(raw)
+					.map((entry) => {
+						try {
+							return JSON.parse(entry).message;
+						} catch (inner) {
+							return "";
+						}
+					})
+					.filter(Boolean);
+				if (parts.length) return parts.join("\n");
+			} catch (outer) {
+				// fall through to the other fields
+			}
+		}
+		// /api/method errors that are not rendered through the message log come
+		// back as "frappe.exceptions.ValidationError: <human text>".
+		if (error && error.exception) {
+			const text = String(error.exception).replace(/^[\w.]+Error:\s*/, "");
+			if (text) return text;
+		}
+		if (error && error.message) return String(error.message);
+		return error && Object.keys(error).length
+			? String(error.exception || error.message || error)
+			: __("Could not create the item.");
+	}
+
+	function show_dialog_error(dialog, message) {
+		// Inline alert inside the dialog: the fields stay visible and focused,
+		// so the user can fix the duplicate code without retyping anything.
+		const $body =
+			(dialog && dialog.modal_body) ||
+			(dialog && dialog.$wrapper && dialog.$wrapper.find(".modal-body"));
+		if (!$body || !$body.length) {
+			frappe.msgprint({
+				title: __("Could not create the item"),
+				message: message,
+				indicator: "red",
+			});
+			return;
+		}
+		let $alert = $body.find(".diva-dialog-error");
+		if (!$alert.length) {
+			$alert = $(
+				'<div class="diva-dialog-error alert alert-danger" style="margin-bottom:10px;"></div>'
+			);
+			$body.prepend($alert);
+		}
+		$alert.text(message).removeClass("hide");
+	}
+
+	function clear_dialog_error(dialog) {
+		if (dialog && dialog.$wrapper) {
+			dialog.$wrapper.find(".diva-dialog-error").addClass("hide").text("");
+		}
+	}
+
+	function show_create_error(error, dialog) {
+		show_dialog_error(dialog, server_error_message(error));
+		// The dialog stays open so nothing typed is lost; put the cursor on the
+		// field to fix (a duplicate Item Code is the common case).
+		const field = dialog && dialog.fields_dict && dialog.fields_dict.item_code;
+		if (field && field.$input && field.$input.length) {
+			field.$input.trigger("focus");
+			const input = field.$input.get(0);
+			if (input && input.select) input.select();
+		}
 	}
 
 	// "Edit in full" hands the values typed in the dialog to the full Item form
@@ -394,6 +480,7 @@
 				selling_price_nos: 0,
 				wholesale_price: 0,
 			});
+			clear_dialog_error(existing);
 			existing.show();
 			return;
 		}
@@ -470,22 +557,22 @@
 			],
 			primary_action_label: __("Create Item & Post Stock"),
 			primary_action(values) {
-				dialog.hide();
+				clear_dialog_error(dialog);
 				frappe.dom.freeze(__("Creating the item..."));
-				frappe
-					.xcall("diva_guard.desk_api.create_item_with_opening_stock", {
-						item_code: values.item_code,
-						item_name: values.item_name,
-						item_group: values.item_group,
-						barcode: values.barcode || "",
-						selling_price: values.selling_price,
-						wholesale_price: values.wholesale_price || 0,
-						buying_price: values.buying_price,
-						accepted_qty: values.opening_stock,
-						warehouse: values.warehouse,
-						post_opening_stock: 1,
-					})
+				call_server("diva_guard.desk_api.create_item_with_opening_stock", {
+					item_code: values.item_code,
+					item_name: values.item_name,
+					item_group: values.item_group,
+					barcode: values.barcode || "",
+					selling_price: values.selling_price,
+					wholesale_price: values.wholesale_price || 0,
+					buying_price: values.buying_price,
+					accepted_qty: values.opening_stock,
+					warehouse: values.warehouse,
+					post_opening_stock: 1,
+				})
 					.then((result) => {
+						dialog.hide();
 						frappe.show_alert({
 							message: __("Item {0} created with opening stock", [result.item_code]),
 							indicator: "green",
@@ -494,7 +581,12 @@
 							cur_list.refresh();
 						}
 					})
-					.catch(show_create_error)
+					.catch((error) => {
+						// Drop the loading overlay first so the error stays inline
+						// and the item-code input can take focus.
+						frappe.dom.unfreeze();
+						show_create_error(error, dialog);
+					})
 					.finally(() => frappe.dom.unfreeze());
 			},
 			secondary_action_label: __("Edit in full"),
@@ -514,6 +606,7 @@
 		});
 
 		window._diva_item_dialog = dialog;
+		clear_dialog_error(dialog);
 		dialog.show();
 	}
 
@@ -538,6 +631,7 @@
 				warehouse: frm.doc.set_warehouse || DEFAULT_WAREHOUSE,
 				print_label: 1,
 			});
+			clear_dialog_error(existing);
 			existing.show();
 			return;
 		}
@@ -608,22 +702,22 @@
 			],
 			primary_action_label: __("Create Item & Add Line"),
 			primary_action(values) {
-				dialog.hide();
+				clear_dialog_error(dialog);
 				frappe.dom.freeze(__("Creating the item..."));
-				frappe
-					.xcall("diva_guard.desk_api.create_item_with_opening_stock", {
-						item_code: values.item_code,
-						item_name: values.item_name,
-						item_group: values.item_group,
-						barcode: values.barcode || "",
-						selling_price: values.selling_price,
-						wholesale_price: 0,
-						buying_price: values.buying_price || 0,
-						accepted_qty: values.quantity,
-						warehouse: values.warehouse || warehouse,
-						post_opening_stock: 0,
-					})
+				call_server("diva_guard.desk_api.create_item_with_opening_stock", {
+					item_code: values.item_code,
+					item_name: values.item_name,
+					item_group: values.item_group,
+					barcode: values.barcode || "",
+					selling_price: values.selling_price,
+					wholesale_price: 0,
+					buying_price: values.buying_price || 0,
+					accepted_qty: values.quantity,
+					warehouse: values.warehouse || warehouse,
+					post_opening_stock: 0,
+				})
 					.then((item) => {
+						dialog.hide();
 						const rate = is_sales ? values.selling_price : values.buying_price || 0;
 						const row = frm.add_child("items", {
 							item_code: item.item_code,
@@ -641,7 +735,12 @@
 							indicator: "green",
 						});
 					})
-					.catch(show_create_error)
+					.catch((error) => {
+						// Drop the loading overlay first so the error stays inline
+						// and the item-code input can take focus.
+						frappe.dom.unfreeze();
+						show_create_error(error, dialog);
+					})
 					.finally(() => frappe.dom.unfreeze());
 			},
 			secondary_action_label: __("Edit in full"),
@@ -662,6 +761,7 @@
 		});
 
 		frm._diva_add_item_dialog = dialog;
+		clear_dialog_error(dialog);
 		dialog.show();
 	}
 

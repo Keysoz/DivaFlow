@@ -477,6 +477,9 @@ workspaces:
     shortcut_name: Suppliers
     col: 3
   - type: shortcut
+    shortcut_name: Sales Invoices
+    col: 3
+  - type: shortcut
     shortcut_name: New Sales Invoice
     col: 3
   - type: shortcut
@@ -521,6 +524,10 @@ workspaces:
     type: DocType
     link_to: Supplier
     icon: truck
+  - label: Sales Invoices
+    type: DocType
+    link_to: Sales Invoice
+    icon: file-text
   - label: New Sales Invoice
     type: DocType
     link_to: Sales Invoice

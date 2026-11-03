@@ -410,6 +410,38 @@ workspaces:
   indicator_color: green
   content:
   - type: header
+    text: <span class="h4"><b>Shortcuts</b></span>
+    col: 12
+  - type: shortcut
+    shortcut_name: Open POS
+    col: 3
+  - type: shortcut
+    shortcut_name: Party Statement
+    col: 3
+  - type: shortcut
+    shortcut_name: Items
+    col: 3
+  - type: shortcut
+    shortcut_name: Customers
+    col: 3
+  - type: shortcut
+    shortcut_name: Suppliers
+    col: 3
+  - type: shortcut
+    shortcut_name: Sales Invoices
+    col: 3
+  - type: shortcut
+    shortcut_name: New Sales Invoice
+    col: 3
+  - type: shortcut
+    shortcut_name: Purchase Invoice
+    col: 3
+  - type: shortcut
+    shortcut_name: Diva Guard
+    col: 3
+  - type: spacer
+    col: 12
+  - type: header
     text: <span class="h4"><b>Store at a glance</b></span>
     col: 12
   - type: number_card
@@ -456,38 +488,6 @@ workspaces:
   - type: chart
     chart_name: Sales by Warehouse
     col: 12
-  - type: spacer
-    col: 12
-  - type: header
-    text: <span class="h4"><b>Shortcuts</b></span>
-    col: 12
-  - type: shortcut
-    shortcut_name: Open POS
-    col: 3
-  - type: shortcut
-    shortcut_name: Party Statement
-    col: 3
-  - type: shortcut
-    shortcut_name: Items
-    col: 3
-  - type: shortcut
-    shortcut_name: Customers
-    col: 3
-  - type: shortcut
-    shortcut_name: Suppliers
-    col: 3
-  - type: shortcut
-    shortcut_name: Sales Invoices
-    col: 3
-  - type: shortcut
-    shortcut_name: New Sales Invoice
-    col: 3
-  - type: shortcut
-    shortcut_name: Purchase Invoice
-    col: 3
-  - type: shortcut
-    shortcut_name: Diva Guard
-    col: 3
   - type: spacer
     col: 12
   - type: card

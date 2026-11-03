@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 DESK_JS = ROOT / "apps" / "diva_desk" / "diva_desk" / "public" / "js" / "diva_desk.js"
 POS_PATCHES = ROOT / "infra" / "posnext-patches" / "v2.0.0"
@@ -173,6 +175,25 @@ def test_add_item_errors_keep_the_dialog_open() -> None:
     assert "ValidationError: () => {}" in source
     assert "dialog.fields_dict.item_code" in source
     assert 'field.$input.trigger("focus")' in source
+
+
+def test_diva_store_shortcuts_start_the_page_and_show_icons() -> None:
+    """DEC-90: the Diva Store shortcuts come first and carry their icons."""
+    desk = (ROOT / "infra" / "erpnext-config" / "desk.yaml").read_text(encoding="utf-8")
+    config = yaml.safe_load(desk)
+    store = next(w for w in config["workspaces"] if w["name"] == "Diva Store")
+    blocks = store["content"]
+    assert blocks[0]["type"] == "header" and "Shortcuts" in blocks[0]["text"]
+    assert blocks[1]["type"] == "shortcut"
+    # The two Sales Invoice shortcuts are present with icons.
+    labels = {row["label"]: row for row in store["shortcuts"]}
+    assert labels["Sales Invoices"]["link_to"] == "Sales Invoice"
+    assert labels["New Sales Invoice"]["doc_view"] == "New"
+    assert all(row.get("icon") for row in store["shortcuts"])
+    # Frappe's shortcut widget ignores the icon, so diva_desk re-applies it.
+    source = desk_js()
+    assert "function decorate_workspace_shortcuts" in source
+    assert 'frappe.utils.icon(icon, "sm")' in source
 
 
 def test_share_and_dialog_strings_have_arabic_translations() -> None:

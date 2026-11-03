@@ -1241,4 +1241,57 @@
 		if (window.cur_list) patch_item_list(window.cur_list);
 	}, 1000);
 
+	// ------------------------------------------------------------------
+	// Workspace shortcuts: Frappe renders a generic arrow on every tile and
+	// ignores the shortcut's icon. Put the configured icon on each tile.
+	// ------------------------------------------------------------------
+	const workspace_icon_cache = {};
+
+	function decorate_workspace_shortcuts() {
+		if (!$(".shortcut-widget-box").length) return;
+		const route = (frappe.get_route && frappe.get_route()) || [];
+		if (route[0] !== "Workspaces" || !route[1]) return;
+		const workspace = route[1];
+		const apply = (icons) => {
+			$(".shortcut-widget-box").each(function () {
+				const icon = icons[this.getAttribute("data-widget-name")];
+				if (!icon) return;
+				const $control = $(this).find(".widget-control");
+				if (!$control.length) return;
+				// Only touch the generic arrow; leave an icon already in place.
+				if (($control.find("use").attr("href") || "") === `#icon-${icon}`) return;
+				$control.empty().append(frappe.utils.icon(icon, "sm"));
+			});
+		};
+		if (workspace_icon_cache[workspace]) {
+			apply(workspace_icon_cache[workspace]);
+			return;
+		}
+		frappe
+			.xcall("frappe.client.get", { doctype: "Workspace", name: workspace })
+			.then((doc) => {
+				const icons = {};
+				((doc && doc.shortcuts) || []).forEach((row) => {
+					if (row.name && row.icon) icons[row.name] = row.icon;
+				});
+				workspace_icon_cache[workspace] = icons;
+				apply(icons);
+			});
+	}
+
+	function schedule_workspace_shortcuts() {
+		let tries = 0;
+		// The workspace renders in several passes; re-apply while it settles.
+		const timer = setInterval(() => {
+			tries += 1;
+			decorate_workspace_shortcuts();
+			if (tries >= 30) clearInterval(timer);
+		}, 700);
+	}
+
+	if (frappe.router && typeof frappe.router.on === "function") {
+		frappe.router.on("change", schedule_workspace_shortcuts);
+	}
+	schedule_workspace_shortcuts();
+
 })();

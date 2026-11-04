@@ -159,6 +159,23 @@ def _opening_stock_account(company: str) -> str:
 	raise frappe.ValidationError(_("Create a Temporary Opening account before posting opening stock"))
 
 
+@frappe.whitelist()  # type: ignore[untyped-decorator]
+def item_opening_stock(items: list[str] | str) -> dict[str, float]:
+	"""Opening stock per Item, for the Print Labels dialog default (DEC-100)."""
+	if isinstance(items, str):
+		items = frappe.parse_json(items)
+	names = [str(name) for name in (items or []) if name]
+	if not names:
+		return {}
+	rows = frappe.get_all(
+		"Item",
+		filters={"name": ["in", names]},
+		fields=["name", "opening_stock"],
+		limit_page_length=0,
+	)
+	return {str(row.name): float(row.opening_stock or 0) for row in rows}
+
+
 def _mode_account(mode_of_payment: str, company: str) -> str:
 	rows = frappe.get_all(
 		"Mode of Payment Account",

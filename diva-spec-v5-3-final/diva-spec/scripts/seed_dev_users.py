@@ -169,6 +169,14 @@ def main() -> int:
     for email, spec in USERS.items():
         ensure_user(admin, email, spec)
 
+    # ENH-E-05: make the Sales User role self-sufficient on invoices and payments
+    # (POS Next already grants its own cashier role; this covers standard roles).
+    granted = admin.post("/api/method/diva_guard.setup.ensure_desk_permissions")
+    if granted.status_code >= 400:
+        print("ensure_desk_permissions failed:", granted.text[:300])
+        return 1
+    print("desk permissions:", granted.json().get("message"))
+
     checks: dict[str, Any] = {
         "Price List write": can_write_price_list,
         "Sales Invoice list": lambda c: can_list(c, "Sales Invoice"),

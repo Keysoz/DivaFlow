@@ -27,7 +27,7 @@ add_to_apps_screen = [
 		),
 		"title": app_title,
 		"route": "/app/diva-guard",
-		"has_permission": "frappe.permissions.check_app_permission",
+		"has_permission": "diva_guard.permissions.can_manage_diva_guard",
 		"sequence_id": 3,
 	}
 ]

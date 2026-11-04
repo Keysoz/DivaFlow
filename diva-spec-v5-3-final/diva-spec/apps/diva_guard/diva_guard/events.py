@@ -393,6 +393,17 @@ def post_opening_stock_on_update(doc, method: str | None = None) -> None:
 	doc.set_opening_stock()
 
 
+def _item_has_uom(item_code: str, uom: str) -> bool:
+	"""True when the item accepts this UOM (stock UOM or a conversion row).
+
+	Legacy items created before the Dozen migration may only carry their stock
+	UOM; ERPNext refuses an Item Price in a UOM the item does not have.
+	"""
+	if str(frappe.db.get_value("Item", item_code, "stock_uom") or "") == uom:
+		return True
+	return bool(frappe.db.exists("UOM Conversion Detail", {"parent": item_code, "uom": uom}))
+
+
 def ensure_nos_price(
 	item_code: str,
 	price_list: str,
@@ -404,6 +415,8 @@ def ensure_nos_price(
 	"""Add or update the Nos price as Dozen / 12 for an item and price list."""
 	rate = _dec(dozen_rate)
 	if not item_code or not price_list or rate <= 0:
+		return ""
+	if not _item_has_uom(item_code, "Nos"):
 		return ""
 	nos_rate = float(quantize_money(rate / Decimal(PCS_PER_DOZEN)))
 	existing = frappe.get_all(
@@ -547,6 +560,8 @@ def sync_quick_price(doc, method: str | None = None) -> None:
 
 def _upsert_dozen_price(item_code: str, price_list: str, rate: Decimal, selling: int, buying: int) -> None:
 	"""Add or update the Dozen row of a price list and its Dozen / 12 Nos row."""
+	if not _item_has_uom(item_code, "Dozen"):
+		return
 	company = frappe.defaults.get_global_default("company")
 	currency = frappe.get_cached_value("Company", company, "default_currency") if company else "EGP"
 	rows = frappe.get_all(
@@ -606,3 +621,73 @@ def sync_item_price_fields(doc, method: str | None = None) -> None:
 		_upsert_dozen_price(doc.name, "Standard Buying", buying, selling=0, buying=1)
 	if wholesale > 0 and wholesale_changed and frappe.db.exists("Price List", "Wholesale"):
 		_upsert_dozen_price(doc.name, "Wholesale", wholesale, selling=1, buying=0)
+
+
+def _existing_wholesale_rate(item_code: str) -> Decimal:
+	"""The item's wholesale price per Dozen from the wholesale-tier lists.
+
+	Prefer the **Wholesale** list; fall back to **Wholesale Of The Wholesale**
+	(the seeded tier), so old items are not left at zero (DEC-100).
+	"""
+	for price_list in ("Wholesale", "Wholesale Of The Wholesale"):
+		rate = frappe.db.get_value(
+			"Item Price",
+			{"item_code": item_code, "price_list": price_list, "uom": "Dozen"},
+			"price_list_rate",
+		)
+		if rate:
+			return _dec(rate)
+	return Decimal("0")
+
+
+@frappe.whitelist()  # type: ignore[untyped-decorator]
+def backfill_item_price_fields() -> dict[str, int]:
+	"""Populate the Item price fields from existing data (DEC-100 follow-up).
+
+	One-time migration for items created before ``custom_buying_price`` and
+	``custom_wholesale_price`` existed. The wholesale price comes from the
+	wholesale-tier Item Price row (``Wholesale``, then ``Wholesale Of The
+	Wholesale``) and is consolidated into the **Wholesale** list; the buying
+	price comes from ``last_purchase_rate`` when there is one. Nothing is
+	overwritten when the field already has a value.
+	"""
+	frappe.only_for("System Manager")
+	items = frappe.get_all(
+		"Item",
+		filters={"is_stock_item": 1},
+		fields=[
+			"name",
+			"custom_buying_price",
+			"custom_wholesale_price",
+			"last_purchase_rate",
+		],
+		limit_page_length=0,
+	)
+	stats = {"items": 0, "wholesale": 0, "buying": 0}
+	for row in items:
+		stats["items"] += 1
+		updates: dict[str, float] = {}
+		if not _dec(row.get("custom_wholesale_price")):
+			rate = _existing_wholesale_rate(str(row.name))
+			if rate > 0:
+				updates["custom_wholesale_price"] = float(rate)
+				stats["wholesale"] += 1
+		if not _dec(row.get("custom_buying_price")):
+			buying = _dec(row.get("last_purchase_rate"))
+			if buying > 0:
+				updates["custom_buying_price"] = float(buying)
+				stats["buying"] += 1
+		if not updates:
+			continue
+		frappe.db.set_value("Item", row.name, updates, update_modified=False)
+		if "custom_wholesale_price" in updates and frappe.db.exists("Price List", "Wholesale"):
+			# Consolidate the tier into the Wholesale list (Dozen + its Nos row).
+			_upsert_dozen_price(
+				str(row.name),
+				"Wholesale",
+				_dec(updates["custom_wholesale_price"]),
+				selling=1,
+				buying=0,
+			)
+	frappe.db.commit()
+	return stats

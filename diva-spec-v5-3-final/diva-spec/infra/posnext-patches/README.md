@@ -27,6 +27,7 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 14 | `fix(eod): use POS Profile company_address and show the real print error` | The EOD print format queried `POS Profile.address`, which does not exist in v16, so printview failed with `Unknown column 'address'`; use `company_address` + Address line 1. The warning now shows the actual print error (e.g. no printer) instead of a generic message. Runs on migrate. |
 | 15 | `feat(pos): share an invoice from the invoice detail` | E-18/DEC-97: the invoice detail shows **Download PDF** (Diva A4 print preview with `trigger_print`) and **Open in WhatsApp** (`diva_guard.share.invoice_share` -> normalized `wa.me` link with a ready Arabic/English message) next to Print. Hidden for drafts and local-only (offline queue) invoices. |
 | 16 | `feat(pos): group the invoice share actions under one Share menu` | DEC-97 amendment: Print stays its own button; **Download PDF** and **Open in WhatsApp** move into one **Share** dropdown (frappe-ui `Dropdown`), matching the Desk. Still hidden for drafts and local-only invoices. |
+| 17 | `feat(app): let the cashier and managers see the POS Next app tile` | DEC-72/ENH-E-05: the vendor tile used `frappe.permissions.check_app_permission` (System Manager only). `pos_next/permissions.py` checks the shop roles instead, so the cashier and managers see the tile on the apps screen. |
 
 ## Apply
 
@@ -62,6 +63,7 @@ The production packaging (Node build stage in the image, asset deployment) belon
 11. Esc closes the topmost custom popup (Settings, Product Management, Promotions, Stock Lookup, Invoice Management, Edit Item, Partial Payments) and the POS stays usable; frappe-ui dialogs (payment, customer, drafts, returns, history, shift) still close as before.
 12. The EOD print preview renders for a closed POS Closing Shift (`/printview?doctype=POS Closing Shift&name=...&format=POS Next EOD Report`) with **END-OF-DAY REPORT** and no `Unknown column 'address'` error. If QZ Tray/printer is unavailable, closing a shift shows the real reason and keeps the Reprint button.
 13. Invoice Management -> View shows **Print** and one **Share** menu holding **Download PDF** and **Open in WhatsApp** for a submitted invoice; Download opens the Diva A4 print preview with `trigger_print=1`; WhatsApp opens a `wa.me` link with the normalized number and the message in the POS language; drafts and local-only invoices hide the whole Share menu.
+14. The POS Next app tile is visible to the cashier (`POSNext Cashier`), the managers and System Manager (not only System Manager), so they can open POS Next from the apps screen.
 
 ## Rebase recipe
 

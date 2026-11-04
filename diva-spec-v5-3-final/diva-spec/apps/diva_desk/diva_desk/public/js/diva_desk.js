@@ -186,31 +186,137 @@
 		</svg>`;
 	}
 
-	function print_item_label(item) {
+	// ------------------------------------------------------------------
+	// Item label (50 x 30 mm): item code + EAN-13 barcode, one per page
+	// ------------------------------------------------------------------
+	function label_block(item) {
 		const esc = frappe.utils.escape_html;
 		const barcode = String(item.barcode || item.custom_barcode || "").trim();
+		const code = String(item.item_code || item.name || "").trim();
 		const svg = ean13Svg(barcode);
+		return `<div class="label"><div class="code">${esc(code)}</div>${
+			svg ? `<div class="barcode">${svg}</div>` : `<div class="code">${esc(barcode)}</div>`
+		}</div>`;
+	}
+
+	function open_label_window(blocks) {
 		const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 			@page { size: 50mm 30mm; margin: 2mm; }
-			body { font-family: Arial, "Segoe UI", sans-serif; margin: 0; padding: 2mm; text-align: center; }
-			.name { font-size: 11px; font-weight: 700; line-height: 1.15; }
-			.code { font-size: 9px; margin-top: 2px; }
+			body { font-family: Arial, "Segoe UI", sans-serif; margin: 0; padding: 0; text-align: center; }
+			.label { width: 46mm; margin: 0 auto; padding: 2mm; }
+			.code { font-size: 11px; font-weight: 700; line-height: 1.15; }
 			.barcode { margin-top: 3px; }
 			.barcode svg { max-width: 46mm; height: auto; }
-			@media print { body { width: 46mm; } }
-		</style></head><body>
-			<div class="name">${esc(item.item_name || item.item_code || "")}</div>
-			<div class="code">${esc(item.item_code || "")}</div>
-			${svg ? `<div class="barcode">${svg}</div>` : `<div class="code">${esc(barcode)}</div>`}
-		</body></html>`;
+			@media print { .label { page-break-after: always; } .label:last-child { page-break-after: auto; } }
+		</style></head><body>${blocks.join("")}</body></html>`;
 		const win = window.open("", "_blank", "width=420,height=320");
 		if (!win) {
-			frappe.msgprint(__("Please allow pop-ups to print the label."));
+			frappe.msgprint(__("Please allow pop-ups to print the labels."));
 			return;
 		}
 		win.document.write(html);
 		win.document.close();
 		win.addEventListener("load", () => win.print());
+	}
+
+	function label_count(value) {
+		return Math.max(1, parseInt(value, 10) || 1);
+	}
+
+	function print_item_label(item, count = 1) {
+		open_label_window(Array(label_count(count)).fill(label_block(item)));
+	}
+
+	// jobs: [{ item_code, barcode, count }, ...]
+	function print_item_labels(jobs) {
+		const rows = (jobs || []).filter(Boolean);
+		if (!rows.length) {
+			frappe.show_alert({
+				message: __("Select the items to print first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		const blocks = [];
+		rows.forEach((job) => {
+			const count = label_count(job.count);
+			for (let index = 0; index < count; index += 1) blocks.push(label_block(job));
+		});
+		open_label_window(blocks);
+	}
+
+	// Ask how many labels to print for one item (default: its opening stock).
+	function print_label_dialog(item) {
+		const opening = Math.floor(flt(item.opening_stock) || 0);
+		const dialog = new frappe.ui.Dialog({
+			title: __("Print Labels — {0}", [item.item_code || item.name || ""]),
+			fields: [
+				{
+					fieldname: "count",
+					label: __("Number of labels"),
+					fieldtype: "Int",
+					default: Math.max(1, opening),
+					reqd: 1,
+					description: __("Defaults to the opening stock ({0}).", [opening]),
+				},
+			],
+			primary_action_label: __("Print"),
+			primary_action(values) {
+				dialog.hide();
+				print_item_label(item, label_count(values.count));
+			},
+		});
+		dialog.show();
+	}
+
+	// Several checked items: one count per item (default: each item's opening stock).
+	function print_labels_dialog(rows) {
+		const items = (rows || [])
+			.filter(Boolean)
+			.map((row) => ({
+				item_code: row.item_code || row.name,
+				barcode: row.barcode || row.custom_barcode,
+				opening_stock: row.opening_stock,
+			}));
+		if (!items.length) {
+			frappe.show_alert({
+				message: __("Select the items to print first."),
+				indicator: "orange",
+			});
+			return;
+		}
+		if (items.length === 1) {
+			print_label_dialog(items[0]);
+			return;
+		}
+		const fields = [{ fieldtype: "Section Break", label: __("Labels per item") }];
+		items.forEach((item, index) => {
+			const opening = Math.floor(flt(item.opening_stock) || 0);
+			fields.push({
+				fieldname: `count_${index}`,
+				label: __("{0} (opening stock {1})", [item.item_code, opening]),
+				fieldtype: "Int",
+				default: Math.max(1, opening),
+				reqd: 1,
+			});
+		});
+		const dialog = new frappe.ui.Dialog({
+			title: __("Print Labels"),
+			size: "large",
+			fields,
+			primary_action_label: __("Print"),
+			primary_action(values) {
+				dialog.hide();
+				print_item_labels(
+					items.map((item, index) => ({
+						item_code: item.item_code,
+						barcode: item.barcode,
+						count: values[`count_${index}`],
+					}))
+				);
+			},
+		});
+		dialog.show();
 	}
 
 	// ------------------------------------------------------------------
@@ -221,13 +327,99 @@
 		return dozens > 0 ? dozens / PCS_PER_DOZEN : 0;
 	}
 
-	function show_create_error(error) {
-		const message = (error && (error.message || error._server_messages)) || String(error);
-		frappe.msgprint({
-			title: __("Could not create the item"),
-			message: message,
-			indicator: "red",
+	function call_server(method, args) {
+		// frappe.xcall rejects with only `response.message`, which is undefined for
+		// a frappe.throw ValidationError (the text is in `exception`). Keep the whole
+		// response so the dialog can show the real message. The no-op error handler
+		// stops frappe.request.cleanup from also opening a "Message" modal; the
+		// dialog shows the text inline instead.
+		return new Promise((resolve, reject) => {
+			frappe.call({
+				method: method,
+				args: args,
+				type: "POST",
+				callback: (response) => resolve(response.message),
+				error: (response) => reject(response || {}),
+				error_handlers: {
+					ValidationError: () => {},
+					MandatoryError: () => {},
+				},
+			});
 		});
+	}
+
+	function server_error_message(error) {
+		// Frappe carries the human text in _server_messages: a JSON array of
+		// JSON strings. Parse it so the dialog shows the message, never raw JSON.
+		const raw = error && error._server_messages;
+		if (raw) {
+			try {
+				const parts = JSON.parse(raw)
+					.map((entry) => {
+						try {
+							return JSON.parse(entry).message;
+						} catch (inner) {
+							return "";
+						}
+					})
+					.filter(Boolean);
+				if (parts.length) return parts.join("\n");
+			} catch (outer) {
+				// fall through to the other fields
+			}
+		}
+		// /api/method errors that are not rendered through the message log come
+		// back as "frappe.exceptions.ValidationError: <human text>".
+		if (error && error.exception) {
+			const text = String(error.exception).replace(/^[\w.]+Error:\s*/, "");
+			if (text) return text;
+		}
+		if (error && error.message) return String(error.message);
+		return error && Object.keys(error).length
+			? String(error.exception || error.message || error)
+			: __("Could not create the item.");
+	}
+
+	function show_dialog_error(dialog, message) {
+		// Inline alert inside the dialog: the fields stay visible and focused,
+		// so the user can fix the duplicate code without retyping anything.
+		const $body =
+			(dialog && dialog.modal_body) ||
+			(dialog && dialog.$wrapper && dialog.$wrapper.find(".modal-body"));
+		if (!$body || !$body.length) {
+			frappe.msgprint({
+				title: __("Could not create the item"),
+				message: message,
+				indicator: "red",
+			});
+			return;
+		}
+		let $alert = $body.find(".diva-dialog-error");
+		if (!$alert.length) {
+			$alert = $(
+				'<div class="diva-dialog-error alert alert-danger" style="margin-bottom:10px;"></div>'
+			);
+			$body.prepend($alert);
+		}
+		$alert.text(message).removeClass("hide");
+	}
+
+	function clear_dialog_error(dialog) {
+		if (dialog && dialog.$wrapper) {
+			dialog.$wrapper.find(".diva-dialog-error").addClass("hide").text("");
+		}
+	}
+
+	function show_create_error(error, dialog) {
+		show_dialog_error(dialog, server_error_message(error));
+		// The dialog stays open so nothing typed is lost; put the cursor on the
+		// field to fix (a duplicate Item Code is the common case).
+		const field = dialog && dialog.fields_dict && dialog.fields_dict.item_code;
+		if (field && field.$input && field.$input.length) {
+			field.$input.trigger("focus");
+			const input = field.$input.get(0);
+			if (input && input.select) input.select();
+		}
 	}
 
 	// "Edit in full" hands the values typed in the dialog to the full Item form
@@ -288,6 +480,7 @@
 				selling_price_nos: 0,
 				wholesale_price: 0,
 			});
+			clear_dialog_error(existing);
 			existing.show();
 			return;
 		}
@@ -364,22 +557,22 @@
 			],
 			primary_action_label: __("Create Item & Post Stock"),
 			primary_action(values) {
-				dialog.hide();
+				clear_dialog_error(dialog);
 				frappe.dom.freeze(__("Creating the item..."));
-				frappe
-					.xcall("diva_guard.desk_api.create_item_with_opening_stock", {
-						item_code: values.item_code,
-						item_name: values.item_name,
-						item_group: values.item_group,
-						barcode: values.barcode || "",
-						selling_price: values.selling_price,
-						wholesale_price: values.wholesale_price || 0,
-						buying_price: values.buying_price,
-						accepted_qty: values.opening_stock,
-						warehouse: values.warehouse,
-						post_opening_stock: 1,
-					})
+				call_server("diva_guard.desk_api.create_item_with_opening_stock", {
+					item_code: values.item_code,
+					item_name: values.item_name,
+					item_group: values.item_group,
+					barcode: values.barcode || "",
+					selling_price: values.selling_price,
+					wholesale_price: values.wholesale_price || 0,
+					buying_price: values.buying_price,
+					accepted_qty: values.opening_stock,
+					warehouse: values.warehouse,
+					post_opening_stock: 1,
+				})
 					.then((result) => {
+						dialog.hide();
 						frappe.show_alert({
 							message: __("Item {0} created with opening stock", [result.item_code]),
 							indicator: "green",
@@ -388,7 +581,12 @@
 							cur_list.refresh();
 						}
 					})
-					.catch(show_create_error)
+					.catch((error) => {
+						// Drop the loading overlay first so the error stays inline
+						// and the item-code input can take focus.
+						frappe.dom.unfreeze();
+						show_create_error(error, dialog);
+					})
 					.finally(() => frappe.dom.unfreeze());
 			},
 			secondary_action_label: __("Edit in full"),
@@ -408,6 +606,7 @@
 		});
 
 		window._diva_item_dialog = dialog;
+		clear_dialog_error(dialog);
 		dialog.show();
 	}
 
@@ -432,6 +631,7 @@
 				warehouse: frm.doc.set_warehouse || DEFAULT_WAREHOUSE,
 				print_label: 1,
 			});
+			clear_dialog_error(existing);
 			existing.show();
 			return;
 		}
@@ -502,22 +702,22 @@
 			],
 			primary_action_label: __("Create Item & Add Line"),
 			primary_action(values) {
-				dialog.hide();
+				clear_dialog_error(dialog);
 				frappe.dom.freeze(__("Creating the item..."));
-				frappe
-					.xcall("diva_guard.desk_api.create_item_with_opening_stock", {
-						item_code: values.item_code,
-						item_name: values.item_name,
-						item_group: values.item_group,
-						barcode: values.barcode || "",
-						selling_price: values.selling_price,
-						wholesale_price: 0,
-						buying_price: values.buying_price || 0,
-						accepted_qty: values.quantity,
-						warehouse: values.warehouse || warehouse,
-						post_opening_stock: 0,
-					})
+				call_server("diva_guard.desk_api.create_item_with_opening_stock", {
+					item_code: values.item_code,
+					item_name: values.item_name,
+					item_group: values.item_group,
+					barcode: values.barcode || "",
+					selling_price: values.selling_price,
+					wholesale_price: 0,
+					buying_price: values.buying_price || 0,
+					accepted_qty: values.quantity,
+					warehouse: values.warehouse || warehouse,
+					post_opening_stock: 0,
+				})
 					.then((item) => {
+						dialog.hide();
 						const rate = is_sales ? values.selling_price : values.buying_price || 0;
 						const row = frm.add_child("items", {
 							item_code: item.item_code,
@@ -535,7 +735,12 @@
 							indicator: "green",
 						});
 					})
-					.catch(show_create_error)
+					.catch((error) => {
+						// Drop the loading overlay first so the error stays inline
+						// and the item-code input can take focus.
+						frappe.dom.unfreeze();
+						show_create_error(error, dialog);
+					})
 					.finally(() => frappe.dom.unfreeze());
 			},
 			secondary_action_label: __("Edit in full"),
@@ -556,6 +761,7 @@
 		});
 
 		frm._diva_add_item_dialog = dialog;
+		clear_dialog_error(dialog);
 		dialog.show();
 	}
 
@@ -581,6 +787,26 @@
 	// frappe.route_options); a stale handoff older than two minutes is ignored.
 	frappe.ui.form.on("Item", {
 		refresh(frm) {
+			// Frappe hides the autoname field once the doc is saved (form.js:
+			// autoname = "field:item_code"); the owner wants the code visible
+			// on the Item form, so bring it back.
+			if (!is_new(frm)) {
+				frm.toggle_display("item_code", true);
+			}
+			// Print Label: ask for the count (default = opening stock) and print
+			// code + barcode for a saved item that has a barcode.
+			if (
+				frm.doc.custom_barcode ||
+				(frm.doc.barcodes || []).some((row) => row.barcode)
+			) {
+				frm.add_custom_button(__("Print Label"), () =>
+					print_label_dialog({
+						item_code: frm.doc.item_code || frm.doc.name,
+						barcode: frm.doc.custom_barcode,
+						opening_stock: frm.doc.opening_stock,
+					})
+				);
+			}
 			if (!is_new(frm) || frm._diva_defaults_applied) return;
 			let raw = null;
 			try {
@@ -962,6 +1188,32 @@
 			return;
 		}
 		listview._diva_patched = true;
+		// Print the code + barcode label for the checked items; a dialog asks how
+		// many labels per item, defaulting to each item's opening stock (DEC-100).
+		listview.page.add_action_item(__("Print Labels"), () => {
+			const rows = listview.get_checked_items() || [];
+			if (!rows.length) {
+				frappe.show_alert({
+					message: __("Select the items to print first."),
+					indicator: "orange",
+				});
+				return;
+			}
+			frappe
+				.xcall("diva_guard.desk_api.item_opening_stock", {
+					items: rows.map((row) => row.name),
+				})
+				.then((opening) => {
+					print_labels_dialog(
+						rows.map((row) => ({
+							item_code: row.name,
+							barcode: row.custom_barcode,
+							opening_stock:
+								(opening && opening[row.name]) || row.opening_stock || 0,
+						}))
+					);
+				});
+		});
 		listview.columns = (listview.columns || []).filter(
 			(column) => !(column.df && column.df.fieldname === "opening_stock")
 		);
@@ -988,5 +1240,58 @@
 	setInterval(() => {
 		if (window.cur_list) patch_item_list(window.cur_list);
 	}, 1000);
+
+	// ------------------------------------------------------------------
+	// Workspace shortcuts: Frappe renders a generic arrow on every tile and
+	// ignores the shortcut's icon. Put the configured icon on each tile.
+	// ------------------------------------------------------------------
+	const workspace_icon_cache = {};
+
+	function decorate_workspace_shortcuts() {
+		if (!$(".shortcut-widget-box").length) return;
+		const route = (frappe.get_route && frappe.get_route()) || [];
+		if (route[0] !== "Workspaces" || !route[1]) return;
+		const workspace = route[1];
+		const apply = (icons) => {
+			$(".shortcut-widget-box").each(function () {
+				const icon = icons[this.getAttribute("data-widget-name")];
+				if (!icon) return;
+				const $control = $(this).find(".widget-control");
+				if (!$control.length) return;
+				// Only touch the generic arrow; leave an icon already in place.
+				if (($control.find("use").attr("href") || "") === `#icon-${icon}`) return;
+				$control.empty().append(frappe.utils.icon(icon, "sm"));
+			});
+		};
+		if (workspace_icon_cache[workspace]) {
+			apply(workspace_icon_cache[workspace]);
+			return;
+		}
+		frappe
+			.xcall("frappe.client.get", { doctype: "Workspace", name: workspace })
+			.then((doc) => {
+				const icons = {};
+				((doc && doc.shortcuts) || []).forEach((row) => {
+					if (row.name && row.icon) icons[row.name] = row.icon;
+				});
+				workspace_icon_cache[workspace] = icons;
+				apply(icons);
+			});
+	}
+
+	function schedule_workspace_shortcuts() {
+		let tries = 0;
+		// The workspace renders in several passes; re-apply while it settles.
+		const timer = setInterval(() => {
+			tries += 1;
+			decorate_workspace_shortcuts();
+			if (tries >= 30) clearInterval(timer);
+		}, 700);
+	}
+
+	if (frappe.router && typeof frappe.router.on === "function") {
+		frappe.router.on("change", schedule_workspace_shortcuts);
+	}
+	schedule_workspace_shortcuts();
 
 })();

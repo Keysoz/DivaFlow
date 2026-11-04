@@ -463,3 +463,20 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
   **Diva Guard** (`/app/diva-guard`) tiles, and the direct routes still work.
 - **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped**; patch 0019 committed in the
   vendor checkout (`65cdc59`) and matches HEAD (`git apply --check --reverse`).
+
+## 34. Non-admin login landing (DEC-106, dev site)
+
+- **Hook:** `diva_guard.home.get_website_user_home_page` returns
+  `/desk/custom-reports/diva-store` for every account that is not the Administrator and does
+  not hold **System Manager**; it returns `None` for those two so they keep `/desk`. Wired as
+  `get_website_user_home_page` in `diva_guard/hooks.py`.
+- **Why not a user field:** Frappe's `get_home_page()` lets `User.default_workspace` win over the
+  hook, and a per-user record would not cover new staff. The field is explicitly emptied for
+  `ahmed_ramadan` in `config.yaml` so the hook applies.
+- **Function check (one fresh process):** `Administrator -> None`, `Guest -> None`,
+  `cashier@diva.test -> /desk/custom-reports/diva-store`,
+  `manager@diva.test -> /desk/custom-reports/diva-store`,
+  `aadd12533@gmail.com -> /desk/custom-reports/diva-store`.
+- **Headless:** login as `ahmed_ramadan` ends on `http://localhost:8080/desk/custom-reports/diva-store`
+  (Diva Store visible); login as `Administrator` still ends on `http://localhost:8080/desk`.
+- **Checks:** `make lint` clean; `make test` **258 passed, 4 skipped**.

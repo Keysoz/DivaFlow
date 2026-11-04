@@ -35,7 +35,6 @@ def test_ahmed_ramadan_record_redirects_him_to_diva_store() -> None:
     assert len(rows) == 1, rows
     record = rows[0]
     assert record["create"] is False, "the pipeline must not create the staff account"
-    assert record["set"]["default_workspace"] == "Diva Store"
     assert record["set"]["default_app"] == "custom_reports"
     assert record["set"]["language"] == "ar"
 
@@ -78,3 +77,26 @@ def test_diva_store_has_the_two_entry_points() -> None:
     labels = {shortcut["label"]: shortcut for shortcut in store["shortcuts"]}
     assert labels["Open POS"]["url"] == "/pos/"
     assert labels["Diva Guard"]["url"] == "/app/diva-guard"
+
+
+def test_non_admin_staff_land_on_diva_store_after_login() -> None:
+    """DEC-106: the login home page is the Diva Store dashboard for every
+    non-admin staff account; the Administrator keeps the standard Desk."""
+    home = (ROOT / "apps" / "diva_guard" / "diva_guard" / "home.py").read_text(encoding="utf-8")
+    assert 'DIVA_STORE_ROUTE = "/desk/custom-reports/diva-store"' in home
+    assert 'user in ("Administrator", "Guest")' in home
+    assert '"System Manager" in frappe.get_roles(user)' in home
+    hooks = (ROOT / "apps" / "diva_guard" / "diva_guard" / "hooks.py").read_text(encoding="utf-8")
+    assert 'get_website_user_home_page = "diva_guard.home.get_website_user_home_page"' in hooks
+
+
+def test_the_user_record_does_not_override_the_login_hook() -> None:
+    """An explicit default_workspace would win over the hook, so it stays empty."""
+    records = _config().get("records", [])
+    row = next(
+        record
+        for record in records
+        if record.get("doctype") == "User"
+        and record.get("match", {}).get("username") == "ahmed_ramadan"
+    )
+    assert row["set"]["default_workspace"] == ""

@@ -43,6 +43,9 @@ add_to_apps_screen = [
 # `mount_on` on that same record, and its entries are appended to the host's rail. Mounting keeps
 # the companion off the apps screen.
 
+# DEC-106: non-admin staff land on the Diva Store dashboard after login.
+get_website_user_home_page = "diva_guard.home.get_website_user_home_page"
+
 # Includes in <head>
 # ------------------
 

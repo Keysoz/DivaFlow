@@ -1706,7 +1706,9 @@ records:
       enabled: 1
       language: ar
       default_app: custom_reports
-      default_workspace: Diva Store
+      # DEC-106: the login landing is the diva_guard hook for every non-admin
+      # user; keep this field empty so it does not override the hook.
+      default_workspace: ""
 
 user_roles:
   # DEC-104: ahmed_ramadan opens the Diva Store dashboard after login with the

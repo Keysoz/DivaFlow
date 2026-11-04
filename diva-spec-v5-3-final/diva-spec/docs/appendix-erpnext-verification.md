@@ -379,3 +379,11 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
   - `manager@diva.test` (Sales Manager, Purchase Manager, Stock Manager, Accounts User) -> `erpnext, pos_next, diva_guard, custom_reports`
   - Same process: `can_use_pos_or_diva` = true for cashier and manager; `can_manage_diva_guard` = false for cashier, true for manager.
 - **Checks:** `make lint` clean (158 files formatted, mypy 47 files); `make test` **237 passed, 4 skipped** (new `test_app_visibility_is_role_based`).
+
+## 30. Full Arabic Desk and trading terminology (DEC-102, dev site)
+
+- **Language:** `System Settings.language = ar` (already) and `User.Administrator.language = ar` via the config script; cashier and manager were already `ar`. Frappe sets RTL automatically. Headless: `frappe.boot.lang = "ar"` and the Sales Invoice form renders right-to-left Arabic.
+- **Coverage:** `infra/erpnext-config/config.yaml` gained **104 Translation records**: the 11 missing `diva_desk` strings, the 51 `diva_guard` server messages, and the trading terms where ERPNext's `ar.po` was missing or mistranslated. Verified live: `Item → صنف`, `Amount → المبلغ` (was كميه), `Due Date → تاريخ الاستحقاق` (was بسبب تاريخ), `Draft → مسودة` (was مشروع), `Shift → وردية` (was يحول), `Nos → قطعة` (was لا), `Dozen → دستة`, `Warehouse → مخزن`, `Item Group → مجموعة الأصناف`.
+- **Screenshot:** the Sales Invoice form shows Arabic for the header, tabs, series, posting date, customer, items, barcode scan, and the grid columns `صنف / كمية / السعر / المبلغ / مخزن`, with `الإجمالي` and `على المبيعات والرسوم`.
+- **Guard:** `tests/config/test_i18n_coverage.py` extracts every `__()` in `diva_desk.js` and every `_()` in `diva_guard` and fails if one is missing from the Translation records or the `ar_po_allowlist.txt` (5 strings already covered by `ar.po`). It also asserts the corrected trading terms exist.
+- **Checks:** `make lint` clean (159 files formatted, mypy 47 files); `make test` **240 passed, 4 skipped**; `apply.py` applied 99 + 5 changes then re-runs 0 (idempotent).

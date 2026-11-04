@@ -70,6 +70,26 @@ Many 80 mm thermal printers do not shape Arabic correctly. In `P0-06` print a te
 | Label | ملصق | Hold sale | تعليق الفاتورة |
 | Resume | استئناف | New sale | فاتورة جديدة |
 | Manager PIN | رقم المدير السري | Minimum quantity | الحد الأدنى للكمية |
+| Sales order | طلب بيع | Purchase order | أمر شراء |
+| Delivery note | إذن التسليم | Purchase receipt | إيصال استلام المشتريات |
+| Payment entry | قيد الدفع | Journal entry | قيد يومية |
+| Stock entry | حركة مخزون | Stock reconciliation | تسوية المخزون |
+| Item group | مجموعة الأصناف | Price list | قائمة الأسعار |
+| Rate | السعر | Amount | المبلغ |
+| Total | الإجمالي | Net total | صافي الإجمالي |
+| Grand total | الإجمالي النهائي | Outstanding | المتبقي |
+| Receivable | مدين | Payable | دائن |
+| Valuation rate | سعر التقييم | Landed cost | تكلفة الشحن والجمارك |
+| Batch | دفعة | Expiry date | تاريخ انتهاء الصلاحية |
+| UOM | وحدة القياس | Nos | قطعة |
+| Credit note | إشعار دائن | Debit note | إشعار مدين |
+| General ledger | دفتر الأستاذ العام | Trial balance | ميزان المراجعة |
+| Accounts receivable | الحسابات المدينة | Accounts payable | الحسابات الدائنة |
+| Ageing | أعمار الديون | Closing stock | مخزون آخر المدة |
+| Draft | مسودة | Submitted | مُرحّل |
+| Cancelled | ملغي | Shift | وردية |
+| Wholesale | جملة | Bank transfer | تحويل بنكي |
+| POS profile | ملف نقطة البيع | Stock ledger | سجل المخزون |
 
 ## 9. Tasks (effort about 90 h; range 70–120 h)
 | ID | Task | Phase | AC |

@@ -1009,6 +1009,12 @@ singles:
   - doctype: Global Defaults
     field: default_currency
     value: EGP
+  # DEC-95: the desk/website brand logo must point at the public copy of the
+  # file; a /private/files/... reference 403s on every web page (Navbar boots
+  # its app logo from this field).
+  - doctype: Navbar Settings
+    field: app_logo
+    value: /files/IMG_20260325_201818_061.jpg
   # E-04: negative stock off; reservations on (RULE-STOCK / DEC-08).
   - doctype: Stock Settings
     field: allow_negative_stock
@@ -1681,3 +1687,11 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "T", context: "Number system" }
     set: { translated_text: "T" }
+
+  # DEC-95: Product Info page card (staff-only, read-only).
+  - doctype: Translation
+    match: { language: ar, source_text: "Item {0} not found" }
+    set: { translated_text: "الصنف {0} غير موجود" }
+  - doctype: Translation
+    match: { language: ar, source_text: "No image is set for item {0}" }
+    set: { translated_text: "لا توجد صورة للصنف {0}" }

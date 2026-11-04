@@ -388,3 +388,34 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - **Guard:** `tests/config/test_i18n_coverage.py` extracts every `__()` in `diva_desk.js` and every `_()` in `diva_guard` and fails if one is missing from the Translation records or the `ar_po_allowlist.txt` (5 strings already covered by `ar.po`). It also asserts the corrected trading terms exist.
 - **Number abbreviations:** the number cards keep the Latin `K`/`M`/`B`/`T` (ar.po mapped them to ك/م/ب/تي). Translation records with context `Number system`; live check: `EGP 461.77 K` and `EGP 57.36 K` on Diva Store.
 - **Checks:** `make lint` clean (159 files formatted, mypy 47 files); `make test` **240 passed, 4 skipped**; `apply.py` applied 99 + 5 changes then re-runs 0 (idempotent).
+
+## 31. Product Info page and the app registry (DEC-95 / DEC-103, dev site)
+
+- **Root cause of the reported errors:** the dev stack's configurator rebuilt `sites/apps.txt`
+  from its own image on every `compose up`; the image only contains `frappe` + `erpnext`, so
+  `pos_next`, `diva_guard`, `diva_desk` and `custom_reports` were silently unregistered.
+  Symptoms and fixes: Diva Guard form 404 (`الوحدة Diva Guard غير موجودة` on
+  `getdoctype Diva Override Approval`), `/product_info` 500 (`TemplateNotFound:
+  www/product_info.html`), Diva Store charts failing (NaN SVG paths), and the website-search
+  job dying with `ModuleNotFoundError: No module named 'pos_next'`.
+- **Durable fix:** `scripts/start-dev-erpnext.sh` patches the `pwd.yml` configurator line to
+  `[ -f sites/apps.txt ] || ls -1 apps > sites/apps.txt;` and `scripts/ensure-apps-registered.sh`
+  re-registers the four apps, clears the cache and restarts the backend, called after every
+  `compose up` and from all three install scripts. Live check: the script answers
+  "apps.txt is complete (pos_next diva_guard diva_desk custom_reports)"; removing one app and
+  re-running registers it and restarts the backend.
+- **Product Info committed:** `diva_guard/product_info.py`, `diva_desk/www/product_info.py`
+  and `product_info.html` existed only in the container (a recreate would have lost them).
+- **Image fix:** the card hotlinked `/private/files/...` which answers 403 without a File
+  record; the new `diva_guard.product_info.product_info_image` endpoint re-checks Item read
+  permission, contains the path inside the site's files directory (`..` refused) and streams
+  only image types. Live: guest 403, unknown item and item-without-image 404, valid item 200
+  (JPEG, `image/jpeg`); headless card shows the picture (150x150), prices, stock and barcode.
+- **Brand logo:** the dev site's logo/letterhead was a private file referenced by
+  `Navbar Settings.app_logo`; the three File records were set public (file URL `/files/...`)
+  and Navbar Settings now points at the public URL (config.yaml singles row). Live: login page
+  and desk render the logo with HTTP 200, the Product Info page keeps 0 failed requests.
+- **New Arabic strings** (i18n scanner): `Item {0} not found` -> الصنف {0} غير موجود,
+  `No image is set for item {0}` -> لا توجد صورة للصنف {0}.
+- **Checks:** `make lint` clean; `make test` **248 passed, 4 skipped** (8 new contract tests
+  in `tests/config/test_product_info_and_registry.py`).

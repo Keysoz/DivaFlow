@@ -34,4 +34,6 @@ fi
 echo "==> restarting the backend so gunicorn loads the app"
 docker restart "${CONTAINER}" >/dev/null
 
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-apps-registered.sh" >/dev/null
+
 echo "done. Seed settings with scripts/seed_diva_guard.py (DIVA_MANAGER_PIN from the secret store)."

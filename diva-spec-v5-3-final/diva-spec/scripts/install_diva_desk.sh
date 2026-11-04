@@ -53,4 +53,6 @@ echo "==> restart the backend so gunicorn and the boot hooks pick up the app"
 docker restart "${CONTAINER}" >/dev/null
 docker restart "${FRONTEND_CONTAINER}" >/dev/null
 
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-apps-registered.sh" >/dev/null
+
 echo "done. Open /app/purchase-receipt/new or /app/sales-invoice/new on ${SITE}."

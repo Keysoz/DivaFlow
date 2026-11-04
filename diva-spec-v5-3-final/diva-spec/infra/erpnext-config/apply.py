@@ -262,6 +262,19 @@ def plan_records(
         key = _record_key(entry)
         desired = {k: _normalize(v) for k, v in entry["set"].items()}
         if key not in existing:
+            if not entry.get("create", True):
+                # create: false — the pipeline only updates records that already
+                # exist (e.g. a named staff user); a missing record is left alone.
+                actions.append(
+                    Action(
+                        "record:" + entry["doctype"],
+                        key,
+                        "noop",
+                        None,
+                        {"_note": "missing; create: false -> skipped"},
+                    )
+                )
+                continue
             actions.append(Action("record:" + entry["doctype"], key, "create", None, desired))
             continue
         current = existing[key]
@@ -395,6 +408,64 @@ def fetch_existing_records(
         if rows:
             existing[_record_key(entry)] = rows[0]
     return existing
+
+
+def fetch_user_roles(client: Client, entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """The "roles" child rows of each named user, or None when the user is absent.
+
+    The config names staff by USERNAME: the shop staff log in by username on
+    every site while the docname may be an email there. Resolve by username
+    first and fall back to the docname; the resolved docname travels back with
+    the roles because the update must target it."""
+
+    out: dict[str, Any] = {}
+    for entry in entries:
+        user = str(entry["user"])
+        out[user] = _user_document(client, user)
+    return out
+
+
+def _user_document(client: Client, user: str) -> dict[str, Any] | None:
+    """A User document resolved by username or docname, with its roles."""
+    filters = [["username", "=", user]]
+    rows = client.get("/api/resource/User" + _query(filters, ["name"]))["data"]
+    docname = str(rows[0]["name"]) if rows else user
+    try:
+        doc = client.get("/api/resource/User/" + _quoted(docname))["data"]
+    except ApiError as exc:
+        if exc.code != 404:
+            raise
+        return None
+    return {"__docname__": str(doc["name"]), "roles": list(doc.get("roles") or [])}
+
+
+def plan_user_roles(entries: list[dict[str, Any]], existing: dict[str, Any]) -> list[Action]:
+    """Additive role seeding (DEC-104): add missing roles, never remove any."""
+    actions: list[Action] = []
+    for entry in entries:
+        user = str(entry["user"])
+        wanted = sorted({_normalize(role) for role in entry["roles"]})
+        row = existing.get(user)
+        if row is None:
+            actions.append(
+                Action("user_roles", user, "noop", None, {"_note": "user missing -> skipped"})
+            )
+            continue
+        docname = str(row["__docname__"])
+        current_rows = list(row["roles"])
+        current = {str(line["role"]) for line in current_rows}
+        missing = [role for role in wanted if role not in current]
+        summary = {"name": docname, "roles": wanted}
+        actions.append(
+            Action(
+                "user_roles",
+                docname,
+                "update" if missing else "noop",
+                {"roles": current_rows},
+                summary,
+            )
+        )
+    return actions
 
 
 def fetch_standard_permissions(
@@ -545,6 +616,15 @@ def apply_actions(
                     "/api/resource/" + _quoted(doctype) + "/" + _quoted(name),
                     record_entry["set"],
                 )
+        elif action.kind == "user_roles":
+            rows = list(action.current.get("roles") or [])
+            wanted = set(action.desired.get("roles") or [])
+            held = {str(line["role"]) for line in rows}
+            missing = sorted(role for role in wanted if role not in held)
+            client.put(
+                "/api/resource/User/" + _quoted(action.target),
+                {"roles": [*rows, *[{"role": role} for role in missing]]},
+            )
 
 
 def _typed(value: Any) -> Any:
@@ -576,6 +656,7 @@ def main() -> int:
     records = config.get("records", [])
     permission_mirrors = config.get("permission_mirrors", [])
     custom_fields = config.get("custom_fields", [])
+    user_roles = config.get("user_roles", [])
     base_dir = Path(args.config).resolve().parent
     print_formats: list[dict[str, Any]] = []
     for entry in config.get("print_formats", []):
@@ -610,6 +691,7 @@ def main() -> int:
         client, [entry["name"] for entry in print_formats]
     )
     existing_custom_fields = fetch_existing_custom_fields(client, custom_fields)
+    existing_user_roles = fetch_user_roles(client, user_roles)
     actions = (
         plan_property_setters(entries, existing_ps)
         + plan_workspaces(workspaces, existing_ws)
@@ -618,6 +700,7 @@ def main() -> int:
         + plan_permission_mirrors(standard_perms, custom_perms)
         + plan_print_formats(print_formats, existing_print_formats)
         + plan_custom_fields(custom_fields, existing_custom_fields)
+        + plan_user_roles(user_roles, existing_user_roles)
     )
 
     for action in actions:

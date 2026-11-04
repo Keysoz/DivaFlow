@@ -10,28 +10,11 @@ app_license = "mit"
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
-add_to_apps_screen = [
-	{
-		"name": app_name,
-		"logo": (
-			"data:image/svg+xml;base64,"
-			"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0"
-			"PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IkRpdmEgR3Vh"
-			"cmQiPgogIDxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMTk3MWMy"
-			"Ii8+CiAgPHBhdGggZD0iTTMyIDEzbDE1IDUuNXYxMC4yYzAgOS40LTYuMiAxNi44LTE1IDIxLjMt"
-			"OC44LTQuNS0xNS0xMS45LTE1LTIxLjNWMTguNUwzMiAxM3oiIGZpbGw9IiNmZmZmZmYiIG9wYWNp"
-			"dHk9IjAuOTYiLz4KICA8cGF0aCBkPSJNMjQuNSAzMS41bDUgNSAxMC0xMC41IiBmaWxsPSJub25l"
-			"IiBzdHJva2U9IiMxOTcxYzIiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91"
-			"bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg=="
-		),
-		"title": app_title,
-		"route": "/app/diva-guard",
-		"has_permission": "diva_guard.permissions.can_manage_diva_guard",
-		"sequence_id": 3,
-	}
-]
-
+# DEC-104: Diva Guard has NO entry on the Desk apps screen; the owner reaches
+# it from the Diva Store dashboard (the "Diva Guard" tile -> /app/diva-guard)
+# and POS Next from the "Open POS" tile (/pos/). `frappe.apps.get_apps()` only
+# lists apps that declare `add_to_apps_screen`.
+#
 # The dock, the rail down the left of the desk, is a document rather than a hook. Author it in
 # Manage Dock on a developer-mode site and press Export to App, and it is written to
 # `diva_guard/dock/diva_guard/diva_guard.json` for git to carry. An app that ships none has no
@@ -39,7 +22,7 @@ add_to_apps_screen = [
 #
 # A companion app, one that extends a host app rather than standing on its own, says so with
 # `mount_on` on that same record, and its entries are appended to the host's rail. Mounting keeps
-# the companion off the apps screen, so it takes precedence over any add_to_apps_screen above.
+# the companion off the apps screen.
 
 # Includes in <head>
 # ------------------

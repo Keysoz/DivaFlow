@@ -1695,3 +1695,22 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "No image is set for item {0}" }
     set: { translated_text: "لا توجد صورة للصنف {0}" }
+
+  # DEC-104: staff accounts. Access must already exist (the user is created on
+  # the site, never by the pipeline — only these fields are pinned); the Diva
+  # switcher tile (custom_reports) opens /app/diva-store after login.
+  - doctype: User
+    match: { username: ahmed_ramadan }
+    create: false
+    set:
+      enabled: 1
+      language: ar
+      default_app: custom_reports
+      default_workspace: Diva Store
+
+user_roles:
+  # DEC-104: ahmed_ramadan opens the Diva Store dashboard after login with the
+  # cashier + purchasing parties package. Additive: a role already held is kept;
+  # the pipeline never removes a role.
+  - user: ahmed_ramadan
+    roles: [POSNext Cashier, Sales User, Stock User, Purchase User]

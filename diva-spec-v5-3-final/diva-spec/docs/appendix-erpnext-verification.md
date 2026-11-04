@@ -419,3 +419,33 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
   `No image is set for item {0}` -> لا توجد صورة للصنف {0}.
 - **Checks:** `make lint` clean; `make test` **248 passed, 4 skipped** (8 new contract tests
   in `tests/config/test_product_info_and_registry.py`).
+
+## 32. Desk apps screen and the Diva Store login landing (DEC-104, dev site)
+
+- **Apps screen:** `frappe.apps.get_apps()` only lists apps that declare
+  `add_to_apps_screen`. The Diva Guard block was removed from `diva_guard/hooks.py` and
+  the POS Next tile through tracked patch **0018**
+  (`infra/posnext-patches/v2.0.0/0018-feat-apps-keep-POS-Next-off-the-apps-screen.patch`,
+  committed in the vendor checkout as `a4a0e3d`). A fresh request as Administrator returns
+  `["erpnext", "custom_reports"]`; `frappe.get_hooks("add_to_apps_screen", app_name="pos_next")`
+  and the same for `diva_guard` are empty in a fresh process.
+- **Still reachable:** the Diva Store dashboard has the **Open POS** tile (`/pos/`, POS Next
+  v1.17.0 loads) and the **Diva Guard** tile (`/app/diva-guard`). The Diva Guard workspace was
+  Administrator-only; `desk.yaml` now lists the manager set (`System Manager`, `Sales Manager`,
+  `Sales Master Manager`, `Purchase Manager`, `Stock Manager`, `Accounts Manager`,
+  `Accounts User`), applied through `apply_desk.py`, and the workspace opens for the account.
+- **Login landing:** the account `ahmed_ramadan` (username; docname `aadd12533@gmail.com`) gets
+  `default_workspace = Diva Store` and `default_app = custom_reports` through
+  `infra/erpnext-config/config.yaml` (`create: false`). Headless login lands on
+  `/desk/custom-reports/diva-store` and renders the Arabic Diva Store dashboard (tiles:
+  نقطة البيع، الأصناف، فواتير المبيعات، Diva Guard، إيصال استلام المشتريات، فاتورة شراء،
+  العملاء، الموردون، معلومات الصنف، كشف حساب العميل/المورد) with the apps menu listing only
+  **Diva Store** and **Diva Reports**.
+- **Roles:** the new additive `user_roles` section of `apply.py` added `POSNext Cashier`,
+  `Sales User`, `Stock User`, `Purchase User` without touching the 8 roles the account already
+  held. Re-runs: `apply.py` **0 changes**, `apply_desk.py` **0 changes**.
+- **Dev note:** the account's dev password was temporarily reset to log in and verify the
+  landing; reset it again from the Users screen if needed (nothing is stored in git).
+- **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped** (9 new tests in
+  `tests/config/test_apply_plan.py` and `tests/config/test_owner_access.py`, plus the updated
+  app-visibility contract).

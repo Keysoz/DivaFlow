@@ -197,7 +197,8 @@ def test_diva_store_shortcuts_start_the_page_and_show_icons() -> None:
 
 
 def test_app_visibility_is_role_based() -> None:
-    """ENH-E-05: the cashier and managers see the Diva/POS tiles, not only admin."""
+    """ENH-E-05 + DEC-104: the Diva tile is role-based; Diva Guard and POS Next
+    have no apps-screen entry (the owner reaches both from Diva Store)."""
     perms = (ROOT / "apps" / "diva_guard" / "diva_guard" / "permissions.py").read_text(
         encoding="utf-8"
     )
@@ -206,7 +207,7 @@ def test_app_visibility_is_role_based() -> None:
     assert '"POSNext Cashier"' in perms
     assert '"Sales User"' in perms
     hooks = (ROOT / "apps" / "diva_guard" / "diva_guard" / "hooks.py").read_text(encoding="utf-8")
-    assert "diva_guard.permissions.can_manage_diva_guard" in hooks
+    assert "add_to_apps_screen = [" not in hooks
     reports = (ROOT / "apps" / "custom_reports" / "custom_reports" / "hooks.py").read_text(
         encoding="utf-8"
     )
@@ -216,6 +217,11 @@ def test_app_visibility_is_role_based() -> None:
     patch = patches[0].read_text(encoding="utf-8")
     assert "pos_next.permissions.can_use_pos_app" in patch
     assert "POSNext Cashier" in patch
+    swing = sorted((ROOT / "infra" / "posnext-patches" / "v2.0.0").glob("0018-*.patch"))
+    assert len(swing) == 1, swing
+    removed = swing[0].read_text(encoding="utf-8")
+    assert "add_to_apps_screen" in removed and removed.count("-") > 0
+    assert "feat(apps): keep POS Next off the apps screen" in removed
 
 
 def test_share_and_dialog_strings_have_arabic_translations() -> None:

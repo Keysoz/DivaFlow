@@ -1665,3 +1665,19 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Include Payment (POS)" }
     set: { translated_text: "تشمل الدفع (POS)" }
+
+  # DEC-102: keep the number abbreviations as-is in Arabic; ar.po shows
+  # K/M/B/T as ك/م/ب/تي in the number cards.
+  # (the source is __(symbol, null, "Number system"), hence the context).
+  - doctype: Translation
+    match: { language: ar, source_text: "K", context: "Number system" }
+    set: { translated_text: "K" }
+  - doctype: Translation
+    match: { language: ar, source_text: "M", context: "Number system" }
+    set: { translated_text: "M" }
+  - doctype: Translation
+    match: { language: ar, source_text: "B", context: "Number system" }
+    set: { translated_text: "B" }
+  - doctype: Translation
+    match: { language: ar, source_text: "T", context: "Number system" }
+    set: { translated_text: "T" }

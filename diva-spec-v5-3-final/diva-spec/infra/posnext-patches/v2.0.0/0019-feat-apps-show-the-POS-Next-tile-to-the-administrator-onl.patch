@@ -1,0 +1,62 @@
+From 65cdc598956c38d3e59b980546e13eaee07ce647 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Wed, 4 Nov 2026 14:50:57 +0000
+Subject: [PATCH] feat(apps): show the POS Next tile to the administrator only
+ (DEC-105)
+
+Every other user sees ERPNext and Diva Store on the apps screen and opens the till from the Diva Store dashboard.
+---
+ pos_next/hooks.py       | 19 ++++++++++++++-----
+ pos_next/permissions.py |  9 +++++++++
+ 2 files changed, 23 insertions(+), 5 deletions(-)
+
+diff --git a/pos_next/hooks.py b/pos_next/hooks.py
+index 3a7214f..27d8a72 100644
+--- a/pos_next/hooks.py
++++ b/pos_next/hooks.py
+@@ -12,11 +12,20 @@ app_license = "agpl-3.0"
+ 
+ # required_apps = []
+ 
+-# DEC-104: POS Next has NO entry on the Desk apps screen. The owner opens the
+-# till from the Diva Store dashboard (the "Open POS" tile -> /pos/); every
+-# installed app is still reachable by route. Only apps that declare
+-# add_to_apps_screen appear on the apps screen.
+-#
++# DEC-105: only the Administrator / System Manager sees the POS Next tile on
++# the Desk apps screen; every other user sees ERPNext and Diva Store. The till
++# opens from the Diva Store dashboard (Open POS -> /pos/).
++add_to_apps_screen = [
++	{
++		"name": app_name,
++		"logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBPUyBOZXh0Ij4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBiNzI4NSIvPgogIDxyZWN0IHg9IjE0IiB5PSIxOCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjE5IiB5PSIyNCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSIjMGI3Mjg1Ii8+CiAgPHJlY3QgeD0iMTkiIHk9IjMxIiB3aWR0aD0iMTgiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiMwYjcyODUiLz4KICA8cmVjdCB4PSIyMiIgeT0iNDYiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4=",
++		"title": app_title,
++		"route": "/app/posnext",
++		"has_permission": "pos_next.permissions.can_see_admin_apps",
++		"sequence_id": 4,
++	}
++]
++
+ # Includes in <head>
+ # ------------------
+ 
+diff --git a/pos_next/permissions.py b/pos_next/permissions.py
+index 14c6c6b..44cefe4 100644
+--- a/pos_next/permissions.py
++++ b/pos_next/permissions.py
+@@ -30,3 +30,12 @@ def can_use_pos_app() -> bool:
+ 	if frappe.session.user == "Administrator":
+ 		return True
+ 	return bool(POS_ROLES & set(frappe.get_roles(frappe.session.user)))
++
++
++def can_see_admin_apps() -> bool:
++	"""DEC-105: only the Administrator / System Manager sees the tile."""
++	if frappe.session.user == "Administrator":
++		return True
++	if frappe.session.user == "Guest":
++		return False
++	return "System Manager" in frappe.get_roles()
+-- 
+2.47.3
+

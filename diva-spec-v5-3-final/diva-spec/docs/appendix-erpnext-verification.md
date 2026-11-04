@@ -449,3 +449,17 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped** (9 new tests in
   `tests/config/test_apply_plan.py` and `tests/config/test_owner_access.py`, plus the updated
   app-visibility contract).
+
+## 33. Admin sees every app, everyone else ERPNext + Diva Store (DEC-105, dev site)
+
+- **Tiles:** the Diva Guard tile is back with `has_permission` ->
+  `diva_guard.permissions.can_see_admin_apps` (Administrator or System Manager); the POS Next
+  tile carries the same rule through tracked patch **0019**; the Diva Store tile has no permission
+  callback so every desk user sees it.
+- **Live check, fresh request per user:**
+  - Administrator: `["erpnext", "pos_next", "diva_guard", "custom_reports"]`.
+  - `ahmed_ramadan` (holds manager roles, not System Manager): `["erpnext", "custom_reports"]`.
+- **Staff path unchanged:** the Diva Store dashboard keeps the **Open POS** (`/pos/`) and
+  **Diva Guard** (`/app/diva-guard`) tiles, and the direct routes still work.
+- **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped**; patch 0019 committed in the
+  vendor checkout (`65cdc59`) and matches HEAD (`git apply --check --reverse`).

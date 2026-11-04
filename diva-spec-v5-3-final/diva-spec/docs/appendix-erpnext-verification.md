@@ -379,3 +379,104 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
   - `manager@diva.test` (Sales Manager, Purchase Manager, Stock Manager, Accounts User) -> `erpnext, pos_next, diva_guard, custom_reports`
   - Same process: `can_use_pos_or_diva` = true for cashier and manager; `can_manage_diva_guard` = false for cashier, true for manager.
 - **Checks:** `make lint` clean (158 files formatted, mypy 47 files); `make test` **237 passed, 4 skipped** (new `test_app_visibility_is_role_based`).
+
+## 30. Full Arabic Desk and trading terminology (DEC-102, dev site)
+
+- **Language:** `System Settings.language = ar` (already) and `User.Administrator.language = ar` via the config script; cashier and manager were already `ar`. Frappe sets RTL automatically. Headless: `frappe.boot.lang = "ar"` and the Sales Invoice form renders right-to-left Arabic.
+- **Coverage:** `infra/erpnext-config/config.yaml` gained **104 Translation records**: the 11 missing `diva_desk` strings, the 51 `diva_guard` server messages, and the trading terms where ERPNext's `ar.po` was missing or mistranslated. Verified live: `Item → صنف`, `Amount → المبلغ` (was كميه), `Due Date → تاريخ الاستحقاق` (was بسبب تاريخ), `Draft → مسودة` (was مشروع), `Shift → وردية` (was يحول), `Nos → قطعة` (was لا), `Dozen → دستة`, `Warehouse → مخزن`, `Item Group → مجموعة الأصناف`.
+- **Screenshot:** the Sales Invoice form shows Arabic for the header, tabs, series, posting date, customer, items, barcode scan, and the grid columns `صنف / كمية / السعر / المبلغ / مخزن`, with `الإجمالي` and `على المبيعات والرسوم`.
+- **Guard:** `tests/config/test_i18n_coverage.py` extracts every `__()` in `diva_desk.js` and every `_()` in `diva_guard` and fails if one is missing from the Translation records or the `ar_po_allowlist.txt` (5 strings already covered by `ar.po`). It also asserts the corrected trading terms exist.
+- **Number abbreviations:** the number cards keep the Latin `K`/`M`/`B`/`T` (ar.po mapped them to ك/م/ب/تي). Translation records with context `Number system`; live check: `EGP 461.77 K` and `EGP 57.36 K` on Diva Store.
+- **Checks:** `make lint` clean (159 files formatted, mypy 47 files); `make test` **240 passed, 4 skipped**; `apply.py` applied 99 + 5 changes then re-runs 0 (idempotent).
+
+## 31. Product Info page and the app registry (DEC-95 / DEC-103, dev site)
+
+- **Root cause of the reported errors:** the dev stack's configurator rebuilt `sites/apps.txt`
+  from its own image on every `compose up`; the image only contains `frappe` + `erpnext`, so
+  `pos_next`, `diva_guard`, `diva_desk` and `custom_reports` were silently unregistered.
+  Symptoms and fixes: Diva Guard form 404 (`الوحدة Diva Guard غير موجودة` on
+  `getdoctype Diva Override Approval`), `/product_info` 500 (`TemplateNotFound:
+  www/product_info.html`), Diva Store charts failing (NaN SVG paths), and the website-search
+  job dying with `ModuleNotFoundError: No module named 'pos_next'`.
+- **Durable fix:** `scripts/start-dev-erpnext.sh` patches the `pwd.yml` configurator line to
+  `[ -f sites/apps.txt ] || ls -1 apps > sites/apps.txt;` and `scripts/ensure-apps-registered.sh`
+  re-registers the four apps, clears the cache and restarts the backend, called after every
+  `compose up` and from all three install scripts. Live check: the script answers
+  "apps.txt is complete (pos_next diva_guard diva_desk custom_reports)"; removing one app and
+  re-running registers it and restarts the backend.
+- **Product Info committed:** `diva_guard/product_info.py`, `diva_desk/www/product_info.py`
+  and `product_info.html` existed only in the container (a recreate would have lost them).
+- **Image fix:** the card hotlinked `/private/files/...` which answers 403 without a File
+  record; the new `diva_guard.product_info.product_info_image` endpoint re-checks Item read
+  permission, contains the path inside the site's files directory (`..` refused) and streams
+  only image types. Live: guest 403, unknown item and item-without-image 404, valid item 200
+  (JPEG, `image/jpeg`); headless card shows the picture (150x150), prices, stock and barcode.
+- **Brand logo:** the dev site's logo/letterhead was a private file referenced by
+  `Navbar Settings.app_logo`; the three File records were set public (file URL `/files/...`)
+  and Navbar Settings now points at the public URL (config.yaml singles row). Live: login page
+  and desk render the logo with HTTP 200, the Product Info page keeps 0 failed requests.
+- **New Arabic strings** (i18n scanner): `Item {0} not found` -> الصنف {0} غير موجود,
+  `No image is set for item {0}` -> لا توجد صورة للصنف {0}.
+- **Checks:** `make lint` clean; `make test` **248 passed, 4 skipped** (8 new contract tests
+  in `tests/config/test_product_info_and_registry.py`).
+
+## 32. Desk apps screen and the Diva Store login landing (DEC-104, dev site)
+
+- **Apps screen:** `frappe.apps.get_apps()` only lists apps that declare
+  `add_to_apps_screen`. The Diva Guard block was removed from `diva_guard/hooks.py` and
+  the POS Next tile through tracked patch **0018**
+  (`infra/posnext-patches/v2.0.0/0018-feat-apps-keep-POS-Next-off-the-apps-screen.patch`,
+  committed in the vendor checkout as `a4a0e3d`). A fresh request as Administrator returns
+  `["erpnext", "custom_reports"]`; `frappe.get_hooks("add_to_apps_screen", app_name="pos_next")`
+  and the same for `diva_guard` are empty in a fresh process.
+- **Still reachable:** the Diva Store dashboard has the **Open POS** tile (`/pos/`, POS Next
+  v1.17.0 loads) and the **Diva Guard** tile (`/app/diva-guard`). The Diva Guard workspace was
+  Administrator-only; `desk.yaml` now lists the manager set (`System Manager`, `Sales Manager`,
+  `Sales Master Manager`, `Purchase Manager`, `Stock Manager`, `Accounts Manager`,
+  `Accounts User`), applied through `apply_desk.py`, and the workspace opens for the account.
+- **Login landing:** the account `ahmed_ramadan` (username; docname `aadd12533@gmail.com`) gets
+  `default_workspace = Diva Store` and `default_app = custom_reports` through
+  `infra/erpnext-config/config.yaml` (`create: false`). Headless login lands on
+  `/desk/custom-reports/diva-store` and renders the Arabic Diva Store dashboard (tiles:
+  نقطة البيع، الأصناف، فواتير المبيعات، Diva Guard، إيصال استلام المشتريات، فاتورة شراء،
+  العملاء، الموردون، معلومات الصنف، كشف حساب العميل/المورد) with the apps menu listing only
+  **Diva Store** and **Diva Reports**.
+- **Roles:** the new additive `user_roles` section of `apply.py` added `POSNext Cashier`,
+  `Sales User`, `Stock User`, `Purchase User` without touching the 8 roles the account already
+  held. Re-runs: `apply.py` **0 changes**, `apply_desk.py` **0 changes**.
+- **Dev note:** the account's dev password was temporarily reset to log in and verify the
+  landing; reset it again from the Users screen if needed (nothing is stored in git).
+- **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped** (9 new tests in
+  `tests/config/test_apply_plan.py` and `tests/config/test_owner_access.py`, plus the updated
+  app-visibility contract).
+
+## 33. Admin sees every app, everyone else ERPNext + Diva Store (DEC-105, dev site)
+
+- **Tiles:** the Diva Guard tile is back with `has_permission` ->
+  `diva_guard.permissions.can_see_admin_apps` (Administrator or System Manager); the POS Next
+  tile carries the same rule through tracked patch **0019**; the Diva Store tile has no permission
+  callback so every desk user sees it.
+- **Live check, fresh request per user:**
+  - Administrator: `["erpnext", "pos_next", "diva_guard", "custom_reports"]`.
+  - `ahmed_ramadan` (holds manager roles, not System Manager): `["erpnext", "custom_reports"]`.
+- **Staff path unchanged:** the Diva Store dashboard keeps the **Open POS** (`/pos/`) and
+  **Diva Guard** (`/app/diva-guard`) tiles, and the direct routes still work.
+- **Checks:** `make lint` clean; `make test` **256 passed, 4 skipped**; patch 0019 committed in the
+  vendor checkout (`65cdc59`) and matches HEAD (`git apply --check --reverse`).
+
+## 34. Non-admin login landing (DEC-106, dev site)
+
+- **Hook:** `diva_guard.home.get_website_user_home_page` returns
+  `/desk/custom-reports/diva-store` for every account that is not the Administrator and does
+  not hold **System Manager**; it returns `None` for those two so they keep `/desk`. Wired as
+  `get_website_user_home_page` in `diva_guard/hooks.py`.
+- **Why not a user field:** Frappe's `get_home_page()` lets `User.default_workspace` win over the
+  hook, and a per-user record would not cover new staff. The field is explicitly emptied for
+  `ahmed_ramadan` in `config.yaml` so the hook applies.
+- **Function check (one fresh process):** `Administrator -> None`, `Guest -> None`,
+  `cashier@diva.test -> /desk/custom-reports/diva-store`,
+  `manager@diva.test -> /desk/custom-reports/diva-store`,
+  `aadd12533@gmail.com -> /desk/custom-reports/diva-store`.
+- **Headless:** login as `ahmed_ramadan` ends on `http://localhost:8080/desk/custom-reports/diva-store`
+  (Diva Store visible); login as `Administrator` still ends on `http://localhost:8080/desk`.
+- **Checks:** `make lint` clean; `make test` **258 passed, 4 skipped**.

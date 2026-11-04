@@ -1,56 +1,19 @@
-"""Role-based visibility for the Diva app tiles (ENH-E-05).
+"""Visibility for the Diva Guard and POS Next app tiles (DEC-105).
 
-``frappe.permissions.check_app_permission`` lets only System Managers see an
-app. The shop's cashier and managers need the Diva and POS Next tiles, while
-the Diva Guard settings stay with the managers. These functions are referenced
-from each app's ``add_to_apps_screen`` entry.
+On the Desk apps screen the Administrator / System Manager sees every app;
+every other user sees ERPNext and Diva Store only. The shop staff reach the
+till and the guard from the Diva Store dashboard tiles, not from the switcher.
 """
 
 from __future__ import annotations
 
 import frappe
 
-# Cashier + managers: POS Next and the Diva (Store / Reports) apps.
-DESK_ROLES = frozenset(
-	{
-		"System Manager",
-		"Sales Manager",
-		"Sales Master Manager",
-		"Purchase Manager",
-		"Stock Manager",
-		"Accounts Manager",
-		"Accounts User",
-		"Sales User",
-		"Stock User",
-		"POSNext Cashier",
-	}
-)
 
-# Managers only: the Diva Guard settings and approvals.
-GUARD_ROLES = frozenset(
-	{
-		"System Manager",
-		"Sales Manager",
-		"Sales Master Manager",
-		"Purchase Manager",
-		"Stock Manager",
-		"Accounts Manager",
-		"Accounts User",
-	}
-)
-
-
-def _has_any(roles: frozenset[str]) -> bool:
+def can_see_admin_apps() -> bool:
+	"""True for the Administrator and System Managers only."""
 	if frappe.session.user == "Administrator":
 		return True
-	return bool(roles & set(frappe.get_roles(frappe.session.user)))
-
-
-def can_use_pos_or_diva() -> bool:
-	"""POS Next and the Diva (Store / Reports) tiles: cashier and managers."""
-	return _has_any(DESK_ROLES)
-
-
-def can_manage_diva_guard() -> bool:
-	"""The Diva Guard settings tile: managers only."""
-	return _has_any(GUARD_ROLES)
+	if frappe.session.user == "Guest":
+		return False
+	return "System Manager" in frappe.get_roles()

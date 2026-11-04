@@ -196,26 +196,28 @@ def test_diva_store_shortcuts_start_the_page_and_show_icons() -> None:
     assert 'frappe.utils.icon(icon, "sm")' in source
 
 
-def test_app_visibility_is_role_based() -> None:
-    """ENH-E-05: the cashier and managers see the Diva/POS tiles, not only admin."""
+def test_app_visibility_is_admin_only_for_guard_and_pos() -> None:
+    """DEC-105: the Administrator/System Manager sees every app; every other
+    user sees ERPNext and Diva Store (POS and Guard open from the dashboard)."""
     perms = (ROOT / "apps" / "diva_guard" / "diva_guard" / "permissions.py").read_text(
         encoding="utf-8"
     )
-    assert "def can_use_pos_or_diva" in perms
-    assert "def can_manage_diva_guard" in perms
-    assert '"POSNext Cashier"' in perms
-    assert '"Sales User"' in perms
+    assert "def can_see_admin_apps" in perms
+    assert "System Manager" in perms
     hooks = (ROOT / "apps" / "diva_guard" / "diva_guard" / "hooks.py").read_text(encoding="utf-8")
-    assert "diva_guard.permissions.can_manage_diva_guard" in hooks
+    assert 'has_permission": "diva_guard.permissions.can_see_admin_apps"' in hooks
     reports = (ROOT / "apps" / "custom_reports" / "custom_reports" / "hooks.py").read_text(
         encoding="utf-8"
     )
-    assert "diva_guard.permissions.can_use_pos_or_diva" in reports
+    # The Diva Store tile must show for every desk user.
+    assert '"has_permission":' not in reports
     patches = sorted((ROOT / "infra" / "posnext-patches" / "v2.0.0").glob("0017-*.patch"))
     assert len(patches) == 1, patches
-    patch = patches[0].read_text(encoding="utf-8")
-    assert "pos_next.permissions.can_use_pos_app" in patch
-    assert "POSNext Cashier" in patch
+    admin_tile = sorted((ROOT / "infra" / "posnext-patches" / "v2.0.0").glob("0019-*.patch"))
+    assert len(admin_tile) == 1, admin_tile
+    patch = admin_tile[0].read_text(encoding="utf-8")
+    assert "pos_next.permissions.can_see_admin_apps" in patch
+    assert '"route": "/app/posnext"' in patch
 
 
 def test_share_and_dialog_strings_have_arabic_translations() -> None:

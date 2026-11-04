@@ -10,7 +10,9 @@ app_license = "mit"
 
 # required_apps = []
 
-# Each item in the list will be shown as an app in the apps page
+# DEC-105: only the Administrator / System Manager sees the Diva Guard tile on
+# the Desk apps screen; every other user sees ERPNext and Diva Store. Staff open
+# the guard from the Diva Store dashboard.
 add_to_apps_screen = [
 	{
 		"name": app_name,
@@ -27,7 +29,7 @@ add_to_apps_screen = [
 		),
 		"title": app_title,
 		"route": "/app/diva-guard",
-		"has_permission": "diva_guard.permissions.can_manage_diva_guard",
+		"has_permission": "diva_guard.permissions.can_see_admin_apps",
 		"sequence_id": 3,
 	}
 ]
@@ -39,7 +41,10 @@ add_to_apps_screen = [
 #
 # A companion app, one that extends a host app rather than standing on its own, says so with
 # `mount_on` on that same record, and its entries are appended to the host's rail. Mounting keeps
-# the companion off the apps screen, so it takes precedence over any add_to_apps_screen above.
+# the companion off the apps screen.
+
+# DEC-106: non-admin staff land on the Diva Store dashboard after login.
+get_website_user_home_page = "diva_guard.home.get_website_user_home_page"
 
 # Includes in <head>
 # ------------------

@@ -28,6 +28,8 @@ Patches we apply on top of the vendor app **POS Next by BrainWise** (`pos_next`,
 | 15 | `feat(pos): share an invoice from the invoice detail` | E-18/DEC-97: the invoice detail shows **Download PDF** (Diva A4 print preview with `trigger_print`) and **Open in WhatsApp** (`diva_guard.share.invoice_share` -> normalized `wa.me` link with a ready Arabic/English message) next to Print. Hidden for drafts and local-only (offline queue) invoices. |
 | 16 | `feat(pos): group the invoice share actions under one Share menu` | DEC-97 amendment: Print stays its own button; **Download PDF** and **Open in WhatsApp** move into one **Share** dropdown (frappe-ui `Dropdown`), matching the Desk. Still hidden for drafts and local-only invoices. |
 | 17 | `feat(app): let the cashier and managers see the POS Next app tile` | DEC-72/ENH-E-05: the vendor tile used `frappe.permissions.check_app_permission` (System Manager only). `pos_next/permissions.py` checks the shop roles instead, so the cashier and managers see the tile on the apps screen. |
+| 18 | `feat(apps): keep POS Next off the apps screen` | DEC-104: the owner opens the till from the Diva Store dashboard (**Open POS** → `/pos/`), so the vendor tile leaves the Desk apps screen. No route changes; `add_to_apps_screen` is simply not declared. |
+| 19 | `feat(apps): show the POS Next tile to the administrator only` | DEC-105 (supersedes the tile half of 0018): the Administrator / System Manager sees every app on the apps screen; every other user sees ERPNext and Diva Store and opens the till from the Diva Store dashboard. |
 
 ## Apply
 

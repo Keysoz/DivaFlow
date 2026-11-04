@@ -9,6 +9,7 @@ after_install = "custom_reports.install.after_install"
 after_migrate = "custom_reports.install.after_migrate"
 
 # Show the app on the Desk "Apps" screen and open the store dashboard.
+# DEC-105: every desk user sees the Diva Store tile (no has_permission).
 add_to_apps_screen = [
     {
         "name": app_name,
@@ -24,7 +25,6 @@ add_to_apps_screen = [
         ),
         "title": app_title,
         "route": "/app/diva-store",
-        "has_permission": "diva_guard.permissions.can_use_pos_or_diva",
         "sequence_id": 2,
     }
 ]

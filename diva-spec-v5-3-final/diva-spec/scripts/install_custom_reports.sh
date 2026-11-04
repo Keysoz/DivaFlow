@@ -54,4 +54,6 @@ docker exec "${CONTAINER}" bash -lc "cd ${BENCH} && bench --site ${SITE} clear-c
 echo "==> restart backend so gunicorn loads the app"
 docker restart "${CONTAINER}" >/dev/null
 
+bash "$(dirname "${BASH_SOURCE[0]}")/ensure-apps-registered.sh" >/dev/null
+
 echo 'done. Open /app/query-report/Party%20Statement after the desk loads.'

@@ -11,6 +11,7 @@ from apply import (
     plan_property_setters,
     plan_records,
     plan_singles,
+    plan_user_roles,
     plan_workspaces,
 )
 
@@ -127,6 +128,71 @@ def test_plan_records() -> None:
         plan_records(entries, {key: {"name": "Dozen", "must_be_whole_number": 0}})[0].action
         == "update"
     )
+
+
+def test_plan_records_create_false_skips_a_missing_record() -> None:
+    """DEC-104: the pipeline updates an existing staff user, never creates one."""
+    entries = [
+        {
+            "doctype": "User",
+            "match": {"username": "ahmed_ramadan"},
+            "create": False,
+            "set": {"default_workspace": "Diva Store"},
+        }
+    ]
+    action = plan_records(entries, {})[0]
+    assert action.action == "noop"
+    assert action.desired == {"_note": "missing; create: false -> skipped"}
+
+
+def test_plan_user_roles_is_additive() -> None:
+    """DEC-104: missing roles are added; held roles are never removed."""
+    entries = [{"user": "ahmed_ramadan", "roles": ["Sales User", "Purchase User"]}]
+    existing = {
+        "ahmed_ramadan": {
+            "__docname__": "aadd12533@gmail.com",
+            "roles": [{"role": "Sales User"}, {"role": "Sales Manager"}],
+        }
+    }
+    action = plan_user_roles(entries, existing)[0]
+    assert action.action == "update"
+    assert action.target == "aadd12533@gmail.com"
+    assert action.desired["roles"] == ["Purchase User", "Sales User"]
+    held = {
+        "ahmed_ramadan": {
+            "__docname__": "aadd12533@gmail.com",
+            "roles": [{"role": "Purchase User"}, {"role": "Sales User"}],
+        }
+    }
+    assert plan_user_roles(entries, held)[0].action == "noop"
+    assert plan_user_roles(entries, {"ahmed_ramadan": None})[0].action == "noop"
+
+
+def test_user_roles_payload_only_appends_missing_roles() -> None:
+    client = FakeClient()
+    apply_actions(
+        client,
+        [
+            Action(
+                "user_roles",
+                "aadd12533@gmail.com",
+                "update",
+                {"roles": [{"role": "Sales Manager"}]},
+                {"roles": ["Purchase User", "Sales User"]},
+            )
+        ],
+        {},
+        {},
+        {},
+    )
+    method, path, payload = client.calls[-1]
+    assert method == "PUT"
+    assert path.endswith("User/aadd12533%40gmail.com")
+    assert payload["roles"] == [
+        {"role": "Sales Manager"},
+        {"role": "Purchase User"},
+        {"role": "Sales User"},
+    ]
 
 
 def test_permission_mirror_creates_missing_standard_rows() -> None:

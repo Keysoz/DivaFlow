@@ -1009,6 +1009,12 @@ singles:
   - doctype: Global Defaults
     field: default_currency
     value: EGP
+  # DEC-95: the desk/website brand logo must point at the public copy of the
+  # file; a /private/files/... reference 403s on every web page (Navbar boots
+  # its app logo from this field).
+  - doctype: Navbar Settings
+    field: app_logo
+    value: /files/IMG_20260325_201818_061.jpg
   # E-04: negative stock off; reservations on (RULE-STOCK / DEC-08).
   - doctype: Stock Settings
     field: allow_negative_stock
@@ -1340,3 +1346,373 @@ records:
   - doctype: Currency
     match: { name: EGP }
     set: { symbol: EGP }
+
+  # DEC-102: full Arabic UI. Diva desk/guard strings and the trading terms
+  # where ERPNext's ar.po is missing or mistranslated (Item, Amount, Due Date,
+  # Draft, Shift, Nos, Dozen, ...). Translation records override ar.po.
+  - doctype: User
+    match: { name: Administrator }
+    set: { language: ar }
+  - doctype: Translation
+    match: { language: ar, source_text: "Could not create the item." }
+    set: { translated_text: "تعذر إنشاء الصنف." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Document line" }
+    set: { translated_text: "سطر المستند" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Enter an amount between 0 and {0}" }
+    set: { translated_text: "أدخل مبلغًا بين 0 و{0}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item {0} added" }
+    set: { translated_text: "تمت إضافة الصنف {0}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Left stock" }
+    set: { translated_text: "المخزون المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Open in WhatsApp" }
+    set: { translated_text: "فتح في واتساب" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Open in WhatsApp failed" }
+    set: { translated_text: "تعذر الفتح في واتساب" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment Date" }
+    set: { translated_text: "تاريخ السداد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Please allow pop-ups to print the labels." }
+    set: { translated_text: "يُرجى السماح بالنوافذ المنبثقة لطباعة الملصقات." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Search items, parties and invoices" }
+    set: { translated_text: "ابحث عن الأصناف والأطراف والفواتير" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Select the items to print first." }
+    set: { translated_text: "اختر الأصناف المطلوب طباعتها أولًا." }
+  - doctype: Translation
+    match: { language: ar, source_text: "A POS sale must have a POS profile." }
+    set: { translated_text: "يجب أن تحتوي عملية البيع في نقاط البيع على ملف نقطة بيع." }
+  - doctype: Translation
+    match: { language: ar, source_text: "A statement is shared for a Customer or a Supplier" }
+    set: { translated_text: "يُشارك كشف الحساب لعميل أو مورد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Accepted Quantity must be greater than zero" }
+    set: { translated_text: "يجب أن تكون الكمية المستلمة أكبر من صفر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Accepted Warehouse {0} does not exist" }
+    set: { translated_text: "المخزن المستلم {0} غير موجود" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Amount must be between 0 and {0}" }
+    set: { translated_text: "يجب أن يكون المبلغ بين 0 و{0}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Automatic transfer to {0} for Purchase Receipt {1}" }
+    set: { translated_text: "تحويل تلقائي إلى {0} لإيصال استلام المشتريات {1}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Barcode {0} is already used by item {1}." }
+    set: { translated_text: "الباركود {0} مستخدم بالفعل للصنف {1}." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Buying Price cannot be negative" }
+    set: { translated_text: "لا يمكن أن يكون سعر الشراء سالبًا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Choose a party before sharing the statement" }
+    set: { translated_text: "اختر طرفًا قبل مشاركة كشف الحساب" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Choose the statement period before sharing" }
+    set: { translated_text: "اختر فترة كشف الحساب قبل المشاركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Counter sales must be paid in full: paid {0}, due {1}. " }
+    set: { translated_text: "يجب سداد مبيعات الكاشير بالكامل: المسدد {0}، المتبقي {1}. " }
+  - doctype: Translation
+    match: { language: ar, source_text: "Create a Temporary Opening account before posting opening stock" }
+    set: { translated_text: "أنشئ حساب افتتاحي مؤقت قبل ترحيل المخزون الافتتاحي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Created automatically from Purchase Receipt {0}" }
+    set: { translated_text: "أُنشئ تلقائيًا من إيصال استلام المشتريات {0}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Credit notes are settled from the Return document, not from Pay" }
+    set: { translated_text: "تُسوّى إشعارات الدائن من مستند المرتجع، وليس من زر السداد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Discount {0}% exceeds the manager limit of {1}%." }
+    set: { translated_text: "الخصم {0}% يتجاوز حد المدير {1}%." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Discount {0}% is above the cashier limit of {1}%: a manager PIN approval is required." }
+    set: { translated_text: "الخصم {0}% يتجاوز حد الكاشير {1}%: يلزم اعتماد برقم المدير السري." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Free items need manager approval (line {0})." }
+    set: { translated_text: "الأصناف المجانية تحتاج اعتماد المدير (السطر {0})." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Invalid manager PIN." }
+    set: { translated_text: "رقم المدير السري غير صحيح." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Invoice sharing is available for Sales Invoice, Purchase Invoice and Payment Entry" }
+    set: { translated_text: "مشاركة الفواتير متاحة لفاتورة البيع وفاتورة الشراء وقيد الدفع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Invoice {0} is already paid" }
+    set: { translated_text: "الفاتورة {0} مسددة بالفعل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item Code and Item Name are required" }
+    set: { translated_text: "رمز الصنف واسم الصنف مطلوبان" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item Group {0} does not exist" }
+    set: { translated_text: "مجموعة الأصناف {0} غير موجودة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item {0} already exists" }
+    set: { translated_text: "الصنف {0} موجود بالفعل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Line {0} must have a positive quantity." }
+    set: { translated_text: "يجب أن تكون كمية السطر {0} موجبة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Manager PIN is not configured. Set it with the Diva Guard seed script." }
+    set: { translated_text: "رقم المدير السري غير مُهيأ. اضبطه بسكربت تهيئة Diva Guard." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Manager PIN salt is malformed; re-run the Diva Guard seed script." }
+    set: { translated_text: "ملح رقم المدير السري غير صالح؛ أعد تشغيل سكربت تهيئة Diva Guard." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Minimum quantity for {0} is {1} Dozen in steps of {2} Dozen (current {3} Dozen)." }
+    set: { translated_text: "الحد الأدنى لكمية {0} هو {1} دستة بخطوات {2} دستة (الحالي {3} دستة)." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Mode of Payment {0} has no account for {1}" }
+    set: { translated_text: "طريقة الدفع {0} ليس لها حساب لـ {1}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "No selling price is configured for {0} in {1}." }
+    set: { translated_text: "لا يوجد سعر بيع مُهيأ للصنف {0} في {1}." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Not enough available stock for {0} in {1}: available {2}, requested {3}." }
+    set: { translated_text: "المخزون المتاح غير كافٍ للصنف {0} في {1}: المتاح {2}، المطلوب {3}." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only Sales Invoice approvals are supported." }
+    set: { translated_text: "تُدعم اعتمادات فاتورة البيع فقط." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only company-currency invoices can be paid from the Desk Pay button" }
+    set: { translated_text: "لا يمكن سداد سوى الفواتير بعملة الشركة من زر السداد في المكتب" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only submitted invoices can be paid" }
+    set: { translated_text: "لا يمكن سداد سوى الفواتير المُرحّلة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment {0} created from the Desk Pay button by {1}" }
+    set: { translated_text: "أُنشئ السداد {0} من زر السداد في المكتب بواسطة {1}" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Purchase Receipt {0} is saved, but the Purchase Invoice could not be created " }
+    set: { translated_text: "تم حفظ إيصال استلام المشتريات {0}، لكن تعذر إنشاء فاتورة الشراء " }
+  - doctype: Translation
+    match: { language: ar, source_text: "Purchase Receipt {0} is saved, but the transfer to {1} could not be created " }
+    set: { translated_text: "تم حفظ إيصال استلام المشتريات {0}، لكن تعذر إنشاء التحويل إلى {1} " }
+  - doctype: Translation
+    match: { language: ar, source_text: "Rate for {0} is above the price list ({1} > {2})." }
+    set: { translated_text: "سعر {0} أعلى من قائمة الأسعار ({1} > {2})." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Selling Price must be greater than zero" }
+    set: { translated_text: "يجب أن يكون سعر البيع أكبر من صفر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "The manager PIN must be at least 6 characters." }
+    set: { translated_text: "يجب ألا يقل رقم المدير السري عن 6 أحرف." }
+  - doctype: Translation
+    match: { language: ar, source_text: "This POS profile must use the {0} price list." }
+    set: { translated_text: "يجب أن يستخدم ملف نقطة البيع هذا قائمة الأسعار {0}." }
+  - doctype: Translation
+    match: { language: ar, source_text: "This party has no phone number. Add a mobile on the Customer/Supplier or its Contact first." }
+    set: { translated_text: "هذا الطرف ليس لديه رقم هاتف. أضف رقم موبايل على العميل/المورد أو جهة الاتصال أولًا." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Too many PIN attempts. Try again in a few minutes." }
+    set: { translated_text: "محاولات كثيرة لرقم المدير السري. حاول مرة أخرى بعد دقائق." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Wholesale Price cannot be negative" }
+    set: { translated_text: "لا يمكن أن يكون سعر الجملة سالبًا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to create items" }
+    set: { translated_text: "ليس لديك صلاحية إنشاء الأصناف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to create payments" }
+    set: { translated_text: "ليس لديك صلاحية إنشاء المدفوعات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to update items" }
+    set: { translated_text: "ليس لديك صلاحية تعديل الأصناف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to view items" }
+    set: { translated_text: "ليس لديك صلاحية عرض الأصناف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to view this document" }
+    set: { translated_text: "ليس لديك صلاحية عرض هذا المستند" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to view this invoice" }
+    set: { translated_text: "ليس لديك صلاحية عرض هذه الفاتورة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You do not have permission to view this party" }
+    set: { translated_text: "ليس لديك صلاحية عرض هذا الطرف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "You need create permission on {0} for the automatic Purchase Receipt follow-up." }
+    set: { translated_text: "تحتاج صلاحية الإنشاء على {0} للمتابعة التلقائية لإيصال استلام المشتريات." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item" }
+    set: { translated_text: "صنف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Dozen" }
+    set: { translated_text: "دستة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Nos" }
+    set: { translated_text: "قطعة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Amount" }
+    set: { translated_text: "المبلغ" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Due Date" }
+    set: { translated_text: "تاريخ الاستحقاق" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Draft" }
+    set: { translated_text: "مسودة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Submitted" }
+    set: { translated_text: "مُرحّل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Cancelled" }
+    set: { translated_text: "ملغي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Shift" }
+    set: { translated_text: "وردية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Warehouse" }
+    set: { translated_text: "مخزن" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Customer" }
+    set: { translated_text: "عميل" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Supplier" }
+    set: { translated_text: "مورد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Item Group" }
+    set: { translated_text: "مجموعة الأصناف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Rate" }
+    set: { translated_text: "السعر" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Total" }
+    set: { translated_text: "الإجمالي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Net Total" }
+    set: { translated_text: "صافي الإجمالي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Grand Total" }
+    set: { translated_text: "الإجمالي النهائي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Outstanding Amount" }
+    set: { translated_text: "المبلغ المتبقي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Receivable" }
+    set: { translated_text: "مدين" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payable" }
+    set: { translated_text: "دائن" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Valuation Rate" }
+    set: { translated_text: "سعر التقييم" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Landed Cost" }
+    set: { translated_text: "تكلفة الشحن والجمارك" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Return" }
+    set: { translated_text: "مرتجع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment" }
+    set: { translated_text: "سداد" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Cash" }
+    set: { translated_text: "نقدي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Bank Transfer" }
+    set: { translated_text: "تحويل بنكي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Sales Invoice" }
+    set: { translated_text: "فاتورة بيع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Sales Order" }
+    set: { translated_text: "طلب بيع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Delivery Note" }
+    set: { translated_text: "إذن التسليم" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Purchase Receipt" }
+    set: { translated_text: "إيصال استلام المشتريات" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Payment Entry" }
+    set: { translated_text: "قيد الدفع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Journal Entry" }
+    set: { translated_text: "قيد يومية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Stock Reconciliation" }
+    set: { translated_text: "تسوية المخزون" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Batch" }
+    set: { translated_text: "دفعة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "POS Profile" }
+    set: { translated_text: "ملف نقطة البيع" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Stock Ledger" }
+    set: { translated_text: "سجل المخزون" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Closing Stock" }
+    set: { translated_text: "مخزون آخر المدة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Wholesale" }
+    set: { translated_text: "جملة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Ageing" }
+    set: { translated_text: "أعمار الديون" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Is Printed" }
+    set: { translated_text: "تمت الطباعة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Is Return (Credit Note)" }
+    set: { translated_text: "مرتجع (إشعار دائن)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Is Rate Adjustment Entry (Debit Note)" }
+    set: { translated_text: "قيد تعديل السعر (إشعار مدين)" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Consult for Tax Withholding" }
+    set: { translated_text: "اقتطاع ضريبة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Include Payment (POS)" }
+    set: { translated_text: "تشمل الدفع (POS)" }
+
+  # DEC-102: keep the number abbreviations as-is in Arabic; ar.po shows
+  # K/M/B/T as ك/م/ب/تي in the number cards.
+  # (the source is __(symbol, null, "Number system"), hence the context).
+  - doctype: Translation
+    match: { language: ar, source_text: "K", context: "Number system" }
+    set: { translated_text: "K" }
+  - doctype: Translation
+    match: { language: ar, source_text: "M", context: "Number system" }
+    set: { translated_text: "M" }
+  - doctype: Translation
+    match: { language: ar, source_text: "B", context: "Number system" }
+    set: { translated_text: "B" }
+  - doctype: Translation
+    match: { language: ar, source_text: "T", context: "Number system" }
+    set: { translated_text: "T" }
+
+  # DEC-95: Product Info page card (staff-only, read-only).
+  - doctype: Translation
+    match: { language: ar, source_text: "Item {0} not found" }
+    set: { translated_text: "الصنف {0} غير موجود" }
+  - doctype: Translation
+    match: { language: ar, source_text: "No image is set for item {0}" }
+    set: { translated_text: "لا توجد صورة للصنف {0}" }
+
+  # DEC-104: staff accounts. Access must already exist (the user is created on
+  # the site, never by the pipeline — only these fields are pinned); the Diva
+  # switcher tile (custom_reports) opens /app/diva-store after login.
+  - doctype: User
+    match: { username: ahmed_ramadan }
+    create: false
+    set:
+      enabled: 1
+      language: ar
+      default_app: custom_reports
+      # DEC-106: the login landing is the diva_guard hook for every non-admin
+      # user; keep this field empty so it does not override the hook.
+      default_workspace: ""
+
+user_roles:
+  # DEC-104: ahmed_ramadan opens the Diva Store dashboard after login with the
+  # cashier + purchasing parties package. Additive: a role already held is kept;
+  # the pipeline never removes a role.
+  - user: ahmed_ramadan
+    roles: [POSNext Cashier, Sales User, Stock User, Purchase User]

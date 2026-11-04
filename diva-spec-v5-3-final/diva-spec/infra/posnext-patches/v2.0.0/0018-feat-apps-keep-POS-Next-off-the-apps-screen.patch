@@ -1,0 +1,41 @@
+From a4a0e3d70fb36bfacb1d2a68c6d1c7aa18b291f9 Mon Sep 17 00:00:00 2001
+From: Diva Patches <patches@diva.local>
+Date: Wed, 4 Nov 2026 14:03:13 +0000
+Subject: [PATCH] feat(apps): keep POS Next off the apps screen (DEC-104)
+
+The owner opens the till from the Diva Store dashboard (Open POS -> /pos/). Removing add_to_apps_screen drops the vendor tile from the Desk apps screen while every route keeps working.
+---
+ pos_next/hooks.py | 17 +++++------------
+ 1 file changed, 5 insertions(+), 12 deletions(-)
+
+diff --git a/pos_next/hooks.py b/pos_next/hooks.py
+index 9e328a3..3a7214f 100644
+--- a/pos_next/hooks.py
++++ b/pos_next/hooks.py
+@@ -12,18 +12,11 @@ app_license = "agpl-3.0"
+ 
+ # required_apps = []
+ 
+-# Each item in the list will be shown as an app in the apps page
+-add_to_apps_screen = [
+-	{
+-		"name": app_name,
+-		"logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBPUyBOZXh0Ij4KICA8cmVjdCB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHJ4PSIxNCIgZmlsbD0iIzBiNzI4NSIvPgogIDxyZWN0IHg9IjE0IiB5PSIxOCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjE5IiB5PSIyNCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjQiIHJ4PSIyIiBmaWxsPSIjMGI3Mjg1Ii8+CiAgPHJlY3QgeD0iMTkiIHk9IjMxIiB3aWR0aD0iMTgiIGhlaWdodD0iNCIgcng9IjIiIGZpbGw9IiMwYjcyODUiLz4KICA8cmVjdCB4PSIyMiIgeT0iNDYiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0IiByeD0iMiIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4=",
+-		"title": app_title,
+-		"route": "/app/posnext",
+-		"has_permission": "pos_next.permissions.can_use_pos_app",
+-		"sequence_id": 4,
+-	}
+-]
+-
++# DEC-104: POS Next has NO entry on the Desk apps screen. The owner opens the
++# till from the Diva Store dashboard (the "Open POS" tile -> /pos/); every
++# installed app is still reachable by route. Only apps that declare
++# add_to_apps_screen appear on the apps screen.
++#
+ # Includes in <head>
+ # ------------------
+ 
+-- 
+2.47.3
+

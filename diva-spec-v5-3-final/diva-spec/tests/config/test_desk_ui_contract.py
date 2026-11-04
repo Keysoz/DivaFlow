@@ -196,6 +196,28 @@ def test_diva_store_shortcuts_start_the_page_and_show_icons() -> None:
     assert 'frappe.utils.icon(icon, "sm")' in source
 
 
+def test_app_visibility_is_role_based() -> None:
+    """ENH-E-05: the cashier and managers see the Diva/POS tiles, not only admin."""
+    perms = (ROOT / "apps" / "diva_guard" / "diva_guard" / "permissions.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def can_use_pos_or_diva" in perms
+    assert "def can_manage_diva_guard" in perms
+    assert '"POSNext Cashier"' in perms
+    assert '"Sales User"' in perms
+    hooks = (ROOT / "apps" / "diva_guard" / "diva_guard" / "hooks.py").read_text(encoding="utf-8")
+    assert "diva_guard.permissions.can_manage_diva_guard" in hooks
+    reports = (ROOT / "apps" / "custom_reports" / "custom_reports" / "hooks.py").read_text(
+        encoding="utf-8"
+    )
+    assert "diva_guard.permissions.can_use_pos_or_diva" in reports
+    patches = sorted((ROOT / "infra" / "posnext-patches" / "v2.0.0").glob("0017-*.patch"))
+    assert len(patches) == 1, patches
+    patch = patches[0].read_text(encoding="utf-8")
+    assert "pos_next.permissions.can_use_pos_app" in patch
+    assert "POSNext Cashier" in patch
+
+
 def test_share_and_dialog_strings_have_arabic_translations() -> None:
     config = (ROOT / "infra" / "erpnext-config" / "config.yaml").read_text(encoding="utf-8")
     for source_text in (

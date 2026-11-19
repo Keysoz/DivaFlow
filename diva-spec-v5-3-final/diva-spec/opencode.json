@@ -7,7 +7,7 @@
   "small_model": "opencode-go/qwen3.8-flash",
   "agent": {
     "plan": {
-      "model": "opencode-go/glm-5.2"
+      "model": "opencode-go/glm-5.3"
     },
     "build": {
       "model": "opencode-go/deepseek-v4.1-flash"
@@ -63,7 +63,7 @@
     "review-by-glm": {
       "description": "Read-only reviewer for code written by DeepSeek or Kimi. The author never reviews its own code.",
       "mode": "subagent",
-      "model": "opencode-go/glm-5.2",
+      "model": "opencode-go/glm-5.3",
       "permission": {
         "edit": "deny"
       }

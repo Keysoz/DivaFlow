@@ -515,3 +515,12 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
     `/tmp/opencode/qe_supplier_filled.png`.
 - **Unchanged:** the full Supplier, Customer and Address forms keep all fields and no forced
   defaults; no ERPNext or POS Next code was edited.
+- **Source cross-check** (`erpnext.bundle`): `ContactAddressQuickEntryForm.insert()` maps
+  `country_address -> country` and `email_address -> email_id`, so the dropped names and
+  `country_address` are the real fields. `get_variant_fields()` builds a new array per call,
+  so setting `df.default` there cannot leak into the full forms. The Desk page serves the
+  ERPNext bundle before `diva_desk`'s `app_include_js` files, so the subclass always sees the
+  base class.
+- **Address Line 1 is now required:** ERPNext sets `mandatory_depends_on` to
+  `doc.city || doc.country_address`, and both are pre-filled, so the street line must be typed
+  before save (it was optional when city/country were blank).

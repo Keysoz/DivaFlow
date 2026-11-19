@@ -117,6 +117,14 @@ property_setters:
     fieldname: mode_of_payment
     property: default
     value: Cash
+  # DEC-107: every supplier is in Egypt. `country` is a Link to the Country
+  # record, so the value is the record name and not the Arabic label (the site
+  # had drifted to the invalid value "مصر", which is not a Country record).
+  - doctype: Supplier
+    fieldname: country
+    property: default
+    property_type: Data
+    value: Egypt
 
   # DEC-90: simplify the item row editor. Keep the entry fields (code, name,
   # qty, UOM, rate, amount, warehouse, batch/serial, accounts) and hide the

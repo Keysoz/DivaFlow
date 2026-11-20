@@ -524,3 +524,27 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - **Address Line 1 is now required:** ERPNext sets `mandatory_depends_on` to
   `doc.city || doc.country_address`, and both are pre-filled, so the street line must be typed
   before save (it was optional when city/country were blank).
+
+## 36. Purchase Receipt submit opens its invoice (DEC-108, dev site)
+
+- **Server:** `diva_guard.desk_api.purchase_invoice_for_receipt(name)` is whitelisted and
+  read-only: it looks the invoice up through `Purchase Invoice Item.purchase_receipt` with
+  `docstatus < 2` (never a cancelled one), checks **read** on the Purchase Receipt and on the
+  Purchase Invoice, and returns `None` for a missing receipt, a missing invoice or missing
+  permission. It never inserts, saves or submits anything. Callers must be logged in
+  (`Guest` -> `PermissionError`).
+- **Client:** the Purchase Receipt form gained `on_submit`, which calls the endpoint and then
+  `frappe.set_route("Form", "Purchase Invoice", invoice)`, preceded by the alert
+  `جارٍ فتح فاتورة الشراء {0}.` (Arabic from `config.yaml`).
+- **Headless Chromium (Administrator, Arabic Desk):** opened the draft
+  `PRE-26-11-00009`, clicked the primary action (`إرسال`) and confirmed (`نعم`); the browser
+  landed on `http://.../desk/stock/purchase-invoice/PINV-26-11-00009`, `doctype = Purchase
+  Invoice`, `docstatus = 0`, `bill_no = PRE-26-11-00009`. Screenshot:
+  `/tmp/opencode/pr_submit_lands_on_pi.png`.
+- **Fallbacks:** the endpoint returns `{}` (no message) for an unknown or empty name, so the
+  handler stays put; if the user may not read Purchase Invoices the handler returns before
+  calling. The invoice is **not** submitted automatically.
+- **Cleanup:** `PRE-26-11-00008`/`PRE-26-11-00009` and their drafts (`PINV-26-11-00008`,
+  `PINV-26-11-00009`) were cancelled/deleted; `LEFT_PIS 0`, `LEFT_PRS 0`.
+- **Checks:** `make lint` clean; `make test` **263 passed, 4 skipped**; config re-run
+  `0 change(s), 581 no-op/missing`.

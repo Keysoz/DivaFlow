@@ -598,3 +598,34 @@ def _create_transfer(pr: Any) -> str | None:
 		entry.append("items", row)
 	entry.insert(ignore_permissions=True)
 	return str(entry.name)
+
+
+@frappe.whitelist()  # type: ignore[untyped-decorator]
+def purchase_invoice_for_receipt(purchase_receipt: str) -> str | None:
+	"""Return the Purchase Invoice created for a submitted receipt (DEC-108).
+
+	Read-only. The draft invoice is created on submit by
+	:func:`auto_create_from_purchase_receipt`; the Desk calls this right after
+	the submit so it can open the invoice. A missing invoice, or one this user
+	may not read, returns ``None`` instead of an error: the receipt is already
+	saved and a navigation lookup must never turn a successful submit into a
+	failure.
+	"""
+	name = (purchase_receipt or "").strip()
+	if not name or not frappe.db.exists("Purchase Receipt", name):
+		return None
+	if not frappe.has_permission("Purchase Receipt", "read", doc=name):
+		return None
+	rows = frappe.db.get_all(
+		"Purchase Invoice Item",
+		filters={"purchase_receipt": name, "docstatus": ["<", 2]},
+		fields=["parent"],
+		order_by="creation asc",
+		limit_page_length=1,
+	)
+	if not rows:
+		return None
+	invoice = str(rows[0]["parent"])
+	if not frappe.has_permission("Purchase Invoice", "read", doc=invoice):
+		return None
+	return invoice

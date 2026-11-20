@@ -480,3 +480,47 @@ Verified with a headless browser: `/app/dashboard-view/Selling` loads and render
 - **Headless:** login as `ahmed_ramadan` ends on `http://localhost:8080/desk/custom-reports/diva-store`
   (Diva Store visible); login as `Administrator` still ends on `http://localhost:8080/desk`.
 - **Checks:** `make lint` clean; `make test` **258 passed, 4 skipped**.
+
+## 35. Supplier/Customer quick entry defaults (DEC-107, dev site)
+
+- **What it is:** `Add Supplier` / `Add Customer` opens ERPNext's
+  `ContactAddressQuickEntryForm` (party fields + an inline primary contact and address). Its
+  field list is hard-coded in ERPNext's JavaScript; there is no DocField/Property Setter hook.
+- **Change:** `apps/diva_desk/diva_desk/public/js/party_quick_entry.js` subclasses the base
+  form, drops `email_address`, `pincode`, `state`, and sets `city = القاهرة`,
+  `country_address = Egypt`. It is loaded through `diva_desk`'s `app_include_js` and assigned to
+  both `frappe.ui.form.SupplierQuickEntryForm` and `frappe.ui.form.CustomerQuickEntryForm`.
+  If `ContactAddressQuickEntryForm` or its `get_variant_fields` is missing, the file returns
+  without touching anything, so an ERPNext upgrade cannot break the Add button.
+- **Country default bug:** the dev site had `Property Setter` `Supplier.country = 'مصر'`, but
+  the `Country` table only holds `Egypt` (there is no `مصر` record), so a new Supplier form
+  started with an unsavable link. `infra/erpnext-config/config.yaml` now sets the default to
+  `Egypt`; `apply.py --apply` updated the existing setter in place (`current='مصر'`
+  `desired='Egypt'`), and a re-run printed **0 change(s), 580 no-op/missing**. Live meta:
+  `Supplier.country.default = Egypt`.
+- **Asset publishing:** `sites/assets/diva_desk` in this stack is a copy per container (not a
+  live mount of the app), so the file was placed in **both** the backend and frontend
+  containers (`docker cp` to `assets/diva_desk/js/` and the app's `public/js/`), then the
+  backend was restarted and the cache cleared. `/assets/diva_desk/js/party_quick_entry.js`
+  returns HTTP 200.
+- **Headless Chromium (Administrator, Arabic Desk):**
+  - Supplier dialog labels: `اسم المورد، المورد نوع، الاسم الأول، اسم العائلة، رقم الهاتف،
+    العنوان سطر 1، العنوان سطر 2، المدينة، الدولة` — no Email/ZIP/State.
+  - `frappe.quick_entry.dialog.doc` = `{city: 'القاهرة', country: 'Egypt'}` for **both**
+    Supplier and Customer (Country displays the Arabic label `مصر`, stores `Egypt`).
+  - Created a throwaway supplier through the dialog: Address
+    `ZZ Quick Entry Check-الفواتير` saved `city = القاهرة`, `country = Egypt`,
+    `address_line1 = 12 Test Street`; the Supplier row stored `country = Egypt`. Both records
+    were then deleted (`SUP_LEFT 0`, `ADDR_LEFT 0`). Screenshot:
+    `/tmp/opencode/qe_supplier_filled.png`.
+- **Unchanged:** the full Supplier, Customer and Address forms keep all fields and no forced
+  defaults; no ERPNext or POS Next code was edited.
+- **Source cross-check** (`erpnext.bundle`): `ContactAddressQuickEntryForm.insert()` maps
+  `country_address -> country` and `email_address -> email_id`, so the dropped names and
+  `country_address` are the real fields. `get_variant_fields()` builds a new array per call,
+  so setting `df.default` there cannot leak into the full forms. The Desk page serves the
+  ERPNext bundle before `diva_desk`'s `app_include_js` files, so the subclass always sees the
+  base class.
+- **Address Line 1 is now required:** ERPNext sets `mandatory_depends_on` to
+  `doc.city || doc.country_address`, and both are pre-filled, so the street line must be typed
+  before save (it was optional when city/country were blank).

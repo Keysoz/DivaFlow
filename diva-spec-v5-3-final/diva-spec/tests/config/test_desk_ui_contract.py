@@ -15,6 +15,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 DESK_JS = ROOT / "apps" / "diva_desk" / "diva_desk" / "public" / "js" / "diva_desk.js"
 POS_PATCHES = ROOT / "infra" / "posnext-patches" / "v2.0.0"
+QUICK_ENTRY_JS = (
+    ROOT / "apps" / "diva_desk" / "diva_desk" / "public" / "js" / "party_quick_entry.js"
+)
 
 
 def desk_js() -> str:
@@ -234,3 +237,40 @@ def test_share_and_dialog_strings_have_arabic_translations() -> None:
         "Print Labels",
     ):
         assert f'source_text: "{source_text}"' in config, source_text
+
+
+def test_party_quick_entry_drops_email_postal_and_state() -> None:
+    """DEC-107: the supplier/customer quick entry keeps only what the shop uses."""
+    source = QUICK_ENTRY_JS.read_text(encoding="utf-8")
+    # The three removed inputs, and the two values the dialog pre-fills.
+    for fieldname in ("email_address", "pincode", "state"):
+        assert f'"{fieldname}"' in source, fieldname
+    assert '"القاهرة"' in source
+    assert '"Egypt"' in source
+    # Both parties use the same dialog class.
+    assert "frappe.ui.form.SupplierQuickEntryForm = " in source
+    assert "frappe.ui.form.CustomerQuickEntryForm = " in source
+    # An ERPNext upgrade must never break "Add Supplier".
+    assert "typeof base.prototype.get_variant_fields" in source
+    assert "return;" in source
+
+
+def test_party_quick_entry_is_loaded_by_the_desk() -> None:
+    hooks = (ROOT / "apps" / "diva_desk" / "diva_desk" / "hooks.py").read_text(encoding="utf-8")
+    assert '"/assets/diva_desk/js/party_quick_entry.js"' in hooks
+    assert '"/assets/diva_desk/js/diva_desk.js"' in hooks
+
+
+def test_supplier_country_default_is_a_real_country_record() -> None:
+    """DEC-107: the link value is `Egypt`; "مصر" is not a Country record."""
+    config = yaml.safe_load(
+        (ROOT / "infra" / "erpnext-config" / "config.yaml").read_text(encoding="utf-8")
+    )
+    rows = [
+        row
+        for row in config["property_setters"]
+        if row["doctype"] == "Supplier" and row["fieldname"] == "country"
+    ]
+    assert rows, "Supplier.country default is missing"
+    assert rows[0]["property"] == "default"
+    assert rows[0]["value"] == "Egypt"

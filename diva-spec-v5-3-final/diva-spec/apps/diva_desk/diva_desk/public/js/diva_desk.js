@@ -873,6 +873,30 @@
 				);
 			}
 		},
+		// DEC-108: submitting a receipt creates its draft Purchase Invoice on the
+		// server, so land on that invoice instead of leaving the owner to find the
+		// draft. The lookup is read-only; if no invoice exists (a failed
+		// follow-up, or no permission) the user simply stays on the receipt.
+		on_submit(frm) {
+			if (!frappe.model.can_read("Purchase Invoice")) {
+				return;
+			}
+			return frappe.call({
+				method: "diva_guard.desk_api.purchase_invoice_for_receipt",
+				args: { purchase_receipt: frm.doc.name },
+				callback(r) {
+					const invoice = r && r.message;
+					if (!invoice) {
+						return;
+					}
+					frappe.show_alert({
+						message: __("Opening the Purchase Invoice {0}.", [invoice]),
+						indicator: "green",
+					});
+					frappe.set_route("Form", "Purchase Invoice", invoice);
+				},
+			});
+		},
 	});
 
 	// ------------------------------------------------------------------

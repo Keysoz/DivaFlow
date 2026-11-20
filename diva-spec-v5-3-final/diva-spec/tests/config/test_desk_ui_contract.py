@@ -274,28 +274,3 @@ def test_supplier_country_default_is_a_real_country_record() -> None:
     assert rows, "Supplier.country default is missing"
     assert rows[0]["property"] == "default"
     assert rows[0]["value"] == "Egypt"
-
-
-def test_purchase_receipt_submit_opens_its_purchase_invoice() -> None:
-    """DEC-108: submitting a receipt lands on the invoice it just created."""
-    source = desk_js()
-    assert 'frappe.ui.form.on("Purchase Receipt", {' in source
-    assert "on_submit(frm)" in source
-    assert '"diva_guard.desk_api.purchase_invoice_for_receipt"' in source
-    assert 'frappe.set_route("Form", "Purchase Invoice", invoice)' in source
-    # A missing invoice (or no permission) must leave the user on the receipt.
-    assert "if (!invoice) {\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}" in source
-    assert 'frappe.model.can_read("Purchase Invoice")' in source
-
-
-def test_purchase_invoice_lookup_is_read_only() -> None:
-    """DEC-108: the lookup never creates, changes or submits anything."""
-    api = (ROOT / "apps" / "diva_guard" / "diva_guard" / "desk_api.py").read_text(encoding="utf-8")
-    body = api.split("def purchase_invoice_for_receipt", 1)[1].split("\n@frappe.whitelist", 1)[0]
-    assert "frappe.db.get_all" in body
-    assert 'has_permission("Purchase Receipt", "read"' in body
-    assert 'has_permission("Purchase Invoice", "read"' in body
-    for forbidden in (".insert(", ".submit(", "db_set", ".save("):
-        assert forbidden not in body, forbidden
-    # Only a draft or submitted invoice is returned, never a cancelled one.
-    assert '"docstatus": ["<", 2]' in body

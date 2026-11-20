@@ -52,7 +52,6 @@ Hide by blocking modules and workspaces per user or role. Never uninstall an app
 - Purchase Invoice keep: supplier, supplier invoice number and date, posting date, items, quantity, UOM, rate, taxes, totals, paid and outstanding, remarks. Hide project, cost center if unused, landed-cost fields unless used.
 - Flow (DEC-31): goods and supplier invoices arrive together, so use **Purchase Invoice with Update Stock**. Hide Purchase Receipt from daily navigation. Turn on supplier invoice number uniqueness.
 - Supplier payments through Payment Entry with allocation to invoices; supplier statements and payables reports.
-- **Submitting a receipt (DEC-108):** once the Purchase Receipt is submitted, the Desk opens the draft Purchase Invoice created from it (DEC-86), so the owner reviews the supplier bill and submits it. The invoice is never submitted automatically; the Diva lookup that finds it is read-only and returns nothing (leaving the user on the receipt) when no invoice exists or the user may not read invoices.
 
 ## 7. Sales and customers
 - Sales Invoice keep: customer, dates, items, quantity (dozens), UOM, rate, amount, discount, taxes, totals, paid and outstanding, warehouse, remarks. Hide shipping, project, commission, sales-partner and campaign fields if unused.

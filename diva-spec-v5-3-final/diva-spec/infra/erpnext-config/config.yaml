@@ -1434,9 +1434,6 @@ records:
     match: { language: ar, source_text: "Created automatically from Purchase Receipt {0}" }
     set: { translated_text: "أُنشئ تلقائيًا من إيصال استلام المشتريات {0}" }
   - doctype: Translation
-    match: { language: ar, source_text: "Opening the Purchase Invoice {0}." }
-    set: { translated_text: "جارٍ فتح فاتورة الشراء {0}." }
-  - doctype: Translation
     match: { language: ar, source_text: "Credit notes are settled from the Return document, not from Pay" }
     set: { translated_text: "تُسوّى إشعارات الدائن من مستند المرتجع، وليس من زر السداد" }
   - doctype: Translation

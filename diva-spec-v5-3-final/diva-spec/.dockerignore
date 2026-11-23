@@ -1,0 +1,12 @@
+# Build context is the repository root (infra/images/store/Dockerfile).
+dist/
+.git/
+**/__pycache__
+**/*.pyc
+**/.ruff_cache
+**/.mypy_cache
+**/.pytest_cache
+**/node_modules
+.venv/
+**/.env
+**/*.log

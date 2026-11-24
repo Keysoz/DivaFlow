@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="{{ lang_code }}"{% if is_rtl %} dir="rtl"{% endif %}>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex, nofollow">
+	<title>{{ _("Diva Store Setup") }}</title>
+	<style>
+		:root {
+			--brand: #1971c2;
+			--brand-dark: #1864ab;
+			--surface: #ffffff;
+			--bg: #f1f3f5;
+			--text: #212529;
+			--muted: #6c757d;
+			--border: #ced4da;
+			--danger: #c92a2a;
+			--danger-bg: #fff5f5;
+			--success-bg: #ebfbee;
+			--radius: 10px;
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			min-height: 100vh;
+			background: var(--bg);
+			color: var(--text);
+			font-family: "Segoe UI", Tahoma, "Noto Naskh Arabic", Arial, sans-serif;
+			line-height: 1.5;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+			padding: 24px 16px;
+		}
+		.card {
+			width: 100%;
+			max-width: 620px;
+			background: var(--surface);
+			border-radius: var(--radius);
+			box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+			overflow: hidden;
+		}
+		.card__header {
+			background: var(--brand);
+			color: #fff;
+			padding: 24px;
+		}
+		.card__header h1 { margin: 0 0 4px; font-size: 1.4rem; }
+		.card__header p { margin: 0; opacity: .9; font-size: .95rem; }
+		.card__body { padding: 24px; }
+		.lang {
+			display: flex;
+			gap: 8px;
+			justify-content: flex-end;
+			margin-block-end: 16px;
+		}
+		.lang a {
+			padding: 4px 12px;
+			border: 1px solid var(--border);
+			border-radius: 999px;
+			color: var(--muted);
+			text-decoration: none;
+			font-size: .85rem;
+		}
+		.lang a.is-active { background: var(--brand); border-color: var(--brand); color: #fff; }
+		.field { margin-block-end: 16px; }
+		.field label { display: block; font-weight: 600; font-size: .9rem; margin-block-end: 6px; }
+		.field input[type="text"],
+		.field input[type="email"],
+		.field input[type="tel"],
+		.field input[type="url"],
+		.field textarea {
+			width: 100%;
+			padding: 9px 11px;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			font: inherit;
+			background: #fff;
+		}
+		.field input:focus,
+		.field textarea:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+		.field input:disabled { background: #f1f3f5; color: var(--muted); cursor: not-allowed; }
+		.field small { display: block; margin-block-start: 4px; color: var(--muted); font-size: .8rem; }
+		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+		@media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+		.logo-row { display: flex; align-items: center; gap: 16px; }
+		.logo-preview {
+			width: 72px; height: 72px;
+			border: 1px dashed var(--border);
+			border-radius: 8px;
+			display: flex; align-items: center; justify-content: center;
+			overflow: hidden;
+			background: #f8f9fa;
+			color: var(--muted);
+			font-size: .7rem;
+			text-align: center;
+		}
+		.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+		.actions { display: flex; gap: 12px; justify-content: flex-end; margin-block-start: 24px; }
+		button, .btn-link {
+			border: 0;
+			border-radius: 8px;
+			padding: 10px 18px;
+			font: inherit;
+			font-weight: 600;
+			cursor: pointer;
+			text-decoration: none;
+			display: inline-block;
+		}
+		.btn-primary { background: var(--brand); color: #fff; }
+		.btn-primary:hover { background: var(--brand-dark); }
+		.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+		.btn-ghost { background: #f1f3f5; color: var(--text); }
+		.notice { padding: 14px 16px; border-radius: 8px; margin-block-end: 16px; }
+		.notice--error { background: var(--danger-bg); color: var(--danger); border: 1px solid #ffc9c9; }
+		.notice--ok { background: var(--success-bg); color: #2b8a3e; border: 1px solid #b2f2bb; }
+		.notice[hidden] { display: none; }
+		.hidden { display: none !important; }
+	</style>
+</head>
+<body>
+	<main class="card">
+		<header class="card__header">
+			<h1>{{ _("Welcome to Diva Store") }}</h1>
+			<p>{{ _("Confirm your company details to finish setting up this store.") }}</p>
+		</header>
+
+		<div class="card__body">
+			<nav class="lang" aria-label="{{ _('Language') }}">
+				<a href="/diva-setup?lang=ar" class="{{ 'is-active' if lang_code == 'ar' else '' }}">{{ _("Arabic") }}</a>
+				<a href="/diva-setup?lang=en" class="{{ 'is-active' if lang_code == 'en' else '' }}">{{ _("English") }}</a>
+			</nav>
+
+			{% if setup_complete %}
+				<div class="notice notice--ok">{{ _("Setup is already complete.") }}</div>
+				<div class="actions">
+					<a class="btn-primary" href="/app">{{ _("Open dashboard") }}</a>
+				</div>
+			{% elif not is_manager %}
+				<div class="notice notice--error">{{ _("Only a System Manager can finish setup.") }}</div>
+				<div class="actions">
+					<a class="btn-ghost" href="/app">{{ _("Open dashboard") }}</a>
+				</div>
+			{% else %}
+				<div id="form-error" class="notice notice--error" hidden></div>
+
+				<form id="setup-form" novalidate>
+					<div class="field">
+						<label for="company_name">{{ _("Company Name") }}</label>
+						<input type="text" id="company_name" name="company_name" autocomplete="organization" required>
+						<small id="company_name-hint" class="hidden">{{ _("The company name cannot change after the first transaction.") }}</small>
+					</div>
+
+					<div class="field">
+						<label for="abbr">{{ _("Company Abbreviation") }}</label>
+						<input type="text" id="abbr" name="abbr" maxlength="8" required>
+						<small id="abbr-hint" class="hidden">{{ _("The company abbreviation cannot change after the first transaction.") }}</small>
+					</div>
+
+					<div class="field">
+						<label for="logo-file">{{ _("Logo") }}</label>
+						<div class="logo-row">
+							<div class="logo-preview" id="logo-preview">{{ _("No logo") }}</div>
+							<div>
+								<input type="file" id="logo-file" accept="image/png,image/jpeg">
+								<small>{{ _("PNG or JPEG, up to 2 MB.") }}</small>
+							</div>
+						</div>
+					</div>
+
+					<div class="field">
+						<label for="address_line1">{{ _("Address line 1") }}</label>
+						<input type="text" id="address_line1" name="address_line1" autocomplete="address-line1">
+					</div>
+
+					<div class="field">
+						<label for="address_line2">{{ _("Address line 2") }}</label>
+						<input type="text" id="address_line2" name="address_line2" autocomplete="address-line2">
+					</div>
+
+					<div class="grid">
+						<div class="field">
+							<label for="city">{{ _("City") }}</label>
+							<input type="text" id="city" name="city" autocomplete="address-level2">
+						</div>
+						<div class="field">
+							<label for="country">{{ _("Country") }}</label>
+							<input type="text" id="country" name="country" autocomplete="country-name">
+						</div>
+					</div>
+
+					<div class="grid">
+						<div class="field">
+							<label for="phone">{{ _("Phone") }}</label>
+							<input type="tel" id="phone" name="phone" autocomplete="tel">
+						</div>
+						<div class="field">
+							<label for="email">{{ _("Email") }}</label>
+							<input type="email" id="email" name="email" autocomplete="email">
+						</div>
+					</div>
+
+					<div class="grid">
+						<div class="field">
+							<label for="website">{{ _("Website") }}</label>
+							<input type="url" id="website" name="website" autocomplete="url">
+						</div>
+						<div class="field">
+							<label for="tax_id">{{ _("Tax ID") }}</label>
+							<input type="text" id="tax_id" name="tax_id">
+						</div>
+					</div>
+
+					<div class="field">
+						<label for="description">{{ _("Description") }}</label>
+						<textarea id="description" name="description" rows="3"></textarea>
+					</div>
+
+					<div class="actions">
+						<a class="btn-ghost" href="/app">{{ _("Cancel") }}</a>
+						<button type="submit" class="btn-primary" id="submit-btn">{{ _("Save and finish") }}</button>
+					</div>
+				</form>
+			{% endif %}
+		</div>
+	</main>
+
+	{% if not setup_complete and is_manager %}
+	<script>
+		(function () {
+			"use strict";
+
+			var CSRF = {{ csrf_token|tojson }};
+			var TOKEN = {{ token|tojson }};
+			var form = document.getElementById("setup-form");
+			var errorBox = document.getElementById("form-error");
+			var submitBtn = document.getElementById("submit-btn");
+			var logoData = null;
+			var profile = {};
+
+			function showError(message) {
+				errorBox.textContent = message;
+				errorBox.hidden = false;
+			}
+
+			function serverMessage(payload) {
+				var messages = payload && payload._server_messages;
+				if (typeof messages === "string") {
+					try {
+						var parsed = JSON.parse(messages);
+						if (parsed && parsed.length) {
+							var first = JSON.parse(parsed[0]);
+							if (first && first.message) { return first.message; }
+						}
+					} catch (e) { /* fall through */ }
+				}
+				if (payload && payload.exception) { return payload.exception; }
+				return null;
+			}
+
+			function api(method, args) {
+				var body = new URLSearchParams();
+				Object.keys(args || {}).forEach(function (key) {
+					body.append(key, args[key]);
+				});
+				return fetch("/api/method/" + method, {
+					method: "POST",
+					credentials: "same-origin",
+					headers: {
+						"Content-Type": "application/x-www-form-urlencoded",
+						"X-Frappe-CSRF-Token": CSRF,
+						"Accept": "application/json"
+					},
+					body: body.toString()
+				}).then(function (response) {
+					return response.json().catch(function () { return {}; }).then(function (payload) {
+						if (!response.ok || (payload && payload.exc_type)) {
+							throw new Error(serverMessage(payload) || "{{ _('An error occurred. Please try again.') }}");
+						}
+						return payload.message;
+					});
+				});
+			}
+
+			function setValue(id, value) {
+				var el = document.getElementById(id);
+				if (el && value !== undefined && value !== null) { el.value = value; }
+			}
+
+			function prefill(data) {
+				profile = data || {};
+				setValue("company_name", profile.company_name);
+				setValue("abbr", profile.abbr);
+				setValue("phone", profile.phone);
+				setValue("email", profile.email);
+				setValue("website", profile.website);
+				setValue("tax_id", profile.tax_id);
+				setValue("description", profile.description);
+				if (profile.address) {
+					setValue("address_line1", profile.address.address_line1);
+					setValue("address_line2", profile.address.address_line2);
+					setValue("city", profile.address.city);
+					setValue("country", profile.address.country);
+				}
+				if (profile.logo) {
+					var preview = document.getElementById("logo-preview");
+					preview.innerHTML = "";
+					var img = document.createElement("img");
+					img.src = profile.logo;
+					img.alt = "";
+					preview.appendChild(img);
+				}
+				if (profile.can_change_name === false && document.getElementById("company_name")) {
+					document.getElementById("company_name").disabled = true;
+					document.getElementById("company_name-hint").classList.remove("hidden");
+				}
+				if (profile.can_change_abbr === false && document.getElementById("abbr")) {
+					document.getElementById("abbr").disabled = true;
+					document.getElementById("abbr-hint").classList.remove("hidden");
+				}
+			}
+
+			document.getElementById("logo-file").addEventListener("change", function (event) {
+				var file = event.target.files && event.target.files[0];
+				if (!file) { return; }
+				if (file.size > 2 * 1024 * 1024) {
+					showError("{{ _('The logo must be smaller than 2 MB.') }}");
+					event.target.value = "";
+					return;
+				}
+				var reader = new FileReader();
+				reader.onload = function () {
+					logoData = reader.result;
+					var preview = document.getElementById("logo-preview");
+					preview.innerHTML = "";
+					var img = document.createElement("img");
+					img.src = logoData;
+					img.alt = "";
+					preview.appendChild(img);
+				};
+				reader.readAsDataURL(file);
+			});
+
+			form.addEventListener("submit", function (event) {
+				event.preventDefault();
+				errorBox.hidden = true;
+
+				if (!document.getElementById("company_name").value.trim()) {
+					showError("{{ _('Company Name') }}");
+					return;
+				}
+				if (!document.getElementById("abbr").value.trim()) {
+					showError("{{ _('Company Abbreviation') }}");
+					return;
+				}
+
+				var payload = {
+					company_name: document.getElementById("company_name").value.trim(),
+					abbr: document.getElementById("abbr").value.trim().toUpperCase(),
+					phone: document.getElementById("phone").value.trim(),
+					email: document.getElementById("email").value.trim(),
+					website: document.getElementById("website").value.trim(),
+					tax_id: document.getElementById("tax_id").value.trim(),
+					description: document.getElementById("description").value.trim(),
+					address: {
+						address_line1: document.getElementById("address_line1").value.trim(),
+						address_line2: document.getElementById("address_line2").value.trim(),
+						city: document.getElementById("city").value.trim(),
+						country: document.getElementById("country").value.trim()
+					}
+				};
+				if (logoData) { payload.logo = logoData; }
+
+				submitBtn.disabled = true;
+				submitBtn.textContent = "{{ _('Saving...') }}";
+
+				api("diva_guard.api.complete_setup", {
+					token: TOKEN,
+					profile_data: JSON.stringify(payload)
+				})
+					.then(function () {
+						window.location.href = "/app";
+					})
+					.catch(function (error) {
+						showError(error.message);
+						submitBtn.disabled = false;
+						submitBtn.textContent = "{{ _('Save and finish') }}";
+					});
+			});
+
+			api("diva_guard.api.get_company_profile", {}).then(prefill).catch(function (error) {
+				showError(error.message);
+			});
+		})();
+	</script>
+	{% endif %}
+</body>
+</html>

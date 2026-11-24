@@ -93,3 +93,17 @@ def test_logo_is_validated_by_signature_not_extension() -> None:
     text = source()
     assert "LOGO_SIGNATURES" in text
     assert "MAX_LOGO_BYTES" in text
+
+
+def test_complete_setup_verifies_token_before_writing() -> None:
+    """Saving the Company clears the cache; verifying after the write fails every time."""
+    text = source()
+    body = text[text.index("def complete_setup(") :]
+    assert body.index("verify_setup_token(token)") < body.index("_apply_company_profile(")
+
+
+def test_audit_uses_valid_activity_log_options() -> None:
+    """Activity Log.operation only allows Login/Logout/Impersonate, so it stays unset."""
+    text = source()
+    assert '"operation": "Diva Setup"' not in text
+    assert '"status": "Success"' in text

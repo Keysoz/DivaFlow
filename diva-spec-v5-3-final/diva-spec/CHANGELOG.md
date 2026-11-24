@@ -4,7 +4,12 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 
 ## [Unreleased]
 
+### Added
+- PROD-23: company profile and first-run setup API (`diva_guard.api`): `get_company_profile`, `update_company_profile`, `get_setup_token`, `verify_setup_token` and `complete_setup`; Arabic translations seeded through `infra/erpnext-config`.
+- PROD-24: first-run setup wizard at `/diva-setup` (`diva_guard/www/diva-setup.html` + `diva_setup.py`), server-rendered so every string is a `_()` key with an Arabic `Translation` record; Arabic is primary and RTL, with an English toggle, guest redirect to login, and a single-use token issued to a System Manager.
+
 ### Fixed
+- PROD-23: saving the Company clears Frappe's cache, which wiped the setup token mid-request, so "save profile then complete" always failed. `complete_setup` now verifies the token **before** any write and applies the profile in the same call. The audit row no longer sets `Activity Log.operation`, which only accepts Login/Logout/Impersonate.
 - DEC-100 (dev, Item dialog): after creating an item through the **Diva Add New Item** dialog, the Item form now shows the entered **Opening Stock** (it read `0` before, because the value was never written to the Item row — only posted through a Stock Reconciliation). The endpoint persists `opening_stock` and `valuation_rate` on the Item after posting. Opening stock typed on an existing item still posts exactly once, and a later save does not post it again.
 - DEC-100 amendment (dev, Item form): **Buying Price (EGP/Dozen)** and **Wholesale Price (EGP/Dozen)** are now visible, editable fields on the Item, next to Selling Price. This extends the owner-approved custom-field exception (DEC-78/04/41). Buying price is the opening-stock valuation; wholesale price drives the **Wholesale** Item Price row and its Dozen/12 Nos row. `diva_guard.events.sync_item_price_fields` keeps the rows in step when the fields change (a site without a `Standard Buying` list is never broken).
 - DEC-100 (dev, dialogs): both Add New Item dialogs now have **Edit in full**, which closes the dialog and opens the full Item form pre-filled with the typed code, name, group, barcode, selling/buying/wholesale prices and opening stock (same tab from the Item list; a new tab from a document so the draft is not lost). Frappe's `secondary_action` receives the click event, not the values, so the handler reads `dialog.get_value` explicitly.

@@ -1773,6 +1773,95 @@ records:
     match: { language: ar, source_text: "{0} must be a JSON object." }
     set: { translated_text: "يجب أن يكون {0} كائن JSON." }
 
+  # PROD-24: the setup wizard page (diva_guard/www/diva-setup.html). Arabic is
+  # primary; a native reviewer still signs these off (AGENTS.md localization).
+  - doctype: Translation
+    match: { language: ar, source_text: "Diva Store Setup" }
+    set: { translated_text: "إعداد متجر ديفا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Welcome to Diva Store" }
+    set: { translated_text: "مرحباً بك في متجر ديفا" }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "Confirm your company details to finish setting up this store.",
+      }
+    set: { translated_text: "أكّد بيانات شركتك لإنهاء إعداد هذا المتجر." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Language" }
+    set: { translated_text: "اللغة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Arabic" }
+    set: { translated_text: "العربية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "English" }
+    set: { translated_text: "الإنجليزية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Name" }
+    set: { translated_text: "اسم الشركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Abbreviation" }
+    set: { translated_text: "اختصار الشركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Logo" }
+    set: { translated_text: "الشعار" }
+  - doctype: Translation
+    match: { language: ar, source_text: "No logo" }
+    set: { translated_text: "لا يوجد شعار" }
+  - doctype: Translation
+    match: { language: ar, source_text: "PNG or JPEG, up to 2 MB." }
+    set: { translated_text: "PNG أو JPEG، بحجم أقصى 2 ميجابايت." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Address line 1" }
+    set: { translated_text: "سطر العنوان الأول" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Address line 2" }
+    set: { translated_text: "سطر العنوان الثاني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "City" }
+    set: { translated_text: "المدينة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Country" }
+    set: { translated_text: "الدولة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Phone" }
+    set: { translated_text: "الهاتف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Email" }
+    set: { translated_text: "البريد الإلكتروني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Website" }
+    set: { translated_text: "الموقع الإلكتروني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Tax ID" }
+    set: { translated_text: "الرقم الضريبي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Description" }
+    set: { translated_text: "الوصف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Cancel" }
+    set: { translated_text: "إلغاء" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Save and finish" }
+    set: { translated_text: "حفظ وإنهاء" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Saving..." }
+    set: { translated_text: "جارٍ الحفظ..." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only a System Manager can finish setup." }
+    set: { translated_text: "لا يمكن إكمال الإعداد إلا بواسطة مدير النظام." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Open dashboard" }
+    set: { translated_text: "فتح لوحة التحكم" }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "An error occurred. Please try again.",
+      }
+    set: { translated_text: "حدث خطأ. يُرجى المحاولة مرة أخرى." }
+
   # DEC-104: staff accounts. Access must already exist (the user is created on
   # the site, never by the pipeline — only these fields are pinned); the Diva
   # switcher tile (custom_reports) opens /app/diva-store after login.

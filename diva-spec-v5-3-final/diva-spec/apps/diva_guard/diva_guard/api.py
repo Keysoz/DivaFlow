@@ -301,14 +301,18 @@ def _save_billing_address(company: frappe.Document, payload: dict) -> None:
 
 @frappe.whitelist()
 def update_company_profile(profile_data: str | dict | None = None) -> dict[str, str]:
-	"""Update the company profile.
+	"""Update the company profile."""
+	_require_system_manager()
+	return _apply_company_profile(_as_dict(profile_data, _("Company profile")))
+
+
+def _apply_company_profile(payload: dict) -> dict[str, str]:
+	"""Write the profile fields.
 
 	The name and abbreviation freeze once the company owns a submitted document.
 	The abbreviation additionally freezes once a warehouse exists, because
 	warehouse names embed it. Everything else stays editable forever.
 	"""
-	_require_system_manager()
-	payload = _as_dict(profile_data, _("Company profile"))
 	company = frappe.get_doc("Company", _default_company())
 	has_transactions = _has_transactions(company.name)
 
@@ -375,13 +379,14 @@ def _token_digest(token: str) -> str:
 
 
 def _audit(subject: str) -> None:
+	# Activity Log.operation only allows Login/Logout/Impersonate, so the action
+	# is carried by the subject and the status stays Success.
 	frappe.get_doc(
 		{
 			"doctype": "Activity Log",
 			"subject": subject,
 			"user": frappe.session.user,
 			"full_name": get_fullname(frappe.session.user),
-			"operation": "Diva Setup",
 			"status": "Success",
 		}
 	).insert(ignore_permissions=True)
@@ -416,12 +421,19 @@ def verify_setup_token(token: str) -> dict:
 
 
 @frappe.whitelist()
-def complete_setup(token: str) -> dict:
-	"""Consume the setup token and mark the site as set up."""
+def complete_setup(token: str, profile_data: str | dict | None = None) -> dict:
+	"""Consume the setup token, optionally save the profile, and mark the site set up.
+
+	The token is verified before any write. Saving the Company clears Frappe's
+	cache, which would wipe the token mid-request if the order were reversed.
+	"""
 	_require_system_manager()
 	verify_setup_token(token)
-	frappe.cache.delete_value(SETUP_TOKEN_CACHE_KEY)
+	if profile_data is not None:
+		_apply_company_profile(_as_dict(profile_data, _("Company profile")))
 	frappe.db.set_single_value("System Settings", "setup_complete", 1)
 	_audit(_("Diva setup completed by {0}").format(frappe.session.user))
 	frappe.db.commit()
+	# Cache writes are not transactional: only burn the token once the row is committed.
+	frappe.cache.delete_value(SETUP_TOKEN_CACHE_KEY)
 	return {"status": "ok"}

@@ -68,7 +68,8 @@ def test_a_translation_key_appears_once() -> None:
     keys = [
         record["match"]["source_text"]
         for record in config.get("records", [])
-        if record.get("doctype") == "Translation" and record.get("match", {}).get("language") == "ar"
+        if record.get("doctype") == "Translation"
+        and record.get("match", {}).get("language") == "ar"
     ]
     duplicates = sorted({key for key in keys if keys.count(key) > 1})
     assert not duplicates, f"duplicate Arabic translation keys: {duplicates}"

@@ -132,6 +132,10 @@ def test_windows_installer_is_resumable_and_offline() -> None:
     # /opt/diva/README.txt.
     assert '(Join-Path $InstallDir "wsl")' in text
     assert "/opt/diva/README.txt" in text
+    # The generated secrets must not be readable by other local accounts.
+    assert "icacls.exe" in text
+    assert "S-1-5-32-544" in text
+    assert "S-1-5-18" in text
 
 
 def test_setup_cmd_runs_the_powershell_installer() -> None:

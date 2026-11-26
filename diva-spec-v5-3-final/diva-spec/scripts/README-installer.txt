@@ -35,6 +35,8 @@ saved in:
 
 Open http://localhost:8080/login?redirect-to=/diva-setup and sign in as
 `Administrator`. The wizard is available only while setup is incomplete.
+The `.env` file and `ADMIN_PASSWORD.txt` are readable only by the installing
+Windows user and administrators.
 
 Everyday commands
 -----------------

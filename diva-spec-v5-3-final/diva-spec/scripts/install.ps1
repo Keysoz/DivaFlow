@@ -257,6 +257,19 @@ function New-EnvFile {
     [System.IO.File]::WriteAllText($script:AdminFile, "$admin`n", [System.Text.Encoding]::ASCII)
 }
 
+function Protect-Secrets {
+    # The .env and the admin password file are the only secrets on disk.
+    # Restrict them to the installing user, Administrators and SYSTEM so
+    # another local account cannot read the Administrator password.
+    $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    & icacls.exe $script:EnvFile $script:AdminFile /inheritance:r /grant:r "*$sid:F" "*S-1-5-32-544:F" "*S-1-5-18:F" *> $null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Step "Warning: could not restrict permissions on the secret files."
+    } else {
+        Write-Ok "Secret files restricted to this user and administrators."
+    }
+}
+
 function Copy-ComposeIntoDistro {
     $wslCompose = ConvertTo-WslPath (Join-Path $script:Payload "store.prod.yml")
     $wslEnv = ConvertTo-WslPath $script:EnvFile
@@ -348,6 +361,7 @@ function Install-Diva {
     Import-Distro
     Start-Distro
     New-EnvFile
+    Protect-Secrets
     Copy-ComposeIntoDistro
     Load-Images
     Start-Stack

@@ -115,6 +115,7 @@
 		.notice--error { background: var(--danger-bg); color: var(--danger); border: 1px solid #ffc9c9; }
 		.notice--ok { background: var(--success-bg); color: #2b8a3e; border: 1px solid #b2f2bb; }
 		.notice[hidden] { display: none; }
+		.muted { color: var(--muted); font-size: .9rem; }
 		.hidden { display: none !important; }
 	</style>
 </head>
@@ -131,7 +132,7 @@
 				<a href="/diva-setup?lang=en" class="{{ 'is-active' if lang_code == 'en' else '' }}">{{ _("English") }}</a>
 			</nav>
 
-			{% if setup_complete %}
+			{% if setup_complete and not setup_pending_config %}
 				<div class="notice notice--ok">{{ _("Setup is already complete.") }}</div>
 				<div class="actions">
 					<a class="btn-primary" href="/app">{{ _("Open dashboard") }}</a>
@@ -144,6 +145,7 @@
 			{% else %}
 				<div id="form-error" class="notice notice--error" hidden></div>
 
+				{% if not setup_complete %}
 				<form id="setup-form" novalidate>
 					<div class="field">
 						<label for="company_name">{{ _("Company Name") }}</label>
@@ -221,11 +223,22 @@
 						<button type="submit" class="btn-primary" id="submit-btn">{{ _("Save and finish") }}</button>
 					</div>
 				</form>
+				{% endif %}
+
+				<div id="setup-progress" class="hidden" role="status" aria-live="polite">
+					<div id="setup-progress-message" class="notice notice--ok">{{ _("Configuring your store…") }}</div>
+					<p class="muted">{{ _("This can take a few minutes. Keep this page open.") }}</p>
+					<div id="setup-progress-error" class="notice notice--error" hidden></div>
+					<div class="actions">
+						<button type="button" class="btn-ghost hidden" id="retry-btn">{{ _("Retry configuration") }}</button>
+						<a class="btn-primary hidden" id="open-dashboard" href="/app">{{ _("Open dashboard") }}</a>
+					</div>
+				</div>
 			{% endif %}
 		</div>
 	</main>
 
-	{% if not setup_complete and is_manager %}
+	{% if is_manager and (not setup_complete or setup_pending_config) %}
 	<script>
 		(function () {
 			"use strict";
@@ -235,8 +248,16 @@
 			var form = document.getElementById("setup-form");
 			var errorBox = document.getElementById("form-error");
 			var submitBtn = document.getElementById("submit-btn");
+			var progressBox = document.getElementById("setup-progress");
+			var progressMessage = document.getElementById("setup-progress-message");
+			var progressError = document.getElementById("setup-progress-error");
+			var retryBtn = document.getElementById("retry-btn");
+			var dashboardBtn = document.getElementById("open-dashboard");
 			var logoData = null;
 			var profile = {};
+			var pollTimer = null;
+			var startedAt = 0;
+			var MAX_WAIT_MS = 10 * 60 * 1000;
 
 			function showError(message) {
 				errorBox.textContent = message;
@@ -320,7 +341,61 @@
 				}
 			}
 
-			document.getElementById("logo-file").addEventListener("change", function (event) {
+			function showProgress() {
+				if (form) { form.classList.add("hidden"); }
+				progressBox.classList.remove("hidden");
+			}
+
+			function setProgressMessage(text) {
+				progressMessage.textContent = text;
+			}
+
+			function stopPolling() {
+				if (pollTimer) {
+					clearInterval(pollTimer);
+					pollTimer = null;
+				}
+			}
+
+			function showRetry(message) {
+				stopPolling();
+				if (message) {
+					progressError.textContent = message;
+					progressError.hidden = false;
+				}
+				retryBtn.classList.remove("hidden");
+			}
+
+			function pollStatus() {
+				api("diva_guard.api.get_setup_status", {}).then(function (state) {
+					var config = (state && state.config) || {};
+					if (config.status === "ok") {
+						stopPolling();
+						progressError.hidden = true;
+						setProgressMessage("{{ _('Configuration is complete.') }}");
+						retryBtn.classList.add("hidden");
+						dashboardBtn.classList.remove("hidden");
+					} else if (config.status === "failed") {
+						showRetry(config.error || "{{ _('The configuration failed. Retry or check the error log.') }}");
+					} else if (Date.now() - startedAt > MAX_WAIT_MS) {
+						showRetry("{{ _('The configuration is taking longer than expected. You can retry.') }}");
+					}
+				}).catch(function () {
+					// A transient network error: keep polling, the worker may still be running.
+				});
+			}
+
+			function startPolling() {
+				if (!startedAt) { startedAt = Date.now(); }
+				showProgress();
+				setProgressMessage("{{ _('Configuring your store…') }}");
+				pollStatus();
+				if (!pollTimer) { pollTimer = setInterval(pollStatus, 3000); }
+			}
+
+			var logoInput = document.getElementById("logo-file");
+			if (logoInput) {
+			logoInput.addEventListener("change", function (event) {
 				var file = event.target.files && event.target.files[0];
 				if (!file) { return; }
 				if (file.size > 2 * 1024 * 1024) {
@@ -340,7 +415,9 @@
 				};
 				reader.readAsDataURL(file);
 			});
+			}
 
+			if (form) {
 			form.addEventListener("submit", function (event) {
 				event.preventDefault();
 				errorBox.hidden = true;
@@ -379,7 +456,7 @@
 					profile_data: JSON.stringify(payload)
 				})
 					.then(function () {
-						window.location.href = "/app";
+						startPolling();
 					})
 					.catch(function (error) {
 						showError(error.message);
@@ -387,10 +464,29 @@
 						submitBtn.textContent = "{{ _('Save and finish') }}";
 					});
 			});
+			}
 
-			api("diva_guard.api.get_company_profile", {}).then(prefill).catch(function (error) {
-				showError(error.message);
+			retryBtn.addEventListener("click", function () {
+				retryBtn.disabled = true;
+				progressError.hidden = true;
+				api("diva_guard.api.retry_setup_configuration", {}).then(function () {
+					retryBtn.disabled = false;
+					retryBtn.classList.add("hidden");
+					startedAt = Date.now();
+					startPolling();
+				}).catch(function (error) {
+					retryBtn.disabled = false;
+					showRetry(error.message);
+				});
 			});
+
+			if ({{ 'true' if setup_complete else 'false' }}) {
+				startPolling();
+			} else {
+				api("diva_guard.api.get_company_profile", {}).then(prefill).catch(function (error) {
+					showError(error.message);
+				});
+			}
 		})();
 	</script>
 	{% endif %}

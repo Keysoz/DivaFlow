@@ -217,11 +217,35 @@ def _as_dict(value: str | dict | None, label: str) -> dict:
 	return parsed
 
 
+def _empty_profile() -> dict:
+	"""A fresh site has no Company yet; the wizard creates it."""
+	return {
+		"name": "",
+		"company_name": "",
+		"abbr": "",
+		"logo": None,
+		"phone": "",
+		"email": "",
+		"website": "",
+		"tax_id": "",
+		"description": "",
+		"country": "Egypt",
+		"currency": "EGP",
+		"address": None,
+		"can_change_name": True,
+		"can_change_abbr": True,
+		"setup_complete": _setup_complete(),
+	}
+
+
 @frappe.whitelist()
 def get_company_profile() -> dict:
 	"""Return the editable company profile for the wizard and the profile screen."""
 	_require_system_manager()
-	company = frappe.get_doc("Company", _default_company())
+	name = frappe.db.get_single_value("Global Defaults", "default_company")
+	if not name or not frappe.db.exists("Company", str(name)):
+		return _empty_profile()
+	company = frappe.get_doc("Company", str(name))
 	address_name = _billing_address_name(company.name)
 	address = frappe.get_doc("Address", address_name) if address_name else None
 	has_transactions = _has_transactions(company.name)
@@ -306,6 +330,49 @@ def update_company_profile(profile_data: str | dict | None = None) -> dict[str, 
 	return _apply_company_profile(_as_dict(profile_data, _("Company profile")))
 
 
+def _company_to_edit(payload: dict) -> frappe.Document:
+	"""Return the site's company, creating it on a fresh site.
+
+	ERPNext derives the chart of accounts and the default warehouse names from
+	the abbreviation at Company creation, so the wizard must create the Company
+	instead of renaming one that was seeded earlier.
+	"""
+	name = frappe.db.get_single_value("Global Defaults", "default_company")
+	if name and frappe.db.exists("Company", str(name)):
+		return frappe.get_doc("Company", str(name))
+
+	company_name = str(payload.get("company_name") or "").strip()
+	abbr = str(payload.get("abbr") or "").strip().upper()
+	if not company_name:
+		frappe.throw(_("Company Name is required."), frappe.ValidationError)
+	if not ABBR_PATTERN.match(abbr):
+		frappe.throw(
+			_("The abbreviation must be 1 to 8 uppercase letters or digits."),
+			frappe.ValidationError,
+		)
+	address = payload.get("address") if isinstance(payload.get("address"), dict) else {}
+	country = str(payload.get("country") or (address or {}).get("country") or "Egypt")
+	# A bare site lacks ERPNext's setup fixtures and language defaults; the
+	# standard setup wizard normally installs them before creating the Company.
+	from diva_guard.setup import ensure_erpnext_fixtures, ensure_site_defaults
+
+	ensure_site_defaults()
+	ensure_erpnext_fixtures()
+	company = frappe.get_doc(
+		{
+			"doctype": "Company",
+			"company_name": company_name,
+			"abbr": abbr,
+			"country": country,
+			"default_currency": str(payload.get("currency") or "EGP"),
+			"create_chart_of_accounts_based_on": "Standard Template",
+			"chart_of_accounts": "Standard",
+		}
+	).insert()
+	frappe.db.set_single_value("Global Defaults", "default_company", company.name)
+	return company
+
+
 def _apply_company_profile(payload: dict) -> dict[str, str]:
 	"""Write the profile fields.
 
@@ -313,7 +380,7 @@ def _apply_company_profile(payload: dict) -> dict[str, str]:
 	The abbreviation additionally freezes once a warehouse exists, because
 	warehouse names embed it. Everything else stays editable forever.
 	"""
-	company = frappe.get_doc("Company", _default_company())
+	company = _company_to_edit(payload)
 	has_transactions = _has_transactions(company.name)
 
 	new_name = str(payload.get("company_name") or "").strip()
@@ -364,7 +431,12 @@ def _apply_company_profile(payload: dict) -> dict[str, str]:
 		_save_billing_address(company, address_payload)
 
 	company.save()
-	return {"status": "ok", "name": company.name}
+	return {
+		"status": "ok",
+		"name": company.name,
+		"company_name": company.company_name,
+		"abbr": company.abbr,
+	}
 
 
 # --- First-run setup token (PROD-23, PROD-26) ----------------------------------
@@ -422,18 +494,68 @@ def verify_setup_token(token: str) -> dict:
 
 @frappe.whitelist()
 def complete_setup(token: str, profile_data: str | dict | None = None) -> dict:
-	"""Consume the setup token, optionally save the profile, and mark the site set up.
+	"""Consume the setup token, save the profile, and start the configuration.
 
 	The token is verified before any write. Saving the Company clears Frappe's
 	cache, which would wipe the token mid-request if the order were reversed.
+	The full ERPNext configuration is applied by an RQ worker afterwards: it
+	takes minutes and must not block the wizard request.
 	"""
 	_require_system_manager()
 	verify_setup_token(token)
-	if profile_data is not None:
-		_apply_company_profile(_as_dict(profile_data, _("Company profile")))
+	if profile_data is None:
+		company = frappe.get_doc("Company", _default_company())
+		result = {
+			"status": "ok",
+			"name": company.name,
+			"company_name": company.company_name,
+			"abbr": company.abbr,
+		}
+	else:
+		result = _apply_company_profile(_as_dict(profile_data, _("Company profile")))
 	frappe.db.set_single_value("System Settings", "setup_complete", 1)
 	_audit(_("Diva setup completed by {0}").format(frappe.session.user))
 	frappe.db.commit()
 	# Cache writes are not transactional: only burn the token once the row is committed.
 	frappe.cache.delete_value(SETUP_TOKEN_CACHE_KEY)
-	return {"status": "ok"}
+	from diva_guard.setup import _set_status
+
+	_set_status("queued")
+	try:
+		frappe.enqueue(
+			"diva_guard.setup.apply_configuration",
+			queue="long",
+			company=result["name"],
+			abbr=result["abbr"],
+			timeout=1800,
+		)
+		config_status = "queued"
+	except Exception as exc:  # Redis down: the owner can retry from the page.
+		_set_status("failed", str(exc))
+		frappe.log_error(title="Diva setup enqueue", message=str(exc))
+		config_status = "failed"
+	return {"status": "ok", "config": config_status}
+
+
+@frappe.whitelist()
+def get_setup_status() -> dict:
+	"""Progress of the post-wizard configuration, polled by the wizard page."""
+	_require_system_manager()
+	from diva_guard.setup import get_config_status
+
+	return {"setup_complete": _setup_complete(), "config": get_config_status()}
+
+
+@frappe.whitelist()
+def retry_setup_configuration() -> dict:
+	"""Queue the configuration again after a failure."""
+	_require_system_manager()
+	company = frappe.get_doc("Company", _default_company())
+	frappe.enqueue(
+		"diva_guard.setup.apply_configuration",
+		queue="long",
+		company=company.name,
+		abbr=company.abbr,
+		timeout=1800,
+	)
+	return {"status": "queued"}

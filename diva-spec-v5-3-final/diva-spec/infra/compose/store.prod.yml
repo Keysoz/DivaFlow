@@ -1,15 +1,29 @@
 name: diva-store
 
+# Diva Store production stack (PROD-05).
+#
+# One site, `diva.local`, created on first start by the `create-site` job.
+# Everything runs offline from images bundled in the installer; nothing is
+# pulled from a registry. The site name is fixed so the frontend can route
+# requests with FRAPPE_SITE_NAME_HEADER before a default site exists.
+
+x-app: &app
+  image: diva-store:latest
+  restart: unless-stopped
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+    - logs:/home/frappe/frappe-bench/logs
+
 services:
-  # Database
   db:
     image: mariadb:11.8
     restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -19,7 +33,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Redis Cache
   redis-cache:
     image: redis:6.2-alpine
     restart: unless-stopped
@@ -33,7 +46,6 @@ services:
       retries: 10
       start_period: 30s
 
-  # Redis Queue
   redis-queue:
     image: redis:6.2-alpine
     restart: unless-stopped
@@ -47,24 +59,16 @@ services:
       retries: 10
       start_period: 30s
 
-  # Redis SocketIO
-  redis-socketio:
-    image: redis:6.2-alpine
-    restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_SOCKETIO_PASSWORD}
-    volumes:
-      - redis_socketio_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_SOCKETIO_PASSWORD}", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 30s
-
-  # Backend
-  backend:
+  # Write the shared bench config once the database and Redis are reachable.
+  configurator:
     image: diva-store:latest
-    restart: unless-stopped
+    restart: "no"
+    command: ["/opt/diva/configure.sh"]
+    environment:
+      REDIS_CACHE_PASSWORD: ${REDIS_CACHE_PASSWORD}
+      REDIS_QUEUE_PASSWORD: ${REDIS_QUEUE_PASSWORD}
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
     depends_on:
       db:
         condition: service_healthy
@@ -72,125 +76,82 @@ services:
         condition: service_healthy
       redis-queue:
         condition: service_healthy
-    volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      REDIS_CACHE: redis://:${REDIS_CACHE_PASSWORD}@redis-cache:6379
-      REDIS_QUEUE: redis://:${REDIS_QUEUE_PASSWORD}@redis-queue:6379
-      REDIS_SOCKETIO: redis://:${REDIS_SOCKETIO_PASSWORD}@redis-socketio:6379
-      MARIADB_HOST: db
-      MARIADB_PORT: 3306
-    healthcheck:
-      test: ["CMD", "bench", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
 
-  # Frontend
+  # Create the site once. Every step is guarded, so a resumed install continues
+  # instead of failing on an existing site or app.
+  create-site:
+    image: diva-store:latest
+    restart: "no"
+    command: ["/opt/diva/create-site.sh"]
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+    depends_on:
+      configurator:
+        condition: service_completed_successfully
+
+  backend:
+    <<: *app
+    command: ["bench", "serve", "--port", "8000"]
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
+  websocket:
+    <<: *app
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *app
+    command: ["bench", "schedule"]
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
+  queue-long:
+    <<: *app
+    command: ["bench", "worker", "--queue", "long,default,short"]
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
+  queue-short:
+    <<: *app
+    command: ["bench", "worker", "--queue", "short,default"]
+    depends_on:
+      create-site:
+        condition: service_completed_successfully
+
   frontend:
     image: diva-store:latest
     restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
+    command: ["nginx-entrypoint.sh"]
     environment:
       BACKEND: backend:8000
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/method/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-
-  # Websocket
-  websocket:
-    image: diva-store:latest
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: diva.local
+      UPSTREAM_REAL_IP_ADDRESS: 127.0.0.1
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: 120
+      CLIENT_MAX_BODY_SIZE: 50m
     volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
-    environment:
-      BACKEND: backend:8000
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-
-  # Scheduler
-  scheduler:
-    image: diva-store:latest
-    restart: unless-stopped
+      - sites:/home/frappe/frappe-bench/sites
+      - logs:/home/frappe/frappe-bench/logs
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
     depends_on:
-      backend:
-        condition: service_healthy
-    volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
-    environment:
-      BACKEND: backend:8000
-    healthcheck:
-      test: ["CMD", "bench", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-
-  # Queue Short
-  queue-short:
-    image: diva-store:latest
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
-    environment:
-      BACKEND: backend:8000
-    healthcheck:
-      test: ["CMD", "bench", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-
-  # Queue Long
-  queue-long:
-    image: diva-store:latest
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    volumes:
-      - sites_data:/home/frappe/frappe-bench/sites
-    environment:
-      BACKEND: backend:8000
-    healthcheck:
-      test: ["CMD", "bench", "healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+      - backend
 
 volumes:
   db_data:
-    driver: local
   redis_cache_data:
-    driver: local
   redis_queue_data:
-    driver: local
-  redis_socketio_data:
-    driver: local
-  sites_data:
-    driver: local
-
-networks:
-  default:
-    driver: bridge
+  sites:
+  logs:

@@ -88,6 +88,24 @@ def test_page_can_be_prefilled_and_respects_frozen_fields() -> None:
     assert "can_change_abbr" in text
 
 
+def test_page_polls_configuration_and_offers_retry() -> None:
+    """Saving the company only queues the work; the page must follow it to the end."""
+    text = page_text()
+    assert "get_setup_status" in text
+    assert "retry_setup_configuration" in text
+    assert "setInterval(pollStatus" in text
+    assert "Configuration is complete." in text
+    assert "Retry configuration" in text
+
+
+def test_page_resumes_progress_after_a_reload() -> None:
+    text = page_text()
+    controller = CONTROLLER.read_text(encoding="utf-8")
+    assert "setup_pending_config" in controller
+    assert "setup_pending_config" in text
+    assert "startPolling();" in text
+
+
 def test_controller_redirects_guests_to_login() -> None:
     text = CONTROLLER.read_text(encoding="utf-8")
     assert "/login?redirect-to=/diva-setup" in text

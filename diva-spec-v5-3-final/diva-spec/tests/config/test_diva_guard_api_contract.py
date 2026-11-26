@@ -22,6 +22,8 @@ WHITELISTED = {
     "get_setup_token",
     "verify_setup_token",
     "complete_setup",
+    "get_setup_status",
+    "retry_setup_configuration",
 }
 
 
@@ -107,3 +109,44 @@ def test_audit_uses_valid_activity_log_options() -> None:
     text = source()
     assert '"operation": "Diva Setup"' not in text
     assert '"status": "Success"' in text
+
+
+def test_fresh_site_returns_an_empty_profile_not_an_error() -> None:
+    """The wizard opens before a Company exists, so the read must not call _default_company."""
+    text = source()
+    assert "def _empty_profile()" in text
+    body = text[text.index("def get_company_profile(") :]
+    body = body[: body.index("@frappe.whitelist", 10)]
+    assert "_empty_profile()" in body
+    assert "_default_company()" not in body
+
+
+def test_wizard_creates_the_company_on_a_fresh_site() -> None:
+    """ERPNext derives accounts and warehouse names from the abbr at creation time."""
+    text = source()
+    assert "def _company_to_edit(" in text
+    assert '"chart_of_accounts": "Standard"' in text
+    assert "ensure_erpnext_fixtures()" in text
+    assert "ensure_site_defaults()" in text
+
+
+def test_complete_setup_queues_configuration_after_the_commit() -> None:
+    """The worker must not read a Company that is not committed yet."""
+    text = source()
+    body = text[text.index("def complete_setup(") :]
+    body = body[: body.index("@frappe.whitelist", 10)]
+    assert "frappe.enqueue(" in body
+    assert body.index("frappe.db.commit()") < body.index("frappe.enqueue(")
+    assert '_set_status("queued")' in body
+
+
+def test_config_job_runs_the_shared_apply_script() -> None:
+    """Rules and settings stay in infra/erpnext-config; the job only invokes it."""
+    setup_module = API.parent / "setup.py"
+    text = setup_module.read_text(encoding="utf-8")
+    assert '"--apply"' in text
+    assert '"--strict"' in text
+    assert '"--company"' in text
+    assert '"--abbr"' in text
+    assert "ERPNEXT_API_KEY" in text
+    assert "DIVA_APPLY_URL" in text

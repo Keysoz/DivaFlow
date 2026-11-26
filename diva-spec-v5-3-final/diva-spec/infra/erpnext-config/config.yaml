@@ -1861,6 +1861,29 @@ records:
         source_text: "An error occurred. Please try again.",
       }
     set: { translated_text: "حدث خطأ. يُرجى المحاولة مرة أخرى." }
+  # PROD-24: post-save progress. The setup wizard queues the full configuration
+  # and polls these states instead of blocking the request.
+  - doctype: Translation
+    match: { language: ar, source_text: "Configuring your store…" }
+    set: { translated_text: "جارٍ تهيئة متجرك…" }
+  - doctype: Translation
+    match: { language: ar, source_text: "This can take a few minutes. Keep this page open." }
+    set: { translated_text: "قد يستغرق هذا بضع دقائق. أبقِ هذه الصفحة مفتوحة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Configuration is complete." }
+    set: { translated_text: "اكتملت التهيئة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The configuration failed. Retry or check the error log." }
+    set: { translated_text: "فشلت التهيئة. أعد المحاولة أو راجع سجل الأخطاء." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Retry configuration" }
+    set: { translated_text: "إعادة محاولة التهيئة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "The configuration is taking longer than expected. You can retry." }
+    set: { translated_text: "التهيئة تستغرق وقتًا أطول من المتوقع. يمكنك إعادة المحاولة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Name is required." }
+    set: { translated_text: "اسم الشركة مطلوب." }
 
   # DEC-104: staff accounts. Access must already exist (the user is created on
   # the site, never by the pipeline — only these fields are pinned); the Diva

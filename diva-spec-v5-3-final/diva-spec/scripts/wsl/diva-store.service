@@ -1,0 +1,18 @@
+[Unit]
+Description=Diva Store compose stack
+Documentation=file:///opt/diva/README.txt
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/diva
+ExecStart=/opt/diva/boot.sh
+ExecStop=/usr/bin/docker compose --env-file /opt/diva/.env -f /opt/diva/store.prod.yml down
+TimeoutStartSec=0
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

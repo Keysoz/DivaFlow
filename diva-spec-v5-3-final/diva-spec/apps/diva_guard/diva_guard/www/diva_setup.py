@@ -45,11 +45,21 @@ def get_context(context: dict) -> None:
 	lang = requested or frappe.local.lang or "en"
 	is_manager = _is_manager()
 	complete = _setup_complete()
+	config_status = {"status": "pending", "error": ""}
+	if is_manager:
+		from diva_guard.setup import get_config_status
+
+		config_status = get_config_status()
 
 	context.lang_code = lang
 	context.is_rtl = lang in RTL_LANGS
 	context.is_manager = is_manager
 	context.setup_complete = complete
+	# The wizard commits the Company before the configuration runs. A reload in
+	# that window must keep showing progress (and the retry button), not the
+	# "already complete" card.
+	context.setup_pending_config = complete and config_status.get("status") != "ok"
+	context.config_status = config_status
 	context.token = None
 	context.csrf_token = frappe.sessions.get_csrf_token()
 

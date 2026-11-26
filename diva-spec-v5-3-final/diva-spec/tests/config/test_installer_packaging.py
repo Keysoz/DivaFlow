@@ -20,6 +20,7 @@ BUILD = ROOT / "scripts" / "build-installer.sh"
 INSTALL_PS1 = ROOT / "scripts" / "install.ps1"
 SETUP_CMD = ROOT / "scripts" / "setup.cmd"
 SFX = ROOT / "infra" / "sfx" / "7zSD.sfx"
+SFX_CONFIG = ROOT / "infra" / "sfx" / "config.txt"
 
 
 def compose() -> dict:
@@ -141,3 +142,12 @@ def test_setup_cmd_runs_the_powershell_installer() -> None:
     # deletes the temporary payload directory.
     assert "net session" in text
     assert "-Verb RunAs -Wait" in text
+
+
+def test_windows_scripts_and_sfx_config_use_crlf() -> None:
+    """cmd.exe and the 7-Zip SFX stub expect CRLF; LF can break `if (` blocks."""
+    for path in (SETUP_CMD, SFX_CONFIG):
+        raw = path.read_bytes()
+        assert b"\r\n" in raw, path
+        assert b"\n" not in raw.replace(b"\r\n", b""), path
+    assert 'RunProgram="setup.cmd"' in SFX_CONFIG.read_text(encoding="utf-8")

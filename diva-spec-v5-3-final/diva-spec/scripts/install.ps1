@@ -27,6 +27,16 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# setup.cmd passes its own directory, which ends with a backslash. Depending on
+# how cmd.exe rebuilds the command line, that can leave a literal quote in the
+# value ("Illegal characters in path" from GetFullPath). Normalize it before any
+# path API sees it.
+$PayloadDir = "$PayloadDir".Trim().Trim('"').Trim()
+if (-not $PayloadDir) {
+    $PayloadDir = $PSScriptRoot
+}
+
 $script:Distro = $Distro
 $script:LogFile = Join-Path $env:TEMP "diva-install.log"
 $script:SiteUrl = "http://localhost:8080"

@@ -146,6 +146,20 @@ def test_setup_cmd_runs_the_powershell_installer() -> None:
     # deletes the temporary payload directory.
     assert "net session" in text
     assert "-Verb RunAs -Wait" in text
+    # %~dp0 ends with a backslash. Passing it as "...\%~dp0" makes cmd.exe turn
+    # the closing \" into an escaped quote, so the script receives a value with
+    # a literal quote and GetFullPath throws "Illegal characters in path".
+    assert '-PayloadDir "%~dp0"' not in text
+    assert '-PayloadDir "%~dp0."' in text
+
+
+def test_installer_normalizes_the_payload_directory() -> None:
+    text = INSTALL_PS1.read_text(encoding="utf-8")
+    # Defence in depth for the same bug: strip stray quotes and whitespace, and
+    # fall back to the script's own folder if the value is empty.
+    assert '$PayloadDir = "$PayloadDir".Trim().Trim(\'"\').Trim()' in text
+    assert "if (-not $PayloadDir) {" in text
+    assert "$PayloadDir = $PSScriptRoot" in text
 
 
 def test_windows_scripts_and_sfx_config_use_crlf() -> None:

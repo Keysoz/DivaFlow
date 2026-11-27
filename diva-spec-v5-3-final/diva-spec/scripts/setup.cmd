@@ -17,7 +17,7 @@ if not "%ERRORLEVEL%"=="0" (
     exit /b %ERRORLEVEL%
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" -PayloadDir "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" -PayloadDir "%~dp0."
 set RC=%ERRORLEVEL%
 
 if not "%RC%"=="0" (

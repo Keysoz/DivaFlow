@@ -638,10 +638,65 @@ def _short(value: Any, limit: int = 160) -> str:
     return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
+IDENTITY_PLACEHOLDERS = ("{company}", "{abbr}")
+
+
+def _substitute(value: Any, company: str, abbr: str) -> Any:
+    """Return a copy of the config with {company} and {abbr} replaced (PROD-22)."""
+    if isinstance(value, dict):
+        return {key: _substitute(item, company, abbr) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_substitute(item, company, abbr) for item in value]
+    if isinstance(value, str):
+        return value.replace("{company}", company).replace("{abbr}", abbr)
+    return value
+
+
+def _unresolved_placeholders(value: Any) -> list[str]:
+    """Names of the identity placeholders still present in a config value."""
+    if isinstance(value, dict):
+        found = [item for child in value.values() for item in _unresolved_placeholders(child)]
+    elif isinstance(value, list):
+        found = [item for child in value for item in _unresolved_placeholders(child)]
+    elif isinstance(value, str):
+        found = [name for name in IDENTITY_PLACEHOLDERS if name in value]
+    else:
+        found = []
+    return sorted(set(found))
+
+
+def resolve_identity(client: Client, company: str | None, abbr: str | None) -> tuple[str, str]:
+    """Take the given company identity, or read the one the site already has.
+
+    Falling back to the site keeps `make config` and `docs/05a` working without
+    arguments, while a fresh installer passes the values chosen in the wizard.
+    """
+    if bool(company) != bool(abbr):
+        sys.exit("Pass --company and --abbr together, or neither of them.")
+    if company and abbr:
+        return company, abbr
+    defaults_path = "/api/resource/" + _quoted("Global Defaults") + "/" + _quoted("Global Defaults")
+    defaults = client.get(defaults_path).get("data") or {}
+    name = defaults.get("default_company")
+    if not name:
+        sys.exit("The site has no default company yet; pass --company and --abbr.")
+    company_path = "/api/resource/" + _quoted("Company") + "/" + _quoted(str(name))
+    record = client.get(company_path).get("data") or {}
+    abbreviation = record.get("abbr")
+    if not abbreviation:
+        sys.exit(f"Company {name} has no abbreviation; pass --company and --abbr.")
+    return str(name), str(abbreviation)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
     parser.add_argument("--apply", action="store_true", help="write the changes (default: dry run)")
+    parser.add_argument("--company", help="Value for {company} (default: the site's company)")
+    parser.add_argument("--abbr", help="Value for {abbr} (default: the site's abbreviation)")
+    parser.add_argument(
+        "--strict", action="store_true", help="fail if a {company}/{abbr} placeholder is unresolved"
+    )
     args = parser.parse_args()
 
     base = os.environ.get("ERPNEXT_URL", "").rstrip("/")
@@ -650,6 +705,24 @@ def main() -> int:
 
     with open(args.config, encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
+
+    client = Client(base)
+    key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
+    if key and secret:
+        client.headers["Authorization"] = f"token {key}:{secret}"
+    else:
+        user, password = os.environ.get("ERPNEXT_USER"), os.environ.get("ERPNEXT_PASSWORD")
+        if not (user and password):
+            sys.exit("Set ERPNEXT_API_KEY/ERPNEXT_API_SECRET or ERPNEXT_USER/ERPNEXT_PASSWORD")
+        client.post("/api/method/login", {"usr": user, "pwd": password})
+
+    company, abbr = resolve_identity(client, args.company, args.abbr)
+    config = _substitute(config, company, abbr)
+    if args.strict:
+        missing = _unresolved_placeholders(config)
+        if missing:
+            sys.exit(f"Unresolved placeholders in {args.config}: {', '.join(missing)}")
+
     entries = config.get("property_setters", [])
     workspaces = config.get("workspaces", [])
     singles = config.get("singles", [])
@@ -671,15 +744,11 @@ def main() -> int:
             }
         )
 
-    client = Client(base)
-    key, secret = os.environ.get("ERPNEXT_API_KEY"), os.environ.get("ERPNEXT_API_SECRET")
-    if key and secret:
-        client.headers["Authorization"] = f"token {key}:{secret}"
-    else:
-        user, password = os.environ.get("ERPNEXT_USER"), os.environ.get("ERPNEXT_PASSWORD")
-        if not (user and password):
-            sys.exit("Set ERPNEXT_API_KEY/ERPNEXT_API_SECRET or ERPNEXT_USER/ERPNEXT_PASSWORD")
-        client.post("/api/method/login", {"usr": user, "pwd": password})
+    if args.strict:
+        # Templates are read from disk, outside the substitution pass above.
+        missing = _unresolved_placeholders([entry["html"] for entry in print_formats])
+        if missing:
+            sys.exit(f"Unresolved placeholders in the print formats: {', '.join(missing)}")
 
     existing_ps = fetch_existing_property_setters(client, entries)
     existing_ws = fetch_existing_workspaces(client, [w["name"] for w in workspaces])

@@ -60,6 +60,21 @@ def test_guard_strings_have_arabic() -> None:
     assert not missing, f"missing Arabic for diva_guard: {missing}"
 
 
+def test_a_translation_key_appears_once() -> None:
+    """Two records for one source text apply twice; the last one silently wins."""
+    config: dict[str, Any] = yaml.safe_load(
+        (ROOT / "infra" / "erpnext-config" / "config.yaml").read_text(encoding="utf-8")
+    )
+    keys = [
+        record["match"]["source_text"]
+        for record in config.get("records", [])
+        if record.get("doctype") == "Translation"
+        and record.get("match", {}).get("language") == "ar"
+    ]
+    duplicates = sorted({key for key in keys if keys.count(key) > 1})
+    assert not duplicates, f"duplicate Arabic translation keys: {duplicates}"
+
+
 def test_trading_terms_are_corrected() -> None:
     """The ar.po mistranslations and the glossary terms we override (DEC-102)."""
     translations = _config_translations()

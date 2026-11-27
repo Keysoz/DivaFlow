@@ -1,0 +1,6 @@
+;!@Install@!UTF-8!
+Title="Diva Store Setup"
+BeginPrompt="Install Diva Store on this computer?"
+RunProgram="setup.cmd"
+Progress="yes"
+;!@InstallEnd@!

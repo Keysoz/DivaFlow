@@ -68,14 +68,14 @@ property_setters:
     property_type: Text
     value: "Selling price per Dozen. 1 Dozen = 12 Nos; the per-Nos Standard Selling price is created automatically (rate / 12)."
 
-  # DEC-86: a Purchase Receipt lands in Stores - DD. The accepted warehouse is
+  # DEC-86: a Purchase Receipt lands in Stores - {abbr}. The accepted warehouse is
   # the second field (the desk layer focuses it after the supplier) and the
   # put-away/posting-time options are noise for this shop.
   - doctype: Purchase Receipt
     fieldname: set_warehouse
     property: default
     property_type: Data
-    value: Stores - DD
+    value: Stores - {abbr}
   - doctype: Purchase Receipt
     fieldname: apply_putaway_rule
     property: hidden
@@ -88,7 +88,7 @@ property_setters:
     fieldname: warehouse
     property: default
     property_type: Data
-    value: Stores - DD
+    value: Stores - {abbr}
   # A single receiving flow: no rejects, no subcontracting, no rejection columns.
   - doctype: Purchase Receipt
     fieldname: rejected_warehouse
@@ -1008,21 +1008,19 @@ workspaces:
 
 singles:
   # Global defaults: the company is required by reports opened from dashboards
-  # without explicit filters (e.g. Item-wise Sales History).
+  # without explicit filters (e.g. Item-wise Sales History). Quoted so YAML
+  # keeps it a string; an unquoted {company} parses as a flow mapping (PROD-22).
   - doctype: Global Defaults
     field: default_company
-    value: Diva Dev
+    value: "{company}"
   # DEC-90: the system currency must match the company currency, otherwise
   # ERPNext tries an INR -> EGP exchange rate lookup on every document.
   - doctype: Global Defaults
     field: default_currency
     value: EGP
-  # DEC-95: the desk/website brand logo must point at the public copy of the
-  # file; a /private/files/... reference 403s on every web page (Navbar boots
-  # its app logo from this field).
-  - doctype: Navbar Settings
-    field: app_logo
-    value: /files/IMG_20260325_201818_061.jpg
+  # DEC-95: Navbar Settings.app_logo is not set here. It must point at the
+  # public copy of the uploaded file, so the setup wizard writes it when the
+  # logo is attached (diva_guard.api.update_company_profile).
   # E-04: negative stock off; reservations on (RULE-STOCK / DEC-08).
   - doctype: Stock Settings
     field: allow_negative_stock
@@ -1149,9 +1147,6 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Selling Price (EGP/Nos)" }
     set: { translated_text: "سعر البيع (جنيه/قطعة)" }
-  - doctype: Translation
-    match: { language: ar, source_text: "Selling Price (EGP/Dozen)" }
-    set: { translated_text: "سعر البيع (جنيه/دستة)" }
   - doctype: Translation
     match: { language: ar, source_text: "Accepted Quantity (Dozen)" }
     set: { translated_text: "الكمية المقبولة (دستة)" }
@@ -1287,9 +1282,6 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "Create Item & Add Line" }
     set: { translated_text: "إنشاء الصنف وإضافة سطر" }
-  - doctype: Translation
-    match: { language: ar, source_text: "Print the label after saving" }
-    set: { translated_text: "طباعة الملصق بعد الحفظ" }
   - doctype: Translation
     match: { language: ar, source_text: "Opening stock is posted in Dozen at the buying price, using the company's Temporary Opening account." }
     set: { translated_text: "يُرحَّل المخزون الافتتاحي بالدستة بسعر الشراء عبر حساب الافتتاحي المؤقت للشركة." }
@@ -1706,6 +1698,192 @@ records:
   - doctype: Translation
     match: { language: ar, source_text: "No image is set for item {0}" }
     set: { translated_text: "لا توجد صورة للصنف {0}" }
+
+  # PROD-19/PROD-23: the company profile and first-run setup strings raised by
+  # diva_guard.api. Native review still owed (AGENTS.md localization rule).
+  - doctype: Translation
+    match: { language: ar, source_text: "Company profile" }
+    set: { translated_text: "ملف الشركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Diva setup completed by {0}" }
+    set: { translated_text: "اكتمل إعداد ديفا بواسطة {0}" }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "No default company is configured. Finish the setup wizard first.",
+      }
+    set: { translated_text: "لا توجد شركة افتراضية مُهيّأة. أكمل معالج الإعداد أولاً." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only a System Manager can change the company profile." }
+    set: { translated_text: "لا يمكن تعديل ملف الشركة إلا بواسطة مدير النظام." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Please sign in first." }
+    set: { translated_text: "يُرجى تسجيل الدخول أولاً." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Setup is already complete." }
+    set: { translated_text: "تم الإعداد بالفعل." }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "The abbreviation cannot change because warehouses already use it.",
+      }
+    set: { translated_text: "لا يمكن تغيير الاختصار لأن المستودعات تستخدمه بالفعل." }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "The abbreviation must be 1 to 8 uppercase letters or digits.",
+      }
+    set: { translated_text: "يجب أن يتكون الاختصار من 1 إلى 8 أحرف لاتينية كبيرة أو أرقام." }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "The company abbreviation cannot change after the first transaction.",
+      }
+    set: { translated_text: "لا يمكن تغيير اختصار الشركة بعد أول حركة." }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "The company name cannot change after the first transaction.",
+      }
+    set: { translated_text: "لا يمكن تغيير اسم الشركة بعد أول حركة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The logo could not be decoded." }
+    set: { translated_text: "تعذّر فك ترميز الشعار." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The logo file is empty." }
+    set: { translated_text: "ملف الشعار فارغ." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The logo must be a PNG or JPEG image." }
+    set: { translated_text: "يجب أن يكون الشعار صورة PNG أو JPEG." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The logo must be a base64 PNG or JPEG image." }
+    set: { translated_text: "يجب أن يكون الشعار صورة PNG أو JPEG بترميز base64." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The logo must be smaller than 2 MB." }
+    set: { translated_text: "يجب أن يكون حجم الشعار أقل من 2 ميجابايت." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The setup token is invalid or has expired." }
+    set: { translated_text: "رمز الإعداد غير صالح أو انتهت صلاحيته." }
+  - doctype: Translation
+    match: { language: ar, source_text: "{0} must be a JSON object." }
+    set: { translated_text: "يجب أن يكون {0} كائن JSON." }
+
+  # PROD-24: the setup wizard page (diva_guard/www/diva-setup.html). Arabic is
+  # primary; a native reviewer still signs these off (AGENTS.md localization).
+  - doctype: Translation
+    match: { language: ar, source_text: "Diva Store Setup" }
+    set: { translated_text: "إعداد متجر ديفا" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Welcome to Diva Store" }
+    set: { translated_text: "مرحباً بك في متجر ديفا" }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "Confirm your company details to finish setting up this store.",
+      }
+    set: { translated_text: "أكّد بيانات شركتك لإنهاء إعداد هذا المتجر." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Language" }
+    set: { translated_text: "اللغة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Arabic" }
+    set: { translated_text: "العربية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "English" }
+    set: { translated_text: "الإنجليزية" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Name" }
+    set: { translated_text: "اسم الشركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Abbreviation" }
+    set: { translated_text: "اختصار الشركة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Logo" }
+    set: { translated_text: "الشعار" }
+  - doctype: Translation
+    match: { language: ar, source_text: "No logo" }
+    set: { translated_text: "لا يوجد شعار" }
+  - doctype: Translation
+    match: { language: ar, source_text: "PNG or JPEG, up to 2 MB." }
+    set: { translated_text: "PNG أو JPEG، بحجم أقصى 2 ميجابايت." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Address line 1" }
+    set: { translated_text: "سطر العنوان الأول" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Address line 2" }
+    set: { translated_text: "سطر العنوان الثاني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "City" }
+    set: { translated_text: "المدينة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Country" }
+    set: { translated_text: "الدولة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Phone" }
+    set: { translated_text: "الهاتف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Email" }
+    set: { translated_text: "البريد الإلكتروني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Website" }
+    set: { translated_text: "الموقع الإلكتروني" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Tax ID" }
+    set: { translated_text: "الرقم الضريبي" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Description" }
+    set: { translated_text: "الوصف" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Cancel" }
+    set: { translated_text: "إلغاء" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Save and finish" }
+    set: { translated_text: "حفظ وإنهاء" }
+  - doctype: Translation
+    match: { language: ar, source_text: "Saving..." }
+    set: { translated_text: "جارٍ الحفظ..." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Only a System Manager can finish setup." }
+    set: { translated_text: "لا يمكن إكمال الإعداد إلا بواسطة مدير النظام." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Open dashboard" }
+    set: { translated_text: "فتح لوحة التحكم" }
+  - doctype: Translation
+    match:
+      {
+        language: ar,
+        source_text: "An error occurred. Please try again.",
+      }
+    set: { translated_text: "حدث خطأ. يُرجى المحاولة مرة أخرى." }
+  # PROD-24: post-save progress. The setup wizard queues the full configuration
+  # and polls these states instead of blocking the request.
+  - doctype: Translation
+    match: { language: ar, source_text: "Configuring your store…" }
+    set: { translated_text: "جارٍ تهيئة متجرك…" }
+  - doctype: Translation
+    match: { language: ar, source_text: "This can take a few minutes. Keep this page open." }
+    set: { translated_text: "قد يستغرق هذا بضع دقائق. أبقِ هذه الصفحة مفتوحة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Configuration is complete." }
+    set: { translated_text: "اكتملت التهيئة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "The configuration failed. Retry or check the error log." }
+    set: { translated_text: "فشلت التهيئة. أعد المحاولة أو راجع سجل الأخطاء." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Retry configuration" }
+    set: { translated_text: "إعادة محاولة التهيئة" }
+  - doctype: Translation
+    match: { language: ar, source_text: "The configuration is taking longer than expected. You can retry." }
+    set: { translated_text: "التهيئة تستغرق وقتًا أطول من المتوقع. يمكنك إعادة المحاولة." }
+  - doctype: Translation
+    match: { language: ar, source_text: "Company Name is required." }
+    set: { translated_text: "اسم الشركة مطلوب." }
 
   # DEC-104: staff accounts. Access must already exist (the user is created on
   # the site, never by the pipeline — only these fields are pinned); the Diva

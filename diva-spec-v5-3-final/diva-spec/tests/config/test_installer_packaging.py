@@ -8,6 +8,7 @@ and the SFX must bundle every image the compose file references.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import yaml
@@ -160,6 +161,31 @@ def test_installer_normalizes_the_payload_directory() -> None:
     assert '$PayloadDir = "$PayloadDir".Trim().Trim(\'"\').Trim()' in text
     assert "if (-not $PayloadDir) {" in text
     assert "$PayloadDir = $PSScriptRoot" in text
+
+
+def test_copy_payload_covers_every_checksummed_file() -> None:
+    """Verify-Payload rejects a checksummed file that Copy-Payload skipped.
+
+    The first Windows run failed here: SHA256SUMS lists install.ps1 and
+    setup.cmd, but the copy list omitted them.
+    """
+    build = BUILD.read_text(encoding="utf-8")
+    match = re.search(r"sha256sum\s+([\s\S]*?)>\s*SHA256SUMS", build)
+    assert match, "sha256sum block not found in build-installer.sh"
+    names = [token for token in match.group(1).replace("\\", " ").split() if "." in token]
+    assert names, "no files parsed from the sha256sum block"
+
+    copy_line = next(
+        (
+            line
+            for line in INSTALL_PS1.read_text(encoding="utf-8").splitlines()
+            if "$files = @(" in line
+        ),
+        None,
+    )
+    assert copy_line, "$files list not found in install.ps1"
+    for name in names:
+        assert f'"{name}"' in copy_line, f"{name} is checksummed but never copied"
 
 
 def test_windows_scripts_and_sfx_config_use_crlf() -> None:

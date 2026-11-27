@@ -12,6 +12,7 @@ All notable changes to the Diva platform. The format follows Keep a Changelog; v
 
 ### Fixed
 - PROD-05: the first Windows run failed with `Exception calling "GetFullPath" ... "Illegal characters in path."`. `setup.cmd` passed `-PayloadDir "%~dp0"`, and `%~dp0` ends with a backslash, so Windows read the closing `\"` as an escaped quote and `$PayloadDir` ended with a literal `"`. The batch file now passes `"%~dp0."` and `install.ps1` trims stray quotes and whitespace before any path API, falling back to `$PSScriptRoot` when the value is empty.
+- PROD-05: the next run failed with `Checksummed file missing: install.ps1` because `SHA256SUMS` covers `install.ps1` and `setup.cmd` but `Copy-Payload` did not copy them. The copy list now matches the manifest, and a test compares both lists so a future file cannot be checksummed without being copied.
 - PROD-23: company profile and first-run setup API (`diva_guard.api`): `get_company_profile`, `update_company_profile`, `get_setup_token`, `verify_setup_token` and `complete_setup`; Arabic translations seeded through `infra/erpnext-config`.
 - PROD-24: first-run setup wizard at `/diva-setup` (`diva_guard/www/diva-setup.html` + `diva_setup.py`), server-rendered so every string is a `_()` key with an Arabic `Translation` record; Arabic is primary and RTL, with an English toggle, guest redirect to login, and a single-use token issued to a System Manager.
 

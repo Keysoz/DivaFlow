@@ -205,7 +205,7 @@ function Copy-Payload {
         Write-Step "Payload already in place."
         return
     }
-    $files = @("rootfs.tar", "images.tar", "store.prod.yml", "env.prod.example", "README.txt", "SHA256SUMS")
+    $files = @("rootfs.tar", "images.tar", "install.ps1", "setup.cmd", "store.prod.yml", "env.prod.example", "README.txt", "SHA256SUMS")
     foreach ($name in $files) {
         $source = Join-Path $PayloadDir $name
         if (-not (Test-Path $source)) {
